@@ -1,0 +1,26 @@
+import qual.Mutable;
+import qual.Immutable;
+import qual.PolyImmutable;
+import qual.Readonly;
+
+package java.lang;
+
+class Object {
+  @PolyImmutable Object();
+  boolean equals(@Any Object o);
+}
+
+class String {
+  boolean equals(@Any Object o);
+}
+
+package java.util;
+
+class List<X extends @Any Object> {
+  void add(X p);
+}
+
+class Date {
+  @PolyImmutable Date() ;
+  int getHours() @Readonly;
+}

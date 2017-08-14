@@ -1,0 +1,28 @@
+# Java
+*.class
+
+# Gradle
+.gradle
+/build/
+/bin/
+/dist/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Intellij
+.idea/
+*.iml
+*.iws
+
+# Mac
+.DS_Store
+
+# Annotated
+/annotated/
+*.jaif
+
+# Editor temp files
+*~
