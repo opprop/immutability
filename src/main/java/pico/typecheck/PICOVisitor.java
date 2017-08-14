@@ -6,10 +6,12 @@ import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
@@ -34,6 +36,12 @@ public class PICOVisitor extends BaseTypeVisitor<PICOAnnotatedTypeFactory> {
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
         return true;
+    }
+
+    /** Ensures immutability modifiers are correctly used */
+    @Override
+    protected BaseTypeValidator createTypeValidator() {
+        return new PICOValidator(checker, this, atypeFactory);
     }
 
     @Override
@@ -116,5 +124,30 @@ public class PICOVisitor extends BaseTypeVisitor<PICOAnnotatedTypeFactory> {
             checker.report(Result.failure("pico.new"), node);
         }
         return super.visitNewClass(node, p);
+    }
+
+    /** PICO validator class */
+    private class PICOValidator extends BaseTypeValidator {
+        public PICOValidator(BaseTypeChecker checker, BaseTypeVisitor<?> visitor, AnnotatedTypeFactory atypeFactory) {
+            super(checker, visitor, atypeFactory);
+        }
+
+        @Override
+        public Void visitDeclared(AnnotatedDeclaredType type, Tree tree) {
+            checkImmutabilityModifierIsCorrectlyUsed(type, tree);
+            return super.visitDeclared(type, tree);
+        }
+
+        private void checkImmutabilityModifierIsCorrectlyUsed(AnnotatedTypeMirror type, Tree tree) {
+            if (type.getAnnotations().isEmpty() || type.getAnnotations().size() > 1 || type.getAnnotationInHierarchy(PICOVisitor.this.atypeFactory.READONLY) == null) {
+                reportError(type, tree);
+            }
+        }
+
+        @Override
+        public Void visitArray(AnnotatedArrayType type, Tree tree) {
+            checkImmutabilityModifierIsCorrectlyUsed(type, tree);
+            return super.visitArray(type, tree);
+        }
     }
 }
