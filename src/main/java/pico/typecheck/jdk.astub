@@ -7,20 +7,16 @@ package java.lang;
 
 class Object {
   @PolyImmutable Object();
-  boolean equals(@Any Object o);
-}
-
-class String {
-  boolean equals(@Any Object o);
 }
 
 package java.util;
 
-class List<X extends @Any Object> {
-  void add(X p);
-}
-
 class Date {
   @PolyImmutable Date() ;
   int getHours() @Readonly;
+}
+
+class ArrayList {
+  @PolyImmutable ArrayList();
+  boolean add(E var1) @Mutable;
 }

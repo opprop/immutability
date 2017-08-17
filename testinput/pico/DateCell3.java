@@ -5,6 +5,7 @@ import qual.Readonly;
 
 import java.util.Date;
 
+//:: error: (initialization.fields.uninitialized)
 public class DateCell3 {
 
     @PolyImmutable Date pimdate;

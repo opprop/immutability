@@ -9,24 +9,20 @@ public class PolyImmutableConstructor {
     @PolyImmutable Object pif;
     @Immutable Object imf;
 
-    //:: error: (consturctor.invalid)
+    //:: error: (consturctor.invalid) :: error: (initialization.fields.uninitialized)
     @PolyImmutable PolyImmutableConstructor(@Mutable Object mo, @PolyImmutable Object po, @Immutable Object io) {
     }
 
     @PolyImmutable PolyImmutableConstructor(@PolyImmutable Object po, @Immutable Object io) {
-        //:: error: (illegal.write)
         this.rof = po;
-        //:: error: (illegal.write)
         this.rof = io;
 
-        //:: error: (illegal.write)
         this.pif = po;
-        //:: error: (assignment.type.incompatible) :: error: (illegal.write)
+        //:: error: (assignment.type.incompatible)
         this.pif = io;
 
-        //:: error: (assignment.type.incompatible) :: error: (illegal.write)
+        //:: error: (assignment.type.incompatible)
         this.imf = po;
-        //:: error: (illegal.write)
         this.imf = io;
     }
 

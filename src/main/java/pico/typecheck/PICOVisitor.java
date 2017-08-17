@@ -5,9 +5,12 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import org.checkerframework.checker.initialization.InitializationVisitor;
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
+import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -17,18 +20,20 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutab
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import pico.typecheck.PICOAnnotatedTypeFactory.PICOQualifierHierarchy;
 import qual.Immutable;
 import qual.Mutable;
 import qual.PolyImmutable;
 import qual.Readonly;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.VariableElement;
 
 /**
  * Created by mier on 20/06/17.
  */
-public class PICOVisitor extends BaseTypeVisitor<PICOAnnotatedTypeFactory> {
+public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory, PICOValue, PICOStore> {
     public PICOVisitor(BaseTypeChecker checker) {
         super(checker);
     }
@@ -38,14 +43,9 @@ public class PICOVisitor extends BaseTypeVisitor<PICOAnnotatedTypeFactory> {
         return true;
     }
 
-    /** Ensures immutability modifiers are correctly used */
-    @Override
-    protected BaseTypeValidator createTypeValidator() {
-        return new PICOValidator(checker, this, atypeFactory);
-    }
-
     @Override
     protected boolean checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
+        /*Copied Code Start*/
         AnnotatedDeclaredType returnType = (AnnotatedDeclaredType) constructor.getReturnType();
         // When an interface is used as the identifier in an anonymous class (e.g. new Comparable() {})
         // the constructor method will be Object.init() {} which has an Object return type
@@ -63,13 +63,15 @@ public class PICOVisitor extends BaseTypeVisitor<PICOAnnotatedTypeFactory> {
             // same and the is subtype tests below work correctly
             invocation = AnnotatedTypes.asSuper(atypeFactory, invocation, returnType);
         }
+        /*Copied Code End*/
 
-        if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType)) {
+        // The immutability return qualifier of the constructor (returnType) must be supertype of the
+        // constructor invocation immutability qualifier(invocation).
+        AnnotationMirror subATM = invocation.getAnnotationInHierarchy(atypeFactory.READONLY);
+        AnnotationMirror superATM = returnType.getAnnotationInHierarchy(atypeFactory.READONLY);
+        if (!atypeFactory.getQualifierHierarchy().isSubtype(subATM, superATM)) {
             checker.report(Result.failure(
-                    "constructor.invocation.invalid",
-                    constructor.toString(),
-                    invocation,
-                    returnType), newClassTree);
+                    "constructor.invocation.invalid"), newClassTree);
             return false;
         }
         return true;
@@ -98,10 +100,21 @@ public class PICOVisitor extends BaseTypeVisitor<PICOAnnotatedTypeFactory> {
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
         AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(node.getVariable());
-        if (receiverType != null && !receiverType.hasAnnotation(Mutable.class)) {
-            checker.report(Result.failure("illegal.write"), node);
+        if (receiverType != null && !allowWriteField(receiverType)) {
+            checker.report(Result.failure("illegal.field.write"), node);
         }
         return super.visitAssignment(node, p);
+    }
+
+    private boolean allowWriteField(AnnotatedTypeMirror receiverType) {
+        if (receiverType.hasAnnotation(Mutable.class))
+            return true;
+        else if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(PolyImmutable.class))
+            return true;
+        else if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(Immutable.class))
+            return true;
+        else
+            return false;
     }
 
     @Override
@@ -124,30 +137,5 @@ public class PICOVisitor extends BaseTypeVisitor<PICOAnnotatedTypeFactory> {
             checker.report(Result.failure("pico.new"), node);
         }
         return super.visitNewClass(node, p);
-    }
-
-    /** PICO validator class */
-    private class PICOValidator extends BaseTypeValidator {
-        public PICOValidator(BaseTypeChecker checker, BaseTypeVisitor<?> visitor, AnnotatedTypeFactory atypeFactory) {
-            super(checker, visitor, atypeFactory);
-        }
-
-        @Override
-        public Void visitDeclared(AnnotatedDeclaredType type, Tree tree) {
-            checkImmutabilityModifierIsCorrectlyUsed(type, tree);
-            return super.visitDeclared(type, tree);
-        }
-
-        private void checkImmutabilityModifierIsCorrectlyUsed(AnnotatedTypeMirror type, Tree tree) {
-            if (type.getAnnotations().isEmpty() || type.getAnnotations().size() > 1 || type.getAnnotationInHierarchy(PICOVisitor.this.atypeFactory.READONLY) == null) {
-                reportError(type, tree);
-            }
-        }
-
-        @Override
-        public Void visitArray(AnnotatedArrayType type, Tree tree) {
-            checkImmutabilityModifierIsCorrectlyUsed(type, tree);
-            return super.visitArray(type, tree);
-        }
     }
 }

@@ -24,6 +24,8 @@ public class PICOViewpointAdaptor extends FrameworkViewpointAdaptor {
             return iatf.MUTABLE;
         } else if (AnnotationUtils.areSame(declModifier, iatf.IMMUTABLE)) {
             return iatf.IMMUTABLE;
+        } else if (AnnotationUtils.areSame(declModifier, iatf.BOTTOM)) {
+            return iatf.BOTTOM;
         } else if (AnnotationUtils.areSame(declModifier, iatf.POLYIMMUTABLE)) {
             return recvModifier;
         } else {
