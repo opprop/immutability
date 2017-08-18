@@ -16,7 +16,9 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@ImplicitFor(typeNames={String.class}, literals = { LiteralKind.ALL},
+@ImplicitFor(typeNames={String.class, Double.class, Boolean.class, Byte.class,
+        Character.class, Float.class, Integer.class, Long.class, Short.class},
+        literals = { LiteralKind.PRIMITIVE, LiteralKind.STRING},
         types = { TypeKind.INT, TypeKind.BYTE, TypeKind.SHORT, TypeKind.BOOLEAN,
                 TypeKind.LONG, TypeKind.CHAR, TypeKind.FLOAT, TypeKind.DOUBLE })
 public @interface Immutable {}

@@ -20,3 +20,8 @@ class ArrayList {
   @PolyImmutable ArrayList();
   boolean add(E var1) @Mutable;
 }
+
+class HashSet {
+  boolean contains(@Readonly Object var1);
+  boolean remove(@Readonly Object var1);
+}

@@ -1,6 +1,8 @@
 package qual;
 
 import org.checkerframework.framework.qual.DefaultFor;
+import org.checkerframework.framework.qual.ImplicitFor;
+import org.checkerframework.framework.qual.LiteralKind;
 import org.checkerframework.framework.qual.SubtypeOf;
 import org.checkerframework.framework.qual.TargetLocations;
 import org.checkerframework.framework.qual.TypeUseLocation;
@@ -13,6 +15,7 @@ import java.lang.annotation.Target;
 
 @SubtypeOf({Mutable.class, PolyImmutable.class, Immutable.class})
 @DefaultFor({ TypeUseLocation.IMPLICIT_LOWER_BOUND })
+@ImplicitFor(literals = {LiteralKind.NULL})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
