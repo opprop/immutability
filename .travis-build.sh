@@ -12,7 +12,7 @@ export CHECKERFRAMEWORK=$ROOT/checker-framework
 export PATH=$AFU/scripts:$JAVA_HOME/bin:$PATH
 
 # Split $TRAVIS_REPO_SLUG into the owner and repository parts
-SLUGOWNER=${TRAVIS_REPO_SLUG%/*}
+SLUGOWNER=opprop
 SLUGREPO=${TRAVIS_REPO_SLUG##*/}
 
 echo "------ Downloading everthing from SLUG_OWNER: $SLUGOWNER ------"
