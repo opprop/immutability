@@ -100,12 +100,17 @@ public class Planet {
         @Mutable Planet mPlanet = new @Mutable Planet(1, "Earth", callerCreatedDate);
         @Immutable Planet imPlanet = new @Immutable Planet(1, "Earth", callerCreatedDate);
         // None of the fields are allowed to be modified on an immutable object
+        //:: error: (illegal.field.write)
         imPlanet.fMass = 2;
+        //:: error: (illegal.field.write)
         imPlanet.fName = "Jupitor";
+        //:: error: (illegal.field.write)
         imPlanet.fDateOfDiscovery = new @Immutable Date();
         // Object returned by getter method is neither modifiable
+        //:: error: (method.invocation.invalid)
         imPlanet.getDateOfDiscovery().setTime(123L);
         // Caller cannot mutate date object passed into imPlanet object
+        //:: error: (method.invocation.invalid)
         callerCreatedDate.setTime(123L);
     }
 }
