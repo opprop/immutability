@@ -14,15 +14,15 @@ package java.util;
 
 class Date {
   @PolyImmutable Date() ;
-  int getHours() @Readonly;
+  int getHours(@Readonly Date this);
 }
 
-class ArrayList {
+class ArrayList<E> {
   @PolyImmutable ArrayList();
-  boolean add(E var1) @Mutable;
+  boolean add(@Mutable ArrayList<E> this, E var1);
 }
 
-class HashSet {
+class HashSet<E> {
   boolean contains(@Readonly Object var1);
   boolean remove(@Readonly Object var1);
 }
