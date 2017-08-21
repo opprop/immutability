@@ -1,10 +1,7 @@
-import com.sun.tools.javac.util.List;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import qual.*;
-
 import java.util.ArrayList;
-import java.util.Collection;
 
 //TODO This test causes build to fail with messageL "You do not seem to be using the distributed
 // annotated JDK". But the manual run of checker indicates that all expected errors are there.

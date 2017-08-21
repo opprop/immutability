@@ -11,7 +11,7 @@ import java.util.List;
 
 public class ImmutabilityTests extends CheckerFrameworkPerFileTest {
     public ImmutabilityTests(File testFile) {
-        super(testFile, PICOChecker.class, "", "-Anomsgtext", "-d", "testTmp");
+        super(testFile, PICOChecker.class, "", "-Anomsgtext", "-Anocheckjdk", "-d", "testTmp");
     }
 
     @Parameters
