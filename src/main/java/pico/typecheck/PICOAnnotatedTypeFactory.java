@@ -99,8 +99,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             return super.isSubtype(subAnno, superAnno);
         }
 
-
-
         @Override
         public AnnotationMirror leastUpperBound(AnnotationMirror a1, AnnotationMirror a2) {
             if (isInitializationAnnotation(a1) || isInitializationAnnotation(a2)) {

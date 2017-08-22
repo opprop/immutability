@@ -39,9 +39,9 @@ public class ComplicatedTest {
     void testImmutability() {
         // For local variables, default initializatio modifier is not @Initialized, so in order
         // to pass it in constructor, we need to manually declared them as @Initialized
-        @Initialized String name = "tamier";
-        @Initialized int age = 24;
-        @Initialized @Immutable ArrayList<String> friends = new @Immutable ArrayList<String>();
+        String name = "tamier";
+        int age = 24;
+        @Immutable ArrayList<String> friends = new @Immutable ArrayList<String>();
         @Immutable Person p = new @Immutable Person(name, age, friends);
         String newName = "mutableName";
         //:: error: (method.invocation.invalid)
@@ -53,9 +53,9 @@ public class ComplicatedTest {
     }
 
     void testMutability() {
-        @Initialized String name = "tamier";
-        @Initialized int age = 24;
-        @Initialized @Mutable ArrayList<String> friends = new @Mutable ArrayList<String>();
+        String name = "tamier";
+        int age = 24;
+        @Mutable ArrayList<String> friends = new @Mutable ArrayList<String>();
         @Mutable Person p = new @Mutable Person(name, age, friends);
         String newName = "mutableName";
         // Allow because p is @Mutable

@@ -13,7 +13,8 @@ class Object {
 package java.util;
 
 class Date {
-  @PolyImmutable Date() ;
+  @PolyImmutable Date();
+  @PolyImmutable Date(long var1);
   int getHours(@Readonly Date this);
 }
 

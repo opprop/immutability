@@ -11,6 +11,7 @@ public class ViewpointAdaptationRules {
     @PolyImmutable Object pif;
     @Immutable Object imf;
 
+    //:: error: (consturctor.invalid)
     @PolyImmutable ViewpointAdaptationRules(@Readonly Object rof, @PolyImmutable Object pif, @Immutable Object imf) {
         this.rof = rof;
         this.pif = pif;
