@@ -1,71 +1,23 @@
-import qual.Immutable;
 import qual.Mutable;
 import qual.PolyImmutable;
 import qual.Readonly;
 
 import java.util.Date;
 
-//:: error: (initialization.fields.uninitialized)
-public class DateCell3 {
+public class DateCell3{
 
-    @PolyImmutable Date pimdate;
-    @Immutable Date imdate;
-    @Readonly Date rodate;
-
-    @Readonly Date getAnother(@PolyImmutable DateCell3 this) {
-        return this.rodate;
+    /*If this is a polyimmutable receiver reads polyimmutable field, then this wouldn't be an issue*/
+    /*Original purpose of instantiating polyimmutable object is to initialize polyimmutable field in polyimmutable constructor*/
+    @PolyImmutable Date getPolyImmutableDate(@Readonly DateCell3 this) {
+        return new @PolyImmutable Date();
     }
 
-
-    @Mutable Date getSecond(@Mutable DateCell3 this) {
-        return this.pimdate;
-    }
-
-
-    @Immutable Date getThird(@PolyImmutable DateCell3 this) {
-        return this.imdate;
-    }
-
-
-    void twoAdaptationsAreEquivalent1(@Mutable DateCell3 this) {
-        // ReIm
-        // q(this) <: @Readonly
-        // @Readonly <: @Readonly
-
-        // POI
-        // q(this) <: q(this) |> @Poly
-        // q(this) |> @Readonly <: @Readonly
-        // Two adaptations are equivalant: "this" should be subtype of @Readonly
-        // So @Mutable this makes sense in both adaptations
-        @Readonly Date rd = this.getAnother();
-    }
-
-    void twoAdaptationsAreEquivalent2(@Mutable DateCell3 this) {
-        // ReIm
-        // q(this) <: @Mutable |> @Mutable = @sMutable
-        // @Mutable |> @Mutable <: @Mutable
-
-        // POI
-        // q(this) <: q(this) |> @Mutable = @Mutable
-        // q(this) |> @Mutable <: @Mutable
-        // Two adaptations are equivalant: "this" should be @Mutable
-        @Mutable Date md = this.getSecond();
-    }
-
-    void adaptationToLhsMakesNoSense(@Mutable DateCell3 this) {
-        // ReIm
-        // q(this) <: @Immutable
-        // @Immutable <: @Immutable
-
-        // POI
-        // q(this) <: q(this) |> @Poly
-        // q(this) |> @Immutable <: @Immutable
-
-        // Adaptation to lhs unreasonably requires "this" to be @Immutable to invoke method
-        // getThird(), which doesn't make sense. It's correct to invoke a method which returns
-        // immutable object on @Mutable, @PolyImmutable, @Readonly and @Immutable objects.
-        // Only adaptation to receiver allows this invocation. If we use lhs adaptation,
-        // we will get a false positive warning that makes no sense.
-        @Immutable Date imd = this.getThird();
+    /**Not allowed in PICO**/
+    void lhsMakeSense(@Readonly DateCell3 this) {
+        //:: error: (assignment.type.incompatible)
+        @Mutable Date whatever = this.getPolyImmutableDate();
+         /*The benefit of adapting to lhs is that a poly return type method can be instantiated
+         to any lhs types. Any example type system that has similiar hierarchy and has this
+         powerfull polymorphism? How about GUT?*/
     }
 }

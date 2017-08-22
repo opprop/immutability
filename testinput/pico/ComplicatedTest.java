@@ -3,8 +3,6 @@ import org.checkerframework.checker.initialization.qual.Initialized;
 import qual.*;
 import java.util.ArrayList;
 
-//TODO This test causes build to fail with messageL "You do not seem to be using the distributed
-// annotated JDK". But the manual run of checker indicates that all expected errors are there.
 class Person {
 
     protected String name;
@@ -37,8 +35,6 @@ class Person {
 public class ComplicatedTest {
 
     void testImmutability() {
-        // For local variables, default initializatio modifier is not @Initialized, so in order
-        // to pass it in constructor, we need to manually declared them as @Initialized
         String name = "tamier";
         int age = 24;
         @Immutable ArrayList<String> friends = new @Immutable ArrayList<String>();
