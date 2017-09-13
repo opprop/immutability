@@ -1,10 +1,11 @@
-import org.checkerframework.checker.initialization.qual.Initialized;
 import qual.Readonly;
 import qual.Immutable;
 import qual.Mutable;
 
 import java.util.Date;
 
+/*If upper bound is @Readonly, @Mutable, type parameter is not in the abstract state of
+* the entire object*/
 class Wrapper<T>{
     T t;
     @Immutable Wrapper(T t) {
@@ -13,18 +14,20 @@ class Wrapper<T>{
 }
 
 public class Generic {
-    void test() {
+    void test1() {
         @Mutable Object arg = new @Mutable Object();
-        @Initialized @Immutable Wrapper<@Mutable Object> wrapper = new @Immutable Wrapper<@Mutable Object>(arg);
+        @Immutable Wrapper<@Mutable Object> wrapper = new @Immutable Wrapper<@Mutable Object>(arg);
+        /*Since t is not in the abstract state, we can get a mutable object out of an immutable
+        object. This is just like we have mutable elements in immutable list, those mutable
+        elements are not in the abstract state of the list*/
         @Mutable Object mo = wrapper.t;
-        //@Immutable List<@Mutable Object> l = new @Immutable<>();
     }
 
-    void maliciouslyInjectMutableObject() {
+    void test2() {
         @Mutable Date md = new @Mutable Date();
         @Readonly Date spy = md;
-        @Initialized @Immutable Wrapper<@Readonly Date> victim = new @Immutable Wrapper<@Readonly Date>(spy);
-        // Now spy is modified and immutability guarantee is broken
+        @Immutable Wrapper<@Readonly Date> victim = new @Immutable Wrapper<@Readonly Date>(spy);
+        /*Same argument as above*/
         md.setTime(123L);
     }
 }

@@ -13,11 +13,9 @@ public class ImmutabilityFactoryPattern {
     }
 
     static void test() {
-        @Immutable ImmutabilityFactoryPattern factory = new ImmutabilityFactoryPattern();
-        // It seems like ReIm is more flexible. But current CF doesn't support only one
-        // polymorphic annotation on method return type.
-        // Should both typecheck now
-        @Mutable Object mo = factory.createObject();// Typecheck in ReIm.
-        @Immutable Object imo = factory.createObject();// Typecheck in both
+        @Immutable ImmutabilityFactoryPattern factory = new @Immutable ImmutabilityFactoryPattern();
+        // Both typecheck in new PICO
+        @Mutable Object mo = factory.createObject();
+        @Immutable Object imo = factory.createObject();
     }
 }

@@ -13,10 +13,7 @@ public class Planet {
     public @Immutable Planet (double aMass, String aName, @Immutable Date aDateOfDiscovery) {
         fMass = aMass;
         fName = aName;
-        //make a private copy of aDateOfDiscovery
-        //this is the only way to keep the fDateOfDiscovery
-        //field private, and shields this class from any changes that
-        //the caller may make to the original aDateOfDiscovery object
+        //No need to copy aDateOfDiscovery, as it's @Immutable
         fDateOfDiscovery = aDateOfDiscovery;
     }
 
@@ -54,14 +51,8 @@ public class Planet {
 //  }
 
     /**
-     * Returns a mutable object - good style.
      *
-     * Returns a defensive copy of the field.
-     * The caller of this method can do anything they want with the
-     * returned Date object, without affecting the internals of this
-     * class in any way. Why? Because they do not have a reference to
-     * fDate. Rather, they are playing with a second Date that initially has the
-     * same data as fDate.
+     * Not need to return a defensive copy of the field.
      */
     public @Immutable Date getDateOfDiscovery(@Readonly Planet this) {
         return fDateOfDiscovery;
@@ -80,11 +71,8 @@ public class Planet {
     private String fName;
 
     /**
-     * A mutable object field. In this case, the state of this mutable field
-     * is to be changed only by this class. (In other cases, it makes perfect
-     * sense to allow the state of a field to be changed outside the native
-     * class; this is the case when a field acts as a "pointer" to an object
-     * created elsewhere.)
+     * An immutable object field. The state of this immutable field
+     * can never be changed by anyone.
      */
     private @Immutable Date fDateOfDiscovery;
 
@@ -95,10 +83,10 @@ public class Planet {
     }
 
     public static void main(String[] args) {
-        @Immutable Date callerCreatedDate = new @Immutable Date();
+        @Immutable Date discoveryDate = new @Immutable Date();
         //:: error: (constructor.invocation.invalid)
-        @Mutable Planet mPlanet = new @Mutable Planet(1, "Earth", callerCreatedDate);
-        @Immutable Planet imPlanet = new @Immutable Planet(1, "Earth", callerCreatedDate);
+        @Mutable Planet mPlanet = new @Mutable Planet(1, "Earth", discoveryDate);
+        @Immutable Planet imPlanet = new @Immutable Planet(1, "Earth", discoveryDate);
         // None of the fields are allowed to be modified on an immutable object
         //:: error: (illegal.field.write)
         imPlanet.fMass = 2;
@@ -106,11 +94,13 @@ public class Planet {
         imPlanet.fName = "Jupitor";
         //:: error: (illegal.field.write)
         imPlanet.fDateOfDiscovery = new @Immutable Date();
+        //:: error: (method.invocation.invalid)
+        imPlanet.fDateOfDiscovery.setTime(123L);
         // Object returned by getter method is neither modifiable
         //:: error: (method.invocation.invalid)
         imPlanet.getDateOfDiscovery().setTime(123L);
         // Caller cannot mutate date object passed into imPlanet object
         //:: error: (method.invocation.invalid)
-        callerCreatedDate.setTime(123L);
+        discoveryDate.setTime(123L);
     }
 }

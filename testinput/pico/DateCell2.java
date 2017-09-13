@@ -9,13 +9,16 @@ import java.util.Date;
 public class DateCell2 {
     @Immutable Date imdate;
 
-    /*CF states that polymorphic qualifier should be used at least twice.*/
     @Immutable Date getImmutableDate(@PolyImmutable DateCell2 this) {
         return this.imdate;
     }
 
-    /**Not allowed in ReIm**/
-    void receiverMakeSense(@Mutable DateCell2 this) {
+    /*Not allowed in ReIm. But allowed in PICO*/
+    void test1(@Mutable DateCell2 this) {
+        @Immutable Date imd = this.getImmutableDate();
+    }
+
+    void test2(@Immutable DateCell2 this) {
         @Immutable Date imd = this.getImmutableDate();
     }
 }

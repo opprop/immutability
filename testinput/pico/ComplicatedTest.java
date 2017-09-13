@@ -1,6 +1,7 @@
-import org.checkerframework.checker.initialization.qual.*;
-import org.checkerframework.checker.initialization.qual.Initialized;
-import qual.*;
+import qual.Immutable;
+import qual.Mutable;
+import qual.PolyImmutable;
+import qual.Readonly;
 import java.util.ArrayList;
 
 class Person {

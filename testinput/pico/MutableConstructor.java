@@ -10,7 +10,7 @@ public class MutableConstructor {
     @Immutable Object imf;
 
     @Mutable MutableConstructor(@Mutable Object mo, @PolyImmutable Object po, @Immutable Object io) {
-        // It looks like "this" automatically has the same type as constructor return type.
+        // "this" automatically has the same type as constructor return type.
         this.rof = mo;
         this.rof = po;
         this.rof = io;
