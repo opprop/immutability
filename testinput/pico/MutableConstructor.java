@@ -32,7 +32,7 @@ public class MutableConstructor {
         new @Mutable MutableConstructor(mo, mo, io);
         //:: error: (argument.type.incompatible)
         new @Mutable MutableConstructor(mo, po, io);
-        //:: error: (constructor.invocation.invalid)
+        // The same argument as the one in ImmutableConstructor
         new @PolyImmutable MutableConstructor(mo, po, io);
         //:: error: (constructor.invocation.invalid)
         new @Immutable MutableConstructor(mo, io, io);

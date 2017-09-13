@@ -16,7 +16,7 @@ public class ImmutabilityFactoryPattern {
         @Immutable ImmutabilityFactoryPattern factory = new ImmutabilityFactoryPattern();
         // It seems like ReIm is more flexible. But current CF doesn't support only one
         // polymorphic annotation on method return type.
-        //:: error: (assignment.type.incompatible)
+        // Should both typecheck now
         @Mutable Object mo = factory.createObject();// Typecheck in ReIm.
         @Immutable Object imo = factory.createObject();// Typecheck in both
     }

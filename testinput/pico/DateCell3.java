@@ -12,9 +12,9 @@ public class DateCell3{
         return new @PolyImmutable Date();
     }
 
-    /**Not allowed in PICO**/
+    /**Should allow in PICO now**/
     void lhsMakeSense(@Readonly DateCell3 this) {
-        //:: error: (assignment.type.incompatible)
+        // Can adapt polymorphic return type to assignment context correctly
         @Mutable Date whatever = this.getPolyImmutableDate();
          /*The benefit of adapting to lhs is that a poly return type method can be instantiated
          to any lhs types. Any example type system that has similiar hierarchy and has this

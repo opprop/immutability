@@ -13,7 +13,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@SubtypeOf({Mutable.class, PolyImmutable.class, Immutable.class})
+@SubtypeOf({Mutable.class, Immutable.class})
 @DefaultFor({ TypeUseLocation.IMPLICIT_LOWER_BOUND })
 @ImplicitFor(literals = {LiteralKind.NULL})
 @Documented

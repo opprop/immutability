@@ -35,7 +35,9 @@ public class ImmutableConstructor {
         //:: error: (constructor.invocation.invalid)
         new @Mutable ImmutableConstructor(mo, io);
 
-        //:: error: (constructor.invocation.invalid)
+        // This no longer is error now(?). Because instantiating @Immutable constructor
+        // as @PolyImmutable(PolymorphicQualifier) automatically resolves @PolyImmutable
+        // to @Immutable, which might be a good thing
         new @PolyImmutable ImmutableConstructor(po, io);
 
         //:: error: (constructor.invocation.invalid) :: error: (pico.new)

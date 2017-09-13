@@ -1,30 +1,28 @@
 package pico.typecheck;
 
-import com.sun.tools.javac.util.List;
+import com.sun.source.tree.NewClassTree;
 import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.qual.FBCBottom;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.framework.flow.CFAnalysis;
-import org.checkerframework.framework.flow.CFStore;
-import org.checkerframework.framework.flow.CFTransfer;
-import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
+import org.checkerframework.framework.util.QualifierPolymorphism;
 import org.checkerframework.framework.util.ViewpointAdaptor;
 import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.Pair;
 import qual.Bottom;
-
 import qual.Immutable;
-
 import qual.Mutable;
 import qual.PolyImmutable;
 import qual.Readonly;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -73,6 +71,32 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     @Override
     public AnnotationMirror getFieldInvariantAnnotation() {
         return IMMUTABLE;
+    }
+
+    @Override
+    public Pair<AnnotatedExecutableType, java.util.List<AnnotatedTypeMirror>> constructorFromUse(NewClassTree tree) {
+        Pair<AnnotatedExecutableType, java.util.List<AnnotatedTypeMirror>> mfuPair =
+                super.constructorFromUse(tree);
+        AnnotatedExecutableType method = mfuPair.first;
+        if (dependentTypesHelper != null) {
+            dependentTypesHelper.viewpointAdaptConstructor(tree, method);
+        }
+        return mfuPair;
+    }
+
+    @Override
+    protected void viewpointAdaptMethod(ExecutableElement methodElt, AnnotatedTypeMirror receiverType, AnnotatedExecutableType methodType) {
+        return;
+    }
+
+    @Override
+    protected QualifierPolymorphism createQualifierPolymorphism() {
+        return new QualifierPolymorphism(processingEnv, this){
+            @Override
+            public void annotate(NewClassTree tree, AnnotatedExecutableType type) {
+                return;
+            }
+        };
     }
 
     @Override
