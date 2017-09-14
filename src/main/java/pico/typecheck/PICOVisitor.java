@@ -1,32 +1,31 @@
 package pico.typecheck;
 
 import com.sun.source.tree.AssignmentTree;
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.util.TreePath;
 import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.common.basetype.BaseTypeValidator;
-import org.checkerframework.common.basetype.BaseTypeVisitor;
-import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.source.Result;
-import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 import org.checkerframework.framework.type.AnnotatedTypeParameterBounds;
 import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOQualifierHierarchy;
 import qual.Immutable;
 import qual.Mutable;
 import qual.PolyImmutable;
@@ -35,6 +34,7 @@ import qual.Readonly;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import java.util.ArrayList;
@@ -51,6 +51,18 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
         return true;
+    }
+
+    @Override
+    public Void visitTypeParameter(TypeParameterTree node, Void p) {
+        AnnotatedTypeMirror upperBound = atypeFactory.getAnnotatedTypeFromTypeTree(node);
+        // Ensure upper bound has effective immutable upper bound if the enclosing class has @Immutable on declaration
+        boolean hasImmutableBoundAnnotation = hasImmutableAnnotationOnTypeDeclaration(node);
+        if (hasImmutableBoundAnnotation &&
+                !AnnotationUtils.areSameByClass(upperBound.getEffectiveAnnotationInHierarchy(atypeFactory.READONLY), Immutable.class)) {
+            checker.report(Result.failure("immutable.class.type.parameter.bound.invalid"), node);
+        }
+        return super.visitTypeParameter(node, p);
     }
 
     @Override
@@ -89,23 +101,65 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     @Override
     public Void visitMethod(MethodTree node, Void p) {
+        AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(node);
+        boolean hasImmutableBoundAnnotation = hasImmutableAnnotationOnTypeDeclaration(node);
+
         if (TreeUtils.isConstructor(node)) {
-            AnnotatedExecutableType constructorType = atypeFactory.getAnnotatedType(node);
-            AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) constructorType.getReturnType();
+            AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
             if (constructorReturnType.hasAnnotation(Readonly.class)) {
-                checker.report(Result.failure("consturctor.invalid"), node);
+                checker.report(Result.failure("constructor.invalid"), node);
+            }
+
+            AnnotationMirror constructorReturnAnnotation = constructorReturnType.getAnnotationInHierarchy(atypeFactory.READONLY);
+
+            if (hasImmutableBoundAnnotation
+                    && !atypeFactory.getQualifierHierarchy().isSubtype(constructorReturnAnnotation, atypeFactory.IMMUTABLE)) {
+                checker.report(Result.failure("immutable.class.constructor.invalid"), node);
             }
             if (constructorReturnType.hasAnnotation(Immutable.class) ||
                     constructorReturnType.hasAnnotation(PolyImmutable.class)) {
                 for (VariableTree paramterTrees : node.getParameters()) {
                     if (atypeFactory.getAnnotatedType(paramterTrees).hasAnnotation(Mutable.class)
                             || atypeFactory.getAnnotatedType(paramterTrees).hasAnnotation(Readonly.class)) {
-                        checker.report(Result.failure("consturctor.invalid"), node);
+                        checker.report(Result.failure("constructor.invalid"), node);
                     }
                 }
             }
+        } else {
+            AnnotatedDeclaredType declareReceiverType = executableType.getReceiverType();
+            if (hasImmutableBoundAnnotation && declareReceiverType != null &&
+                    !(declareReceiverType.hasAnnotation(atypeFactory.READONLY) ||
+                            declareReceiverType.hasAnnotation(atypeFactory.IMMUTABLE))) {
+                checker.report(Result.failure("immutable.class.method.receiver.invalid"), node);
+            }
         }
         return super.visitMethod(node, p);
+    }
+
+    private boolean hasImmutableAnnotationOnTypeDeclaration(Tree node) {
+        TypeElement typeElement = null;
+        if (node instanceof MethodTree) {
+            MethodTree methodTree = (MethodTree) node;
+            ExecutableElement element = TreeUtils.elementFromDeclaration(methodTree);
+            typeElement = ElementUtils.enclosingClass(element);
+        } else if (node instanceof TypeParameterTree) {
+            TypeParameterTree typeParameterTree = (TypeParameterTree) node;
+            TreePath treePath = atypeFactory.getPath(typeParameterTree);
+            ClassTree classTree = TreeUtils.enclosingClass(treePath);
+            // This means type parameter is declared not on type declaration, but on generic methods
+            if (classTree != treePath.getParentPath().getLeaf()) {
+                return false;
+            }
+            typeElement = TreeUtils.elementFromDeclaration(classTree);
+        }
+        if (typeElement == null) {
+            ErrorReporter.errorAbort("Enclosing typeElement should not be null!", node);
+        }
+        AnnotatedTypeMirror bound = atypeFactory.fromElement(typeElement);
+        AnnotationMirror boundAnnotation = bound.getAnnotationInHierarchy(atypeFactory.READONLY);
+        return boundAnnotation != null
+                && AnnotationUtils.areSameByClass(boundAnnotation, Immutable.class);
+
     }
 
     @Override
