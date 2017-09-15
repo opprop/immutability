@@ -169,14 +169,24 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     public Void visitAssignment(AssignmentTree node, Void p) {
         ExpressionTree variable = node.getVariable();
         AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
-        if (receiverType != null && !allowWriteField(receiverType)) {
+        if (receiverType == null) {
+            return super.visitAssignment(node, p);
+        }
+        if (!allowWriteField(receiverType)) {
             if (variable.getKind() == Kind.MEMBER_SELECT) {
                 checker.report(Result.failure("illegal.field.write"), node);
             } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
                 checker.report(Result.failure("illegal.array.write"), node);
             } else {
-                ErrorReporter.errorAbort("Unkown assignment variable!", variable);
+                ErrorReporter.errorAbort("Unknown assignment variable!", variable);
             }
+        } else if (isInitializingPolyImmutableOrImmutableObject(receiverType)) {
+            AnnotatedTypeMirror varType = atypeFactory.getAnnotatedTypeLhs(variable);
+            AnnotatedTypeMirror valueType = atypeFactory.getAnnotatedType(node.getExpression());
+            if (varType.hasAnnotation(Readonly.class) && valueType.hasAnnotation(Mutable.class)) {
+                checker.report(Result.failure("readonly.capture.mutable"), node);
+            }
+
         }
         return super.visitAssignment(node, p);
     }
@@ -184,7 +194,14 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     private boolean allowWriteField(AnnotatedTypeMirror receiverType) {
         if (receiverType.hasAnnotation(Mutable.class))
             return true;
-        else if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(PolyImmutable.class))
+        else if (isInitializingPolyImmutableOrImmutableObject(receiverType))
+            return true;
+        else
+            return false;
+    }
+
+    private boolean isInitializingPolyImmutableOrImmutableObject(AnnotatedTypeMirror receiverType) {
+        if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(PolyImmutable.class))
             return true;
         else if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(Immutable.class))
             return true;
@@ -197,8 +214,13 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         VariableElement element = TreeUtils.elementFromDeclaration(node);
         if (element != null && element.getKind() == ElementKind.FIELD) {
             AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
-            if (type.hasAnnotation(Mutable.class))
+            if (ElementUtils.isStatic(element) && type.hasAnnotation(PolyImmutable.class)) {
+                // Forbid @PolyImmutable on static field
+                checker.report(Result.failure("static.field.poly.forbidden"), node);
+            } else if (!ElementUtils.isStatic(element) && type.hasAnnotation(Mutable.class)) {
+                // Don't allow @Mutable on non-static field
                 checker.report(Result.failure("field.mutable.forbidden"), node);
+            }
         }
         return super.visitVariable(node, p);
     }
