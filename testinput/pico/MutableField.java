@@ -3,7 +3,7 @@ import qual.Mutable;
 
 public class MutableField {
 
-    //:: error: (field.mutable.forbidden)
+    //:: error: (instance.field.mutable.forbidden)
     @Mutable Object f;
     // We do allow static mutable field, because it doesn't belong
     // to the abstract state of any object

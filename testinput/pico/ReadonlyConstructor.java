@@ -2,6 +2,6 @@ import qual.Readonly;
 
 public class ReadonlyConstructor {
 
-    //:: error: (constructor.invalid)
+    //:: error: (constructor.return.invalid)
     @Readonly ReadonlyConstructor() {}
 }

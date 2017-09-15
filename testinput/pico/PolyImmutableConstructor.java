@@ -9,7 +9,7 @@ public class PolyImmutableConstructor {
     @PolyImmutable Object pif;
     @Immutable Object imf;
 
-    //:: error: (constructor.invalid) :: error: (initialization.fields.uninitialized)
+    //:: error: (constructor.parameter.invalid) :: error: (initialization.fields.uninitialized)
     @PolyImmutable PolyImmutableConstructor(@Mutable Object mo, @PolyImmutable Object po, @Immutable Object io) {
     }
 

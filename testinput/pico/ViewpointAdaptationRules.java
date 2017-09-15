@@ -9,7 +9,7 @@ public class ViewpointAdaptationRules {
     @PolyImmutable Object pif;
     @Immutable Object imf;
 
-    //:: error: (constructor.invalid)
+    //:: error: (constructor.parameter.invalid)
     @PolyImmutable ViewpointAdaptationRules(@Readonly Object rof, @PolyImmutable Object pif, @Immutable Object imf) {
         this.rof = rof;
         this.pif = pif;
