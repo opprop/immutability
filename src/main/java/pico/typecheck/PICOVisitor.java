@@ -2,10 +2,13 @@ package pico.typecheck;
 
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
@@ -164,9 +167,16 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
-        AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(node.getVariable());
+        ExpressionTree variable = node.getVariable();
+        AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
         if (receiverType != null && !allowWriteField(receiverType)) {
-            checker.report(Result.failure("illegal.field.write"), node);
+            if (variable.getKind() == Kind.MEMBER_SELECT) {
+                checker.report(Result.failure("illegal.field.write"), node);
+            } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
+                checker.report(Result.failure("illegal.array.write"), node);
+            } else {
+                ErrorReporter.errorAbort("Unkown assignment variable!", variable);
+            }
         }
         return super.visitAssignment(node, p);
     }
@@ -195,13 +205,23 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     @Override
     public Void visitNewClass(NewClassTree node, Void p) {
-        // Ensure only @Mutable/@Immutable/@PolyImmutable are used on new instancec creation
+        checkNewInstanceCreation(node);
+        return super.visitNewClass(node, p);
+    }
+
+    private void checkNewInstanceCreation(Tree node) {
+        // Ensure only @Mutable/@Immutable/@PolyImmutable are used on new instance creation
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
         if (!(type.hasEffectiveAnnotation(atypeFactory.IMMUTABLE) || type.hasEffectiveAnnotation(atypeFactory.MUTABLE) ||
         type.hasEffectiveAnnotation(atypeFactory.POLYIMMUTABLE))) {
-            checker.report(Result.failure("pico.new"), node);
+            checker.report(Result.failure("pico.new.invalid"), node);
         }
-        return super.visitNewClass(node, p);
+    }
+
+    @Override
+    public Void visitNewArray(NewArrayTree node, Void p) {
+        checkNewInstanceCreation(node);
+        return super.visitNewArray(node, p);
     }
 
     @Override

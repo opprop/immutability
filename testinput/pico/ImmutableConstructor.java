@@ -40,7 +40,7 @@ public class ImmutableConstructor {
         // to @Immutable, which might be a good thing
         new @PolyImmutable ImmutableConstructor(po, io);
 
-        //:: error: (constructor.invocation.invalid) :: error: (pico.new)
+        //:: error: (constructor.invocation.invalid) :: error: (pico.new.invalid)
         new @Readonly ImmutableConstructor(ro, io);
     }
 }

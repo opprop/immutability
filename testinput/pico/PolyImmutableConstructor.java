@@ -51,7 +51,7 @@ public class PolyImmutableConstructor {
         //:: error: (argument.type.incompatible)
         new @Immutable PolyImmutableConstructor(po, io);
 
-        //:: error: (pico.new)
+        //:: error: (pico.new.invalid)
         new @Readonly PolyImmutableConstructor(ro, io);
     }
 }
