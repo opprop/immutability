@@ -17,7 +17,7 @@ class ImmutableClass3 extends A<@Mutable Object>{
     }
 
     void foo(@Immutable ImmutableClass3 this) {
-        /*This is acceptable(?). t is not in the abstract state of
+        /*This is acceptable. t is not in the abstract state of
         the entire object because T has upper bound @Readonly*/
         @Mutable Object mo = this.t;
     }
