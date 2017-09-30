@@ -2,22 +2,22 @@ import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import qual.Immutable;
 import qual.Mutable;
-import qual.PolyImmutable;
+import qual.ReceiverDependantMutable;
 
 import java.util.Date;
 
 class Thief {
-    @NotOnlyInitialized @PolyImmutable
+    @NotOnlyInitialized @ReceiverDependantMutable
     SuperClass2 victimCaptured;
 
-    @PolyImmutable Thief(@UnderInitialization @PolyImmutable SuperClass2 victimCaptured) {
+    @ReceiverDependantMutable Thief(@UnderInitialization @ReceiverDependantMutable SuperClass2 victimCaptured) {
         this.victimCaptured = victimCaptured;
     }
 }
 
 public class SuperClass2{
-    @PolyImmutable Date p;
-    @NotOnlyInitialized @PolyImmutable
+    @ReceiverDependantMutable Date p;
+    @NotOnlyInitialized @ReceiverDependantMutable
     Thief thief;
 
     @Mutable SuperClass2(@Mutable Date p){
@@ -29,14 +29,16 @@ public class SuperClass2{
 
 class SubClass2 extends SuperClass2{
     @Immutable SubClass2(){
-        // This is ok even though super constructor is @Mutable. Because all mutable objects are local within current constructor
+        // This is not ok any more
+        //:: error: (subclass.constructor.invalid)
         super(new @Mutable Date());
     }
 }
 
 class AnotherSubClass2 extends SuperClass2{
-    @PolyImmutable AnotherSubClass2(){
-        // This is ok even though super constructor is @Mutable. Because all mutable objects are local within current constructor
+    @ReceiverDependantMutable AnotherSubClass2(){
+        // This is not ok any more
+        //:: error: (subclass.constructor.invalid)
         super(new @Mutable Date());
     }
 }

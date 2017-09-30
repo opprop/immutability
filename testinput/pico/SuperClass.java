@@ -1,11 +1,11 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.PolyImmutable;
+import qual.ReceiverDependantMutable;
 
 import java.util.Date;
 
 public class SuperClass{
-    @PolyImmutable Date p;
+    @ReceiverDependantMutable Date p;
     @Immutable SuperClass(@Immutable Date p){
         this.p = p;
     }
@@ -17,7 +17,7 @@ public class SuperClass{
 
 class SubClass extends SuperClass{
     @Mutable SubClass(){
-        //:: error: (constructor.invocation.invalid)
+        //:: error: (subclass.constructor.invalid)
         super(new @Immutable Date(1L));
     }
 
@@ -28,8 +28,8 @@ class SubClass extends SuperClass{
 }
 
 class AnotherSubClass extends SuperClass{
-    @PolyImmutable AnotherSubClass(){
-        //:: error: (constructor.invocation.invalid)
+    @ReceiverDependantMutable AnotherSubClass(){
+        //:: error: (subclass.constructor.invalid)
         super(new @Immutable Date(1L));
     }
 

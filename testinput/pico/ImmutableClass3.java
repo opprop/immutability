@@ -1,11 +1,10 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.PolyImmutable;
 import qual.Readonly;
 
 class A<T extends @Readonly Object>{
     T t;
-    A(T t){
+    @Immutable A(T t){
         this.t = t;
     }
 }

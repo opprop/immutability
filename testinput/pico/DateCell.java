@@ -1,7 +1,7 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.PolyImmutable;
 import qual.Readonly;
+import qual.ReceiverDependantMutable;
 
 import java.lang.SuppressWarnings;
 import java.util.Date;
@@ -9,9 +9,9 @@ import java.util.Date;
 //:: error: (initialization.fields.uninitialized)
 public class DateCell {
 
-    @PolyImmutable Date date;
+    @ReceiverDependantMutable Date date;
 
-    @PolyImmutable Date getDate(@PolyImmutable DateCell this) {
+    @ReceiverDependantMutable Date getDate(@ReceiverDependantMutable DateCell this) {
         return this.date;
     }
 

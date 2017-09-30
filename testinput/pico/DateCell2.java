@@ -1,6 +1,6 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.PolyImmutable;
+import qual.PolyMutable;
 import qual.Readonly;
 
 import java.util.Date;
@@ -9,7 +9,7 @@ import java.util.Date;
 public class DateCell2 {
     @Immutable Date imdate;
 
-    @Immutable Date getImmutableDate(@PolyImmutable DateCell2 this) {
+    @Immutable Date getImmutableDate(@PolyMutable DateCell2 this) {
         return this.imdate;
     }
 

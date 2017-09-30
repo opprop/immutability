@@ -1,6 +1,6 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.PolyImmutable;
+import qual.ReceiverDependantMutable;
 import qual.Readonly;
 import java.util.ArrayList;
 
@@ -8,9 +8,9 @@ class Person {
 
     protected String name;
     protected int age;
-    protected  @PolyImmutable ArrayList<String> friends;
+    protected  @ReceiverDependantMutable ArrayList<String> friends;
 
-    public @PolyImmutable Person(String name, int age, @PolyImmutable ArrayList<String> friends) {
+    public @ReceiverDependantMutable Person(String name, int age, @ReceiverDependantMutable ArrayList<String> friends) {
         this.name = name;
         this.age = age;
         this.friends = friends;
@@ -28,7 +28,7 @@ class Person {
         return age;
     }
 
-    public @PolyImmutable ArrayList<String> getFriends(@PolyImmutable Person this) {
+    public @ReceiverDependantMutable ArrayList<String> getFriends(@ReceiverDependantMutable Person this) {
         return friends;
     }
 }
@@ -46,7 +46,7 @@ public class ComplicatedTest {
         //:: error: (method.invocation.invalid)
         p.friends.add("newFriend");
         //:: error: (method.invocation.invalid)
-        p.getFriends().add("newFriend");// In the error message, it's @Readonly(top) if polymorphism fails to resolve
+        p.getFriends().add("newFriend");
         //:: error: (illegal.field.write)
         p.name = newName;
         //:: error: (illegal.field.write)

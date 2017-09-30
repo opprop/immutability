@@ -1,12 +1,12 @@
 import qual.Readonly;
 import qual.Mutable;
 import qual.Immutable;
-import qual.PolyImmutable;
+import qual.PolyMutable;
 
 class B{
-    @PolyImmutable B getObject(){return null;}
-    @PolyImmutable B getSecondObject(@PolyImmutable B this){return null;}
-    @PolyImmutable B getThirdObject(@Mutable B this){return null;}
+    @PolyMutable B getObject(){return null;}
+    @PolyMutable B getSecondObject(@PolyMutable B this){return null;}
+    @PolyMutable B getThirdObject(@Mutable B this){return null;}
     @Immutable B getForthObject(){
         return this.getThirdObject();
     }

@@ -1,6 +1,6 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.PolyImmutable;
+import qual.ReceiverDependantMutable;
 import qual.Readonly;
 
 //:: error: (immutable.class.type.parameter.bound.invalid)
@@ -9,7 +9,7 @@ import qual.Readonly;
 }
 
 //:: error: (immutable.class.type.parameter.bound.invalid)
-@Immutable class ImmutableClass3<T extends @PolyImmutable Object>{
+@Immutable class ImmutableClass3<T extends @ReceiverDependantMutable Object>{
     @Immutable ImmutableClass3(){}
 }
 

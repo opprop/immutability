@@ -1,12 +1,12 @@
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import qual.Mutable;
 import qual.Immutable;
-import qual.PolyImmutable;
 import qual.Readonly;
+import qual.ReceiverDependantMutable;
 
 public class FieldAssignment {
 
-    @PolyImmutable Object f;
+    @ReceiverDependantMutable Object f;
 
     void setFWithMutableReceiver(@UnderInitialization @Mutable FieldAssignment this, @Mutable Object o) {
         this.f = new @Mutable Object();
@@ -19,7 +19,7 @@ public class FieldAssignment {
         setFWithMutableReceiver(new @Mutable Object());
     }
 
-    void setFWithPolyImmutableReceiver(@PolyImmutable FieldAssignment this, @PolyImmutable Object pimo) {
+    void setFWithReceiverDependantMutableReceiver(@ReceiverDependantMutable FieldAssignment this, @ReceiverDependantMutable Object pimo) {
         //:: error: (illegal.field.write)
         this.f = pimo;
     }

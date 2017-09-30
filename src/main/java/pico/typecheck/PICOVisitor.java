@@ -16,6 +16,7 @@ import com.sun.source.util.TreePath;
 import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.common.basetype.TypeValidator;
 import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -32,10 +33,12 @@ import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import qual.Immutable;
 import qual.Mutable;
-import qual.PolyImmutable;
+import qual.PolyMutable;
 import qual.Readonly;
+import qual.ReceiverDependantMutable;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
@@ -50,6 +53,11 @@ import java.util.List;
 public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory, PICOValue, PICOStore> {
     public PICOVisitor(BaseTypeChecker checker) {
         super(checker);
+    }
+
+    @Override
+    protected TypeValidator createTypeValidator() {
+        return new PICOTypeValidator(checker, this, atypeFactory);
     }
 
     @Override
@@ -111,7 +119,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
         if (TreeUtils.isConstructor(node)) {
             AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
-            if (constructorReturnType.hasAnnotation(Readonly.class)) {
+            if (constructorReturnType.hasAnnotation(Readonly.class) || constructorReturnType.hasAnnotation(PolyMutable.class)) {
                 checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
             }
 
@@ -121,15 +129,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                     && !atypeFactory.getQualifierHierarchy().isSubtype(constructorReturnAnnotation, atypeFactory.IMMUTABLE)) {
                 checker.report(Result.failure("immutable.class.constructor.invalid"), node);
             }
-            if (constructorReturnType.hasAnnotation(Immutable.class) ||
-                    constructorReturnType.hasAnnotation(PolyImmutable.class)) {
-                for (VariableTree parameter : node.getParameters()) {
-                    AnnotatedTypeMirror parameterType = atypeFactory.getAnnotatedType(parameter);
-                    if (parameterType.hasAnnotation(Mutable.class) || parameterType.hasAnnotation(Readonly.class)) {
-                        checker.report(Result.failure("constructor.parameter.invalid", parameterType), parameter);
-                    }
-                }
-            }
+            /*Doesn't check constructor parameters if constructor return is immutable or receiverdependantmutable*/
         } else {
             AnnotatedDeclaredType declareReceiverType = executableType.getReceiverType();
             if (hasImmutableBoundAnnotation && declareReceiverType != null &&
@@ -174,7 +174,8 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (receiverType == null) {
             return super.visitAssignment(node, p);
         }
-        if (!allowWriteField(receiverType)) {
+        // If receiver != null, it's field assignment
+        if (!allowWriteField(receiverType, node)) {
             if (variable.getKind() == Kind.MEMBER_SELECT) {
                 checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
             } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
@@ -182,27 +183,23 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             } else {
                 ErrorReporter.errorAbort("Unknown assignment variable!", variable);
             }
-        } else if (isInitializingPolyImmutableOrImmutableObject(receiverType)) {
-            AnnotatedTypeMirror varType = atypeFactory.getAnnotatedTypeLhs(variable);
-            AnnotatedTypeMirror valueType = atypeFactory.getAnnotatedType(node.getExpression());
-            if (varType.hasAnnotation(Readonly.class) && valueType.hasAnnotation(Mutable.class)) {
-                checker.report(Result.failure("readonly.capture.mutable"), node);
-            }
         }
         return super.visitAssignment(node, p);
     }
 
-    private boolean allowWriteField(AnnotatedTypeMirror receiverType) {
+    private boolean allowWriteField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
         if (receiverType.hasAnnotation(Mutable.class))
             return true;
-        else if (isInitializingPolyImmutableOrImmutableObject(receiverType))
+        else if (isInitializingReceiverDependantMutableOrImmutableObject(receiverType))
+            return true;
+        else if (isAssigningNonAbstractStateField(node))
             return true;
         else
             return false;
     }
 
-    private boolean isInitializingPolyImmutableOrImmutableObject(AnnotatedTypeMirror receiverType) {
-        if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(PolyImmutable.class))
+    private boolean isInitializingReceiverDependantMutableOrImmutableObject(AnnotatedTypeMirror receiverType) {
+        if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(ReceiverDependantMutable.class))
             return true;
         else if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(Immutable.class))
             return true;
@@ -210,17 +207,20 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return false;
     }
 
+    private boolean isAssigningNonAbstractStateField(AssignmentTree node) {
+        Element variableElement = TreeUtils.elementFromUse(node);
+        if (variableElement == null) return false;
+        AnnotatedTypeMirror variableType = atypeFactory.fromElement(variableElement);
+        return variableType.hasAnnotation(Mutable.class) || variableType.hasAnnotation(Readonly.class);
+    }
+
     @Override
     public Void visitVariable(VariableTree node, Void p) {
         VariableElement element = TreeUtils.elementFromDeclaration(node);
         if (element != null && element.getKind() == ElementKind.FIELD) {
             AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
-            if (ElementUtils.isStatic(element) && type.hasAnnotation(PolyImmutable.class)) {
-                // Forbid @PolyImmutable on static field
-                checker.report(Result.failure("static.field.poly.forbidden", element), node);
-            } else if (!ElementUtils.isStatic(element) && type.hasAnnotation(Mutable.class)) {
-                // Don't allow @Mutable on non-static field
-                checker.report(Result.failure("instance.field.mutable.forbidden", element), node);
+            if (type.hasAnnotation(PolyMutable.class)) {
+                checker.report(Result.failure("field.polymutable.forbidden", element), node);
             }
         }
         return super.visitVariable(node, p);
@@ -233,10 +233,10 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     }
 
     private void checkNewInstanceCreation(Tree node) {
-        // Ensure only @Mutable/@Immutable/@PolyImmutable are used on new instance creation
+        // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable/@PolyMmutable are used on new instance creation
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
         if (!(type.hasEffectiveAnnotation(atypeFactory.IMMUTABLE) || type.hasEffectiveAnnotation(atypeFactory.MUTABLE) ||
-        type.hasEffectiveAnnotation(atypeFactory.POLYIMMUTABLE))) {
+        type.hasEffectiveAnnotation(atypeFactory.RECEIVERDEPENDANTMUTABLE) || type.hasEffectiveAnnotation(atypeFactory.POLYMUTABLE))) {
             checker.report(Result.failure("pico.new.invalid", type), node);
         }
     }
@@ -315,11 +315,11 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (method.getElement().getKind() == ElementKind.CONSTRUCTOR) {
             AnnotatedTypeMirror subClassConstructorReturnType = atypeFactory.getReceiverType(node);
             AnnotatedTypeMirror superClassConstructorReturnType = method.getReturnType();
-            if (!superClassConstructorReturnType.hasAnnotation(Mutable.class)
+            if (!superClassConstructorReturnType.hasAnnotation(ReceiverDependantMutable.class)
             && !atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType)) {
                 checker.report(
                         Result.failure(
-                                "constructor.invocation.invalid", subClassConstructorReturnType, superClassConstructorReturnType), node);
+                                "subclass.constructor.invalid", subClassConstructorReturnType, superClassConstructorReturnType), node);
             }
         }
 

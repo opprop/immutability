@@ -1,6 +1,6 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.PolyImmutable;
+import qual.PolyMutable;
 import qual.Readonly;
 
 public class ImmutabilityFactoryPattern {
@@ -8,8 +8,8 @@ public class ImmutabilityFactoryPattern {
 
     }
 
-    @PolyImmutable Object createObject(@Readonly ImmutabilityFactoryPattern this) {
-        return new @PolyImmutable Object();
+    @PolyMutable Object createObject(@Readonly ImmutabilityFactoryPattern this) {
+        return new @PolyMutable Object();
     }
 
     static void test() {

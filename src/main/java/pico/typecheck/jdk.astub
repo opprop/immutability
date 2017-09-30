@@ -1,29 +1,42 @@
 import qual.Mutable;
 import qual.Immutable;
-import qual.PolyImmutable;
+import qual.ReceiverDependantMutable;
 import qual.Readonly;
 
 package java.lang;
 
 class Object {
-  @PolyImmutable Object();
+  @ReceiverDependantMutable Object();
   boolean equals(@Readonly Object o);
+}
+
+class String {
+  int length(@Readonly String this);
+  char charAt(@Readonly String this, int var1);
+  String substring(@Readonly String this, int var1);
+  String substring(@Readonly String this, int var1, int var2);
 }
 
 package java.util;
 
 class Date {
-  @PolyImmutable Date();
-  @PolyImmutable Date(long var1);
+  @ReceiverDependantMutable Date();
+  @ReceiverDependantMutable Date(long var1);
   int getHours(@Readonly Date this);
 }
 
 class ArrayList<E> {
-  @PolyImmutable ArrayList();
+  @ReceiverDependantMutable ArrayList();
   boolean add(@Mutable ArrayList<E> this, E var1);
 }
 
 class HashSet<E> {
   boolean contains(@Readonly Object var1);
   boolean remove(@Readonly Object var1);
+}
+
+package java.io;
+
+class PrintStream {
+  void print(@Readonly PrintStream this, String var1);
 }

@@ -1,138 +1,155 @@
 import qual.Mutable;
 import qual.Immutable;
-import qual.PolyImmutable;
 import qual.Readonly;
+import qual.ReceiverDependantMutable;
 
 public class ViewpointAdaptationRules {
 
     @Readonly Object rof;
-    @PolyImmutable Object pif;
+    @ReceiverDependantMutable Object rdmf;
     @Immutable Object imf;
+    @Mutable Object mf;
 
-    //:: error: (constructor.parameter.invalid)
-    @PolyImmutable ViewpointAdaptationRules(@Readonly Object rof, @PolyImmutable Object pif, @Immutable Object imf) {
+    @ReceiverDependantMutable ViewpointAdaptationRules(@Readonly Object rof, @ReceiverDependantMutable Object rdmf, @Immutable Object imf, @Mutable Object mf) {
         this.rof = rof;
-        this.pif = pif;
+        this.rdmf = rdmf;
         this.imf = imf;
+        this.mf = mf;
     }
 
     void mutatableReceiver(@Mutable ViewpointAdaptationRules this,
-                           @Mutable Object mo, @PolyImmutable Object po, @Immutable Object io, @Readonly Object ro) {
+                           @Mutable Object mo, @ReceiverDependantMutable Object po, @Immutable Object io, @Readonly Object ro) {
         this.rof = mo;
-        this.pif = mo;
+        this.rdmf = mo;
         //:: error: (assignment.type.incompatible)
         this.imf = mo;
-
+        this.mf = mo;
 
         this.rof = po;
         //:: error: (assignment.type.incompatible)
-        this.pif = po;
+        this.rdmf = po;
         //:: error: (assignment.type.incompatible)
         this.imf = po;
+        //:: error: (assignment.type.incompatible)
+        this.mf = po;
 
         this.rof = io;
         //:: error: (assignment.type.incompatible)
-        this.pif = io;
+        this.rdmf = io;
         this.imf = io;
+        //:: error: (assignment.type.incompatible)
+        this.mf = io;
 
         this.rof = ro;
         //:: error: (assignment.type.incompatible)
-        this.pif = ro;
+        this.rdmf = ro;
         //:: error: (assignment.type.incompatible)
         this.imf = ro;
+        //:: error: (assignment.type.incompatible)
+        this.mf = ro;
     }
 
-    void polyImmutableReceiver(@PolyImmutable ViewpointAdaptationRules this,
-                               @Mutable Object mo, @PolyImmutable Object po, @Immutable Object io, @Readonly Object ro) {
+    void receiverDependantMutableReceiver(@ReceiverDependantMutable ViewpointAdaptationRules this,
+                               @Mutable Object mo, @ReceiverDependantMutable Object po, @Immutable Object io, @Readonly Object ro) {
 
-        //:: error: (illegal.field.write)
         this.rof = mo;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
-        this.pif = mo;
+        this.rdmf = mo;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
         this.imf = mo;
+        this.mf = mf;
 
-        //:: error: (illegal.field.write)
         this.rof = po;
         //:: error: (illegal.field.write)
-        this.pif = po;
+        this.rdmf = po;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
         this.imf = po;
+        //:: error: (assignment.type.incompatible)
+        this.mf = po;
 
-        //:: error: (illegal.field.write)
         this.rof = io;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
-        this.pif = io;
+        this.rdmf = io;
         //:: error: (illegal.field.write)
         this.imf = io;
+        //:: error: (assignment.type.incompatible)
+        this.mf = io;
 
-        //:: error: (illegal.field.write)
+
         this.rof = ro;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
-        this.pif = ro;
+        this.rdmf = ro;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
         this.imf = ro;
+        //:: error: (assignment.type.incompatible)
+        this.mf = ro;
     }
 
     void ImmutableReceiver(@Immutable ViewpointAdaptationRules this,
-                               @Mutable Object mo, @PolyImmutable Object po, @Immutable Object io, @Readonly Object ro) {
-        //:: error: (illegal.field.write)
+                               @Mutable Object mo, @ReceiverDependantMutable Object po, @Immutable Object io, @Readonly Object ro) {
         this.rof = mo;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
-        this.pif = mo;
+        this.rdmf = mo;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
         this.imf = mo;
+        this.mf = mf;
 
-        //:: error: (illegal.field.write)
         this.rof = po;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
-        this.pif = po;
+        this.rdmf = po;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
         this.imf = po;
+        //:: error: (assignment.type.incompatible)
+        this.mf = po;
 
-        //:: error: (illegal.field.write)
         this.rof = io;
         //:: error: (illegal.field.write)
-        this.pif = io;
+        this.rdmf = io;
         //:: error: (illegal.field.write)
         this.imf = io;
+        //:: error: (assignment.type.incompatible)
+        this.mf = io;
 
-        //:: error: (illegal.field.write)
         this.rof = ro;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
-        this.pif = ro;
+        this.rdmf = ro;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
         this.imf = ro;
+        //:: error: (assignment.type.incompatible)
+        this.mf = ro;
     }
 
     void ReadonlyReceiver(@Readonly ViewpointAdaptationRules this,
-                           @Mutable Object mo, @PolyImmutable Object po, @Immutable Object io, @Readonly Object ro) {
+                           @Mutable Object mo, @ReceiverDependantMutable Object po, @Immutable Object io, @Readonly Object ro) {
+        //this.rof = mo;
         //:: error: (illegal.field.write)
-        this.rof = mo;
-        //:: error: (illegal.field.write)
-        this.pif = mo;
+        this.rdmf = mo;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
         this.imf = mo;
+        this.mf = mo;
 
-        //:: error: (illegal.field.write)
         this.rof = po;
         //:: error: (illegal.field.write)
-        this.pif = po;
+        this.rdmf = po;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
         this.imf = po;
+        //:: error: (assignment.type.incompatible)
+        this.mf = po;
 
-        //:: error: (illegal.field.write)
         this.rof = io;
         //:: error: (illegal.field.write)
-        this.pif = io;
+        this.rdmf = io;
         //:: error: (illegal.field.write)
         this.imf = io;
+        //:: error: (assignment.type.incompatible)
+        this.mf = io;
 
-        //:: error: (illegal.field.write)
         this.rof = ro;
         //:: error: (illegal.field.write)
-        this.pif = ro;
+        this.rdmf = ro;
         //:: error: (assignment.type.incompatible) :: error: (illegal.field.write)
         this.imf = ro;
+        //:: error: (assignment.type.incompatible)
+        this.mf = ro;
     }
 }
