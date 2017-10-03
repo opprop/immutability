@@ -5,7 +5,7 @@ import qual.Readonly;
 import qual.ReceiverDependantMutable;
 
 public class Static{
-    //:: error: (static.receiverdependantmutable.forbidden) :: error: (static.receiverdependantmutable.forbidden)
+    //:: error: (static.receiverdependantmutable.forbidden)
     static @ReceiverDependantMutable Object o = new @ReceiverDependantMutable Object();
     static Object oo;
 
@@ -23,10 +23,11 @@ public class Static{
         // ....
     }
 
-    //:: error: (static.receiverdependantmutable.forbidden) :: error: (static.receiverdependantmutable.forbidden)
+    //:: error: (static.receiverdependantmutable.forbidden)
     static @ReceiverDependantMutable Object readStaticReceiverDependantMutableField(@ReceiverDependantMutable Object p) {
         //:: error: (static.receiverdependantmutable.forbidden)
         return o;
+        // TODO Avoid warnings for receiverdependantmutable fields in anonymous class
     }
 
     static {
