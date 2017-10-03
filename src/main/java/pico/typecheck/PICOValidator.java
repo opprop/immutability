@@ -10,9 +10,13 @@ import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import qual.Immutable;
+import qual.Readonly;
 import qual.ReceiverDependantMutable;
 
 import javax.lang.model.element.ExecutableElement;
@@ -21,8 +25,8 @@ import javax.lang.model.element.Modifier;
 /**
  * Created by mier on 29/09/17.
  */
-public class PICOTypeValidator extends BaseTypeValidator {
-    public PICOTypeValidator(BaseTypeChecker checker, BaseTypeVisitor<?> visitor, AnnotatedTypeFactory atypeFactory) {
+public class PICOValidator extends BaseTypeValidator {
+    public PICOValidator(BaseTypeChecker checker, BaseTypeVisitor<?> visitor, AnnotatedTypeFactory atypeFactory) {
         super(checker, visitor, atypeFactory);
     }
 
@@ -55,6 +59,21 @@ public class PICOTypeValidator extends BaseTypeValidator {
                     Result.failure(
                             "static.receiverdependantmutable.forbidden", type), tree);
         }
+        if (PICOTypeUtil.isBoxedPrimitiveOrString(type)) {
+            checkPrimitiveBoxedPrimitiveStringTypeError(type, tree);
+        }
         return super.visitDeclared(type, tree);
+    }
+
+    @Override
+    public Void visitPrimitive(AnnotatedPrimitiveType type, Tree tree) {
+        checkPrimitiveBoxedPrimitiveStringTypeError(type, tree);
+        return super.visitPrimitive(type, tree);
+    }
+
+    private void checkPrimitiveBoxedPrimitiveStringTypeError(AnnotatedTypeMirror type, Tree tree) {
+        if (!(type.hasAnnotation(Readonly.class) || type.hasAnnotation(Immutable.class))) {
+            reportError(type, tree);
+        }
     }
 }

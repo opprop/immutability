@@ -10,6 +10,7 @@ import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
+import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
@@ -57,7 +58,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     @Override
     protected TypeValidator createTypeValidator() {
-        return new PICOTypeValidator(checker, this, atypeFactory);
+        return new PICOValidator(checker, this, atypeFactory);
     }
 
     @Override
@@ -170,6 +171,9 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
         ExpressionTree variable = node.getVariable();
+        // Cannot use receiverTree = TreeUtils.getReceiverTree(variable) to determine if it's
+        // field assignment or not. Because for field assignment with implicit "this", receiverTree
+        // is null but receiverType is non-null. We still need to check this case.
         AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
         if (receiverType == null) {
             return super.visitAssignment(node, p);
@@ -178,10 +182,12 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (!allowWriteField(receiverType, node)) {
             if (variable.getKind() == Kind.MEMBER_SELECT) {
                 checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
+            } else if (variable.getKind() == Kind.IDENTIFIER) {
+                checker.report(Result.failure("illegal.field.write", receiverType), node);
             } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
                 checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
             } else {
-                ErrorReporter.errorAbort("Unknown assignment variable!", variable);
+                ErrorReporter.errorAbort("Unknown assignment variable at: ", node);
             }
         }
         return super.visitAssignment(node, p);
@@ -324,5 +330,34 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         }
 
         super.checkMethodInvocability(method, node);
+    }
+
+    @Override
+    protected void checkTypecastSafety(TypeCastTree node, Void p) {
+        if (!checker.getLintOption("cast:unsafe", true)) {
+            return;
+        }
+        AnnotatedTypeMirror castType = atypeFactory.getAnnotatedType(node);
+        if (PICOTypeUtil.isPrimitiveBoxedPrimitiveOrString(castType)) {
+            return;
+        }
+        super.checkTypecastSafety(node, p);
+    }
+
+    @Override
+    protected void checkFieldsInitialized(Tree blockNode, boolean staticFields, PICOStore store, List<? extends AnnotationMirror> receiverAnnotations) {
+        // If a class doesn't have constructor, it cannot be initialized as @Immutable, therefore no need to check uninitialized fields
+        if (TreeUtils.isClassTree(blockNode)) return;
+        if (blockNode.getKind() == Kind.METHOD && TreeUtils.isConstructor((MethodTree)blockNode)) {
+            // Only raise errors when in @Immutable or @ReceiverDependantMutable constructors. As @Mutable constructor can initialized
+            // those fields out of constructor
+            MethodTree methodTree = (MethodTree) blockNode;
+            AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(methodTree);
+            AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
+            if (!(constructorReturnType.hasAnnotation(Immutable.class) || constructorReturnType.hasAnnotation(ReceiverDependantMutable.class))) {
+                return;
+            }
+        }
+        super.checkFieldsInitialized(blockNode, staticFields, store, receiverAnnotations);
     }
 }

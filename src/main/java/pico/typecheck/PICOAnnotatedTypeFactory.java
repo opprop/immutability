@@ -1,7 +1,9 @@
 package pico.typecheck;
 
+import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.qual.FBCBottom;
@@ -9,12 +11,23 @@ import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import org.checkerframework.framework.type.DefaultTypeHierarchy;
 import org.checkerframework.framework.type.QualifierHierarchy;
+import org.checkerframework.framework.type.TypeHierarchy;
+import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
+import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
+import org.checkerframework.framework.type.typeannotator.ImplicitsTypeAnnotator;
+import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator;
+import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
+import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
+import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
 import org.checkerframework.framework.util.QualifierPolymorphism;
 import org.checkerframework.framework.util.ViewpointAdaptor;
@@ -22,6 +35,7 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypesUtils;
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
@@ -35,7 +49,9 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
 import java.lang.annotation.Annotation;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -88,8 +104,34 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     @Override
     protected TreeAnnotator createTreeAnnotator() {
-        TreeAnnotator fromAbove = super.createTreeAnnotator();
-        return new ListTreeAnnotator(new PICOTreeAnnotator(this), fromAbove);
+        return new ListTreeAnnotator(
+                new PICOPropagationTreeAnnotator(this),
+                new ImplicitsTreeAnnotator(this),
+                new CommitmentTreeAnnotator(this),
+                new PICOTreeAnnotator(this));
+    }
+
+    // TODO remove duplicated code
+    @Override
+    protected TypeAnnotator createTypeAnnotator() {
+        /*Copied code start*/
+        List<TypeAnnotator> typeAnnotators = new ArrayList<>();
+        RelevantJavaTypes relevantJavaTypes =
+                checker.getClass().getAnnotation(RelevantJavaTypes.class);
+        if (relevantJavaTypes != null) {
+            Class<?>[] classes = relevantJavaTypes.value();
+            // Must be first in order to annotated all irrelevant types that are not explicilty
+            // annotated.
+            typeAnnotators.add(
+                    new IrrelevantTypeAnnotator(
+                            this, getQualifierHierarchy().getTopAnnotations(), classes));
+        }
+        typeAnnotators.add(new PropagationTypeAnnotator(this));
+        /*Copied code ends*/
+        typeAnnotators.add(new PICOImplicitsTypeAnnotator(this));
+        typeAnnotators.add(new CommitmentTypeAnnotator(this));
+        typeAnnotators.add(new PICOImplicitsTypeAnnotator(this));
+        return new ListTypeAnnotator(typeAnnotators);
     }
 
     @Override
@@ -100,10 +142,16 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         if (ElementUtils.isStatic(methodElt)) {
             AnnotatedExecutableType methodType = pair.first;
             AnnotatedTypeMirror returnType = methodType.getReturnType();
-            returnType.replaceAnnotation(SUBSTITUTABLEPOLYMUTABLE);
+            if (returnType.hasAnnotation(POLYMUTABLE)) {
+                // Only substitute polymutable but not other qualifiers! Missing the if statement
+                // caused bugs before!
+                returnType.replaceAnnotation(SUBSTITUTABLEPOLYMUTABLE);
+            }
             List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
             for (AnnotatedTypeMirror p : parameterTypes) {
-                p.replaceAnnotation(SUBSTITUTABLEPOLYMUTABLE);
+                if (returnType.hasAnnotation(POLYMUTABLE)) {
+                    p.replaceAnnotation(SUBSTITUTABLEPOLYMUTABLE);
+                }
             }
         }
         return pair;
@@ -137,18 +185,26 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
-        addDefaultForStaticField(type, elt);
+        addDefaultIfStaticField(type, elt);
         super.addComputedTypeAnnotations(elt, type);
     }
 
     @Override
     protected boolean hasFieldInvariantAnnotation(AnnotatedTypeMirror type) {
-        return true;
+        // This affects which fields should be guaranteed to be initialized
+        Set<AnnotationMirror> lowerBounds =
+                AnnotatedTypes.findEffectiveLowerBoundAnnotations(qualHierarchy, type);
+        return AnnotationUtils.containsSame(lowerBounds, IMMUTABLE) || AnnotationUtils.containsSame(lowerBounds, RECEIVERDEPENDANTMUTABLE);
     }
 
     @Override
     public QualifierHierarchy createQualifierHierarchy(MultiGraphFactory factory) {
         return new PICOQualifierHierarchy(factory, (Object[]) null);
+    }
+
+    @Override
+    protected TypeHierarchy createTypeHierarchy() {
+        return new PICOTypeHierarchy(checker, qualHierarchy);
     }
 
     protected class PICOQualifierHierarchy extends InitializationQualifierHierarchy {
@@ -174,12 +230,58 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         }
     }
 
-    private void addDefaultForStaticField(AnnotatedTypeMirror annotatedTypeMirror, Element element) {
+    protected class PICOTypeHierarchy extends DefaultTypeHierarchy {
+
+        public PICOTypeHierarchy(BaseTypeChecker checker, QualifierHierarchy qualifierHierarchy) {
+            super(checker, qualifierHierarchy, checker.hasOption("ignoreRawTypeArguments"),
+                    checker.hasOption("invariantArrays"));
+        }
+
+        @Override
+        public boolean isSubtype(AnnotatedTypeMirror subtype, AnnotatedTypeMirror supertype) {
+            if (subtype.getUnderlyingType().getKind().isPrimitive() ||
+                    supertype.getUnderlyingType().getKind().isPrimitive() ) {
+                // Ignore boxing/unboxing, mutability and initialization qualifiers for primitive types and boxed types
+                return true;
+            }
+            return super.isSubtype(subtype, supertype);
+        }
+
+        @Override
+        public boolean isSubtype(AnnotatedTypeMirror subtype, AnnotatedTypeMirror supertype, AnnotationMirror top) {
+            if (AnnotationUtils.areSame(top, READONLY)) {
+                if (TypesUtils.isString(supertype.getUnderlyingType())) {
+                    return true;
+                }
+            }
+            return super.isSubtype(subtype, supertype, top);
+        }
+    }
+
+    private void addDefaultIfStaticField(AnnotatedTypeMirror annotatedTypeMirror, Element element) {
         if (element != null && element.getKind() == ElementKind.FIELD && ElementUtils.isStatic(element)) {
             AnnotatedTypeMirror explicitATM = fromElement(element);
             if (!explicitATM.isAnnotatedInHierarchy(READONLY)) {
-                annotatedTypeMirror.replaceAnnotation(MUTABLE);
+                if (PICOTypeUtil.isPrimitiveBoxedPrimitiveOrString(explicitATM)) {
+                    annotatedTypeMirror.replaceAnnotation(IMMUTABLE);
+                } else {
+                    annotatedTypeMirror.replaceAnnotation(MUTABLE);
+                }
             }
+        }
+    }
+
+    class PICOImplicitsTypeAnnotator extends ImplicitsTypeAnnotator {
+
+        public PICOImplicitsTypeAnnotator(AnnotatedTypeFactory typeFactory) {
+            super(typeFactory);
+        }
+
+        @Override
+        public Void visitExecutable(AnnotatedExecutableType t, Void p) {
+            // Also scan the receiver
+            scan(t.getReceiverType(), p);
+            return super.visitExecutable(t, p);
         }
     }
 
@@ -191,8 +293,68 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         @Override
         public Void visitVariable(VariableTree node, AnnotatedTypeMirror annotatedTypeMirror) {
             VariableElement element = TreeUtils.elementFromDeclaration(node);
-            addDefaultForStaticField(annotatedTypeMirror, element);
+            // if not primitive type, boxed primitive or string then
+            addDefaultIfStaticField(annotatedTypeMirror, element);
             return super.visitVariable(node, annotatedTypeMirror);
+        }
+    }
+
+    class PICOPropagationTreeAnnotator extends PropagationTreeAnnotator {
+        public PICOPropagationTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
+            super(atypeFactory);
+        }
+
+        /*This is copied because it has private access in super class. TODO should remove this duplicate code*/
+        private boolean hasPrimaryAnnotationInAllHierarchies(AnnotatedTypeMirror type) {
+            boolean annotated = true;
+            for (AnnotationMirror top : qualHierarchy.getTopAnnotations()) {
+                if (type.getEffectiveAnnotationInHierarchy(top) == null) {
+                    annotated = false;
+                }
+            }
+            return annotated;
+        }
+
+        // TODO Override all methods that calls addMissingAnnotations():
+        // if the target type is primitive, boxed primitive or string,
+        // override the type to be @Immutable
+
+        @Override
+        public Void visitBinary(BinaryTree node, AnnotatedTypeMirror type) {
+            super.visitBinary(node, type);
+            if (PICOTypeUtil.isPrimitiveBoxedPrimitiveOrString(type)) {
+                type.replaceAnnotation(IMMUTABLE);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
+            if (hasPrimaryAnnotationInAllHierarchies(type)) {
+                // If the type is already has a primary annotation in all hierarchies, then the
+                // propagated annotations won't be applied.  So don't compute them.
+                return null;
+            }
+
+            AnnotatedTypeMirror exprType = atypeFactory.getAnnotatedType(node.getExpression());
+            if (type.getKind() == TypeKind.TYPEVAR) {
+                if (exprType.getKind() == TypeKind.TYPEVAR) {
+                    // If both types are type variables, take the direct annotations.
+                    type.addMissingAnnotations(exprType.getAnnotations());
+                }
+                // else do nothing.
+            } else {
+                // Use effective annotations from the expression, to get upper bound
+                // of type variables.
+                type.addMissingAnnotations(exprType.getEffectiveAnnotations());
+                /*Difference Starts*/
+                // If the type is primitive, boxed primitive or string, should replace the annotation to immutable
+                if (PICOTypeUtil.isPrimitiveBoxedPrimitiveOrString(type)) {
+                    type.replaceAnnotation(IMMUTABLE);
+                }
+                /*Difference Ends*/
+            }
+            return null;
         }
     }
 }

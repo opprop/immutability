@@ -12,9 +12,8 @@ public class FieldAssignment {
         this.f = new @Mutable Object();
     }
 
-    // TODO This is not specific to PICO type system. Nullness also has this problem when we use instance
-    // method to initialiaze fields
-    //:: error: (initialization.fields.uninitialized)
+    // TODO This is not specific to PICO type system. InitializationVisitor currently has this issue of false positively
+    // wanrning uninitialized fields when we use instance method to initialiaze fields
     public FieldAssignment() {
         setFWithMutableReceiver(new @Mutable Object());
     }

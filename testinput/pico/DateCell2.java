@@ -5,7 +5,6 @@ import qual.Readonly;
 
 import java.util.Date;
 
-//:: error: (initialization.fields.uninitialized)
 public class DateCell2 {
     @Immutable Date imdate;
 
@@ -19,6 +18,8 @@ public class DateCell2 {
     }
 
     void test2(@Immutable DateCell2 this) {
+        //:: error: (constructor.invocation.invalid)
+        @Immutable DateCell2 waht = new @Immutable DateCell2();
         @Immutable Date imd = this.getImmutableDate();
     }
 }

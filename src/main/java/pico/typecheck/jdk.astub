@@ -17,6 +17,16 @@ class String {
   String substring(@Readonly String this, int var1, int var2);
 }
 
+class Throwable {
+  String getMessage(@Readonly Throwable this);
+  String getLocalizedMessage(@Readonly Throwable this);
+  Throwable getCause(@Readonly Throwable this);
+  String toString(@Readonly Throwable this);
+  void printStackTrace(@Readonly Throwable this);
+  void printStackTrace(@Readonly Throwable this, PrintStream var1);
+  void printStackTrace(@Readonly Throwable this, Throwable.PrintStreamOrWriter var1);
+}
+
 package java.util;
 
 class Date {
