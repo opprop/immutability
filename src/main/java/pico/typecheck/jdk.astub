@@ -15,6 +15,7 @@ class String {
   char charAt(@Readonly String this, int var1);
   String substring(@Readonly String this, int var1);
   String substring(@Readonly String this, int var1, int var2);
+  boolean equals(@Readonly Object var1);
 }
 
 class Throwable {
@@ -43,6 +44,15 @@ class ArrayList<E> {
 class HashSet<E> {
   boolean contains(@Readonly Object var1);
   boolean remove(@Readonly Object var1);
+}
+
+class Stack<E> {
+  E peek(@Readonly Stack<E> this);
+  boolean empty(@Readonly Stack<E> this);
+}
+
+class Vector<E> {
+  boolean isEmpty(@Readonly Vector<E> this);
 }
 
 package java.io;

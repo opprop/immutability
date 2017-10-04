@@ -61,7 +61,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         PICOStore, PICOTransfer, PICOAnalysis> {
 
     public final AnnotationMirror READONLY, MUTABLE, POLYMUTABLE
-    , RECEIVERDEPENDANTMUTABLE, SUBSTITUTABLEPOLYMUTABLE, IMMUTABLE, BOTTOM;
+    , RECEIVERDEPENDANTMUTABLE, SUBSTITUTABLEPOLYMUTABLE, IMMUTABLE, BOTTOM, COMMITED;
 
     public PICOAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker, true);
@@ -72,6 +72,8 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         SUBSTITUTABLEPOLYMUTABLE = AnnotationUtils.fromClass(elements, SubstitutablePolyMutable.class);
         IMMUTABLE = AnnotationUtils.fromClass(elements, Immutable.class);
         BOTTOM = AnnotationUtils.fromClass(elements, Bottom.class);
+
+        COMMITED = AnnotationUtils.fromClass(elements, Initialized.class);
         postInit();
     }
 
@@ -244,6 +246,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                 // Ignore boxing/unboxing, mutability and initialization qualifiers for primitive types and boxed types
                 return true;
             }
+            // Below is not correct. Otherwise, if @Immutable Object is upper bound of T, @Mutable A can also be passed in
+ /*           if (TypesUtils.isObject(subtype.getUnderlyingType()) || TypesUtils.isObject(supertype.getUnderlyingType())) {
+                // Object doesn't have any fields. So it's not possible to mutate any fields of subclass
+                // and break its immutability contracts. Assigning to or from Object is freely allowed.
+                return true;
+            }*/
             return super.isSubtype(subtype, supertype);
         }
 
@@ -355,6 +363,14 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                 /*Difference Ends*/
             }
             return null;
+        }
+    }
+
+    @Override
+    protected void applyInferredAnnotations(AnnotatedTypeMirror type, PICOValue as) {
+        super.applyInferredAnnotations(type, as);
+        if (PICOTypeUtil.isBoxedPrimitiveOrString(type)) {
+            type.replaceAnnotation(IMMUTABLE);
         }
     }
 }

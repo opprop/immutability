@@ -46,7 +46,9 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by mier on 20/06/17.
@@ -359,5 +361,26 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             }
         }
         super.checkFieldsInitialized(blockNode, staticFields, store, receiverAnnotations);
+    }
+
+    @Override
+    protected Set<? extends AnnotationMirror> getExceptionParameterLowerBoundAnnotations() {
+        Set<AnnotationMirror> result = new HashSet<>();
+        result.add(atypeFactory.getQualifierHierarchy().getBottomAnnotation(atypeFactory.BOTTOM));
+        result.add(atypeFactory.COMMITED);
+        return result;
+    }
+
+    @Override
+    protected Set<? extends AnnotationMirror> getThrowUpperBoundAnnotations() {
+        Set<AnnotationMirror> result = new HashSet<>();
+        result.add(atypeFactory.getQualifierHierarchy().getTopAnnotation(atypeFactory.READONLY));
+        result.add(atypeFactory.COMMITED);
+        return result;
+    }
+
+    @Override
+    public boolean validateTypeOf(Tree tree) {
+        return super.validateTypeOf(tree);
     }
 }
