@@ -1,11 +1,15 @@
 package pico.typecheck;
 
 import com.sun.source.tree.BinaryTree;
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.util.TreePath;
 import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
+import org.checkerframework.checker.initialization.InitializationChecker;
 import org.checkerframework.checker.initialization.qual.FBCBottom;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
@@ -33,9 +37,11 @@ import org.checkerframework.framework.util.QualifierPolymorphism;
 import org.checkerframework.framework.util.ViewpointAdaptor;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import qual.Assignable;
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
@@ -61,7 +67,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         PICOStore, PICOTransfer, PICOAnalysis> {
 
     public final AnnotationMirror READONLY, MUTABLE, POLYMUTABLE
-    , RECEIVERDEPENDANTMUTABLE, SUBSTITUTABLEPOLYMUTABLE, IMMUTABLE, BOTTOM, COMMITED;
+    , RECEIVERDEPENDANTMUTABLE, SUBSTITUTABLEPOLYMUTABLE, IMMUTABLE, BOTTOM, COMMITED, ASSIGNABLE;
 
     public PICOAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker, true);
@@ -74,6 +80,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         BOTTOM = AnnotationUtils.fromClass(elements, Bottom.class);
 
         COMMITED = AnnotationUtils.fromClass(elements, Initialized.class);
+        ASSIGNABLE = AnnotationUtils.fromClass(elements, Assignable.class);
         postInit();
     }
 
@@ -165,17 +172,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     }
 
     @Override
-    public Pair<AnnotatedExecutableType, java.util.List<AnnotatedTypeMirror>> constructorFromUse(NewClassTree tree) {
-        Pair<AnnotatedExecutableType, java.util.List<AnnotatedTypeMirror>> mfuPair =
-                super.constructorFromUse(tree);
-        AnnotatedExecutableType method = mfuPair.first;
-        if (dependentTypesHelper != null) {
-            dependentTypesHelper.viewpointAdaptConstructor(tree, method);
-        }
-        return mfuPair;
-    }
-
-    @Override
     protected QualifierPolymorphism createQualifierPolymorphism() {
         return new QualifierPolymorphism(processingEnv, this){
             @Override
@@ -191,12 +187,51 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         super.addComputedTypeAnnotations(elt, type);
     }
 
+    // This method allows get lhs WITH flow sensitive refinement
+    // TODO Too much duplicate code. Should refactor it
     @Override
-    protected boolean hasFieldInvariantAnnotation(AnnotatedTypeMirror type) {
+    public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
+        boolean oldComputingAnnotatedTypeMirrorOfLHS = computingAnnotatedTypeMirrorOfLHS;
+        computingAnnotatedTypeMirrorOfLHS = true;
+
+        AnnotatedTypeMirror result = null;
+        boolean oldShouldCache = shouldCache;
+        // Don't cache the result because getAnnotatedType(lhsTree) could
+        // be called from elsewhere and would expect flow-sensitive type refinements.
+        shouldCache = false;
+        switch (lhsTree.getKind()) {
+            case VARIABLE:
+            case IDENTIFIER:
+            case MEMBER_SELECT:
+            case ARRAY_ACCESS:
+                result = getAnnotatedType(lhsTree);
+                break;
+            default:
+                if (TreeUtils.isTypeTree(lhsTree)) {
+                    // lhsTree is a type tree at the pseudo assignment of a returned expression to declared return type.
+                    result = getAnnotatedType(lhsTree);
+                } else {
+                    ErrorReporter.errorAbort(
+                            "GenericAnnotatedTypeFactory: Unexpected tree passed to getAnnotatedTypeLhs. "
+                                    + "lhsTree: "
+                                    + lhsTree
+                                    + " Tree.Kind: "
+                                    + lhsTree.getKind());
+                }
+        }
+        shouldCache = oldShouldCache;
+
+        computingAnnotatedTypeMirrorOfLHS = oldComputingAnnotatedTypeMirrorOfLHS;
+        return result;
+    }
+
+    @Override
+    protected boolean hasFieldInvariantAnnotation(AnnotatedTypeMirror type, VariableElement fieldElement) {
         // This affects which fields should be guaranteed to be initialized
         Set<AnnotationMirror> lowerBounds =
                 AnnotatedTypes.findEffectiveLowerBoundAnnotations(qualHierarchy, type);
-        return AnnotationUtils.containsSame(lowerBounds, IMMUTABLE) || AnnotationUtils.containsSame(lowerBounds, RECEIVERDEPENDANTMUTABLE);
+        return (AnnotationUtils.containsSame(lowerBounds, IMMUTABLE) || AnnotationUtils.containsSame(lowerBounds, RECEIVERDEPENDANTMUTABLE))
+                && !isAssignableField(fieldElement);
     }
 
     @Override
@@ -257,11 +292,11 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
         @Override
         public boolean isSubtype(AnnotatedTypeMirror subtype, AnnotatedTypeMirror supertype, AnnotationMirror top) {
-            if (AnnotationUtils.areSame(top, READONLY)) {
+/*            if (AnnotationUtils.areSame(top, READONLY)) {
                 if (TypesUtils.isString(supertype.getUnderlyingType())) {
                     return true;
                 }
-            }
+            }*/
             return super.isSubtype(subtype, supertype, top);
         }
     }
@@ -330,7 +365,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         @Override
         public Void visitBinary(BinaryTree node, AnnotatedTypeMirror type) {
             super.visitBinary(node, type);
-            if (PICOTypeUtil.isPrimitiveBoxedPrimitiveOrString(type)) {
+            if (PICOTypeUtil.isPrimitiveBoxedPrimitiveOrString(type) && !isValidTypeForPrimitiveBoxedPrimitiveAndString(type)) {
                 type.replaceAnnotation(IMMUTABLE);
             }
             return null;
@@ -357,7 +392,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                 type.addMissingAnnotations(exprType.getEffectiveAnnotations());
                 /*Difference Starts*/
                 // If the type is primitive, boxed primitive or string, should replace the annotation to immutable
-                if (PICOTypeUtil.isPrimitiveBoxedPrimitiveOrString(type)) {
+                if (PICOTypeUtil.isPrimitiveBoxedPrimitiveOrString(type) && !isValidTypeForPrimitiveBoxedPrimitiveAndString(type)) {
                     type.replaceAnnotation(IMMUTABLE);
                 }
                 /*Difference Ends*/
@@ -369,8 +404,31 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     @Override
     protected void applyInferredAnnotations(AnnotatedTypeMirror type, PICOValue as) {
         super.applyInferredAnnotations(type, as);
-        if (PICOTypeUtil.isBoxedPrimitiveOrString(type)) {
+        if (PICOTypeUtil.isBoxedPrimitiveOrString(type) && !isValidTypeForPrimitiveBoxedPrimitiveAndString(type)) {
+            // If the dataflow refines the type as something not readonly or immutable, then we replace it with
+            // immutable, because no other immutability qualifiers are allowed on primitive, boxed primitive and
+            // Strings
             type.replaceAnnotation(IMMUTABLE);
         }
+    }
+
+    private boolean isValidTypeForPrimitiveBoxedPrimitiveAndString(AnnotatedTypeMirror atm) {
+        AnnotationMirror am = atm.getEffectiveAnnotationInHierarchy(READONLY);
+        return AnnotationUtils.areSame(READONLY, am) || AnnotationUtils.areSame(IMMUTABLE, am);
+    }
+
+    protected boolean isAssignableField(Element variableElement) {
+        assert variableElement instanceof VariableElement;
+        return getDeclAnnotation(variableElement, Assignable.class) != null;
+    }
+
+    protected boolean isFinalField(Element variableElement) {
+        assert variableElement instanceof VariableElement;
+        return ElementUtils.isFinal(variableElement);
+    }
+
+    protected boolean isReceiverDependantAssignable(Element variableElement) {
+        assert variableElement instanceof VariableElement;
+        return !isAssignableField(variableElement) && !isFinalField(variableElement);
     }
 }

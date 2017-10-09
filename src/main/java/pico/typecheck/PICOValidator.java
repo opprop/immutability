@@ -4,6 +4,7 @@ import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeValidator;
@@ -19,8 +20,10 @@ import qual.Immutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
 
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.VariableElement;
 
 /**
  * Created by mier on 29/09/17.
@@ -62,7 +65,29 @@ public class PICOValidator extends BaseTypeValidator {
         if (PICOTypeUtil.isBoxedPrimitiveOrString(type)) {
             checkPrimitiveBoxedPrimitiveStringTypeError(type, tree);
         }
+        if (tree.getKind() == Kind.VARIABLE) {
+            VariableTree variableTree = (VariableTree) tree;
+            VariableElement variableElement = TreeUtils.elementFromDeclaration(variableTree);
+            if (!checkOnlyOneAssignability(variableElement)) {
+                checker.report(Result.failure("one.assignability.invalid", variableElement), variableElement);
+            }
+        }
         return super.visitDeclared(type, tree);
+    }
+
+    private boolean checkOnlyOneAssignability(VariableElement variableElement) {
+        PICOAnnotatedTypeFactory picoAnnotatedTypeFactory = (PICOAnnotatedTypeFactory) atypeFactory;
+        if (picoAnnotatedTypeFactory.isAssignableField(variableElement) && !picoAnnotatedTypeFactory.isFinalField(variableElement) &&
+                !picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
+            return true;
+        } else if (!picoAnnotatedTypeFactory.isAssignableField(variableElement) && picoAnnotatedTypeFactory.isFinalField(variableElement) &&
+                !picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
+            return true;
+        } else if (!picoAnnotatedTypeFactory.isAssignableField(variableElement) && !picoAnnotatedTypeFactory.isFinalField(variableElement) &&
+                picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -71,8 +96,9 @@ public class PICOValidator extends BaseTypeValidator {
         return super.visitPrimitive(type, tree);
     }
 
+
     private void checkPrimitiveBoxedPrimitiveStringTypeError(AnnotatedTypeMirror type, Tree tree) {
-        if (!(type.hasAnnotation(Readonly.class) || type.hasAnnotation(Immutable.class))) {
+        if (!type.hasAnnotation(Immutable.class)) {
             reportError(type, tree);
         }
     }

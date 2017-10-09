@@ -4,6 +4,7 @@ import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
@@ -32,6 +33,7 @@ import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import qual.Assignable;
 import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
@@ -173,10 +175,14 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
         ExpressionTree variable = node.getVariable();
+        // TODO Question Here, receiver type uses flow refinement. But in commonAssignmentCheck to compute lhs type
+        // , it doesn't. This causes inconsistencies when enforcing immutability and doing subtype check. I overrode
+        // getAnnotatedTypeLhs() to also use flow sensitive refinement, but came across with "private access" problem
+        // on field "computingAnnotatedTypeMirrorOfLHS"
+        AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
         // Cannot use receiverTree = TreeUtils.getReceiverTree(variable) to determine if it's
         // field assignment or not. Because for field assignment with implicit "this", receiverTree
         // is null but receiverType is non-null. We still need to check this case.
-        AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
         if (receiverType == null) {
             return super.visitAssignment(node, p);
         }
@@ -200,7 +206,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return true;
         else if (isInitializingReceiverDependantMutableOrImmutableObject(receiverType))
             return true;
-        else if (isAssigningNonAbstractStateField(node))
+        else if (isAssigningNonAbstractStateField(receiverType, node))
             return true;
         else
             return false;
@@ -215,11 +221,19 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return false;
     }
 
-    private boolean isAssigningNonAbstractStateField(AssignmentTree node) {
+    private boolean isAssigningNonAbstractStateField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
         Element variableElement = TreeUtils.elementFromUse(node);
         if (variableElement == null) return false;
-        AnnotatedTypeMirror variableType = atypeFactory.fromElement(variableElement);
-        return variableType.hasAnnotation(Mutable.class) || variableType.hasAnnotation(Readonly.class);
+        AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(variableElement);
+        if (atypeFactory.isAssignableField(variableElement) && receiverType.hasAnnotation(Readonly.class)
+                && fieldType.hasAnnotation(ReceiverDependantMutable.class)) {
+            return false;
+        } else if (atypeFactory.isAssignableField(variableElement)) {
+            return true;
+        } else if (fieldType.hasAnnotation(Mutable.class) || fieldType.hasAnnotation(Readonly.class)) {
+                return true;
+        }
+        return false;
     }
 
     @Override
