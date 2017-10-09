@@ -1,11 +1,7 @@
 package pico.typecheck;
 
-import org.checkerframework.checker.nullness.NullnessValue;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
-import org.checkerframework.framework.flow.CFStore;
-import org.checkerframework.framework.flow.CFValue;
-import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.Pair;
 
 import javax.lang.model.element.AnnotationMirror;
