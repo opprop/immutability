@@ -401,7 +401,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     protected void applyInferredAnnotations(AnnotatedTypeMirror type, PICOValue as) {
         super.applyInferredAnnotations(type, as);
         if (PICOTypeUtil.isBoxedPrimitiveOrString(type) && !isValidTypeForPrimitiveBoxedPrimitiveAndString(type)) {
-            // If the dataflow refines the type as something not readonly or immutable, then we replace it with
+            // If the dataflow refines the type as something not immutable, then we replace it with
             // immutable, because no other immutability qualifiers are allowed on primitive, boxed primitive and
             // Strings
             type.replaceAnnotation(IMMUTABLE);

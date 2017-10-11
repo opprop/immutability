@@ -368,6 +368,8 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             MethodTree methodTree = (MethodTree) blockNode;
             AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(methodTree);
             AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
+            // Only care abstract state initialization in @Immutable and @ReceiverDependantMutable constructors, as @Mutable constructors
+            // only allows instantiating @Mutable objects and fields can be initialized later
             if (!(constructorReturnType.hasAnnotation(Immutable.class) || constructorReturnType.hasAnnotation(ReceiverDependantMutable.class))) {
                 return;
             }
@@ -389,10 +391,5 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         result.add(atypeFactory.getQualifierHierarchy().getTopAnnotation(atypeFactory.READONLY));
         result.add(atypeFactory.COMMITED);
         return result;
-    }
-
-    @Override
-    public boolean validateTypeOf(Tree tree) {
-        return super.validateTypeOf(tree);
     }
 }
