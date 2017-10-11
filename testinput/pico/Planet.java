@@ -9,6 +9,21 @@ import java.util.Date;
  * its state after construction.
  */
 public class Planet {
+    /**
+     * Final primitive data is always immutable.
+     */
+    private double fMass;
+
+    /**
+     * An immutable object field. (String objects never change state.)
+     */
+    private String fName;
+
+    /**
+     * An immutable object field. The state of this immutable field
+     * can never be changed by anyone.
+     */
+    private @Immutable Date fDateOfDiscovery;
 
     public @Immutable Planet (double aMass, String aName, @Immutable Date aDateOfDiscovery) {
         fMass = aMass;
@@ -58,27 +73,9 @@ public class Planet {
         return fDateOfDiscovery;
     }
 
-    // PRIVATE
-
-    /**
-     * Final primitive data is always immutable.
-     */
-    private double fMass;
-
-    /**
-     * An immutable object field. (String objects never change state.)
-     */
-    private String fName;
-
-    /**
-     * An immutable object field. The state of this immutable field
-     * can never be changed by anyone.
-     */
-    private @Immutable Date fDateOfDiscovery;
-
     @Override
     public String toString() {
-        // TODO Handle case in which fDateOfDiscovery is @PolyImmutable or @Readonly
+        // TODO Handle case in which fDateOfDiscovery is not @Immutable
         return "Name: " + fName + " mass: " + fMass + " date of discovery: " + fDateOfDiscovery;
     }
 
