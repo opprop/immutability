@@ -63,7 +63,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         PICOStore, PICOTransfer, PICOAnalysis> {
 
     public final AnnotationMirror READONLY, MUTABLE, POLYMUTABLE
-    , RECEIVERDEPENDANTMUTABLE, SUBSTITUTABLEPOLYMUTABLE, IMMUTABLE, BOTTOM, COMMITED, ASSIGNABLE;
+    , RECEIVERDEPENDANTMUTABLE, SUBSTITUTABLEPOLYMUTABLE, IMMUTABLE, BOTTOM, COMMITED;
 
     public PICOAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker, true);
@@ -76,7 +76,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         BOTTOM = AnnotationUtils.fromClass(elements, Bottom.class);
 
         COMMITED = AnnotationUtils.fromClass(elements, Initialized.class);
-        ASSIGNABLE = AnnotationUtils.fromClass(elements, Assignable.class);
+        addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
         postInit();
     }
 
