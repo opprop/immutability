@@ -10,12 +10,17 @@ public class PICOTypeUtil {
         return TypesUtils.isPrimitive(tm);
     }
 
-    public static boolean isBoxedPrimitiveOrString(AnnotatedTypeMirror atm) {
+    public static boolean isBoxedPrimitive(AnnotatedTypeMirror atm) {
         TypeMirror tm = atm.getUnderlyingType();
-        return TypesUtils.isString(tm) || TypesUtils.isBoxedPrimitive(tm);
+        return TypesUtils.isBoxedPrimitive(tm);
     }
 
-    public static boolean isPrimitiveBoxedPrimitiveOrString(AnnotatedTypeMirror atm) {
-        return isPrimitive(atm) || isBoxedPrimitiveOrString(atm);
+    public static boolean isString(AnnotatedTypeMirror atm) {
+        TypeMirror tm = atm.getUnderlyingType();
+        return TypesUtils.isString(tm);
+    }
+
+    public static boolean isImplicitlyImmutableType(AnnotatedTypeMirror atm) {
+        return isPrimitive(atm) || isBoxedPrimitive(atm) || isString(atm);
     }
 }

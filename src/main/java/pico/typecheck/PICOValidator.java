@@ -60,7 +60,7 @@ public class PICOValidator extends BaseTypeValidator {
                     Result.failure(
                             "static.receiverdependantmutable.forbidden", type), tree);
         }
-        if (PICOTypeUtil.isBoxedPrimitiveOrString(type)) {
+        if (PICOTypeUtil.isBoxedPrimitive(type) || PICOTypeUtil.isString(type)) {
             checkPrimitiveBoxedPrimitiveStringTypeError(type, tree);
         }
         if (tree.getKind() == Kind.VARIABLE) {

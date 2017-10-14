@@ -7,7 +7,10 @@ package java.lang;
 
 class Object {
   @ReceiverDependantMutable Object();
-  boolean equals(@Readonly Object o);
+  String toString(@Readonly Object this);
+  int hashCode(@Readonly Object this);
+  boolean equals(@Readonly Object this, @Readonly Object var1);
+  @ReceiverDependantMutable Object clone(@ReceiverDependantMutable Object this);
 }
 
 class String {

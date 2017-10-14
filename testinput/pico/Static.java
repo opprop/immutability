@@ -9,7 +9,7 @@ public class Static{
     static @ReceiverDependantMutable Object o = new @ReceiverDependantMutable Object();
     static Object oo;
 
-    Object f;
+    @ReceiverDependantMutable Object f;
     @ReceiverDependantMutable Static() {
         f = o;
     }

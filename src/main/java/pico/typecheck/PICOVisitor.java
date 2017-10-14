@@ -352,7 +352,8 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return;
         }
         AnnotatedTypeMirror castType = atypeFactory.getAnnotatedType(node);
-        if (PICOTypeUtil.isPrimitiveBoxedPrimitiveOrString(castType)) {
+        // TODO What was the purpose for this statement?
+        if (PICOTypeUtil.isImplicitlyImmutableType(castType)) {
             return;
         }
         super.checkTypecastSafety(node, p);

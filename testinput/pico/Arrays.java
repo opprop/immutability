@@ -1,4 +1,5 @@
 import qual.Immutable;
+import qual.Mutable;
 import qual.Readonly;
 
 public class Arrays{
@@ -15,5 +16,14 @@ public class Arrays{
 
     void test3(String[] array) {
         array[0] = "something";
+    }
+
+    void test4(@Immutable String @Mutable [] p) {
+        Object [] l = p;// By default, array type is @Readonly(local variable); Object class is by default @Readonly. So assignment should typecheck
+    }
+
+    void test5(@Immutable Integer @Mutable [] p) {
+        //:: error: (assignment.type.incompatible)
+        @Mutable Object @Readonly [] l = p;
     }
 }
