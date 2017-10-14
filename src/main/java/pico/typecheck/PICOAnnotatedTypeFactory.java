@@ -362,17 +362,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             super(atypeFactory);
         }
 
-        /*This is copied because it has private access in super class. TODO should remove this duplicate code*/
-        private boolean hasPrimaryAnnotationInAllHierarchies(AnnotatedTypeMirror type) {
-            boolean annotated = true;
-            for (AnnotationMirror top : qualHierarchy.getTopAnnotations()) {
-                if (type.getEffectiveAnnotationInHierarchy(top) == null) {
-                    annotated = false;
-                }
-            }
-            return annotated;
-        }
-
         // TODO Override all methods that calls addMissingAnnotations():
         // if the target type is primitive, boxed primitive or string,
         // override the type to be @Immutable
