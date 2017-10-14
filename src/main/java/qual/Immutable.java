@@ -10,13 +10,17 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 @SubtypeOf({Readonly.class})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
+/**Remember to add all the class names that are in typeNames to PICOTypeUtil#isOtherImmutableImplicitType(AnnotatedTypeMirror)*/
 @ImplicitFor(typeNames={String.class, Double.class, Boolean.class, Byte.class,
-        Character.class, Float.class, Integer.class, Long.class, Short.class},
+        Character.class, Float.class, Integer.class, Long.class, Short.class, Number.class,
+        BigDecimal.class, BigInteger.class},
         literals = { LiteralKind.PRIMITIVE, LiteralKind.STRING},
         types = { TypeKind.INT, TypeKind.BYTE, TypeKind.SHORT, TypeKind.BOOLEAN,
                 TypeKind.LONG, TypeKind.CHAR, TypeKind.FLOAT, TypeKind.DOUBLE })

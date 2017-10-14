@@ -60,8 +60,8 @@ public class PICOValidator extends BaseTypeValidator {
                     Result.failure(
                             "static.receiverdependantmutable.forbidden", type), tree);
         }
-        if (PICOTypeUtil.isBoxedPrimitive(type) || PICOTypeUtil.isString(type)) {
-            checkPrimitiveBoxedPrimitiveStringTypeError(type, tree);
+        if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
+            checkImplicitlyImmutableTypeError(type, tree);
         }
         if (tree.getKind() == Kind.VARIABLE) {
             VariableTree variableTree = (VariableTree) tree;
@@ -90,12 +90,12 @@ public class PICOValidator extends BaseTypeValidator {
 
     @Override
     public Void visitPrimitive(AnnotatedPrimitiveType type, Tree tree) {
-        checkPrimitiveBoxedPrimitiveStringTypeError(type, tree);
+        checkImplicitlyImmutableTypeError(type, tree);
         return super.visitPrimitive(type, tree);
     }
 
 
-    private void checkPrimitiveBoxedPrimitiveStringTypeError(AnnotatedTypeMirror type, Tree tree) {
+    private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
         if (!type.hasAnnotation(Immutable.class)) {
             reportError(type, tree);
         }

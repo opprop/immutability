@@ -105,9 +105,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
         // The immutability return qualifier of the constructor (returnType) must be supertype of the
         // constructor invocation immutability qualifier(invocation).
-        AnnotationMirror subATM = invocation.getAnnotationInHierarchy(atypeFactory.READONLY);
-        AnnotationMirror superATM = returnType.getAnnotationInHierarchy(atypeFactory.READONLY);
-        if (!atypeFactory.getQualifierHierarchy().isSubtype(subATM, superATM)) {
+        if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType, atypeFactory.READONLY)) {
             checker.report(Result.failure(
                     "constructor.invocation.invalid", invocation, returnType), newClassTree);
             return false;
@@ -336,7 +334,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             AnnotatedTypeMirror subClassConstructorReturnType = atypeFactory.getReceiverType(node);
             AnnotatedTypeMirror superClassConstructorReturnType = method.getReturnType();
             if (!superClassConstructorReturnType.hasAnnotation(ReceiverDependantMutable.class)
-            && !atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType)) {
+            && !atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType, atypeFactory.READONLY)) {
                 checker.report(
                         Result.failure(
                                 "subclass.constructor.invalid", subClassConstructorReturnType, superClassConstructorReturnType), node);

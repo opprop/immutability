@@ -191,6 +191,19 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         super.addComputedTypeAnnotations(elt, type);
     }
 
+    private void addDefaultIfStaticField(AnnotatedTypeMirror annotatedTypeMirror, Element element) {
+        if (element != null && element.getKind() == ElementKind.FIELD && ElementUtils.isStatic(element)) {
+            AnnotatedTypeMirror explicitATM = fromElement(element);
+            if (!explicitATM.isAnnotatedInHierarchy(READONLY)) {
+                if (PICOTypeUtil.isImplicitlyImmutableType(explicitATM)) {
+                    annotatedTypeMirror.replaceAnnotation(IMMUTABLE);
+                } else {
+                    annotatedTypeMirror.replaceAnnotation(MUTABLE);
+                }
+            }
+        }
+    }
+
     // This method allows get lhs WITH flow sensitive refinement
     // TODO Too much duplicate code. Should refactor it
     @Override
@@ -290,19 +303,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         }
     }
 
-    private void addDefaultIfStaticField(AnnotatedTypeMirror annotatedTypeMirror, Element element) {
-        if (element != null && element.getKind() == ElementKind.FIELD && ElementUtils.isStatic(element)) {
-            AnnotatedTypeMirror explicitATM = fromElement(element);
-            if (!explicitATM.isAnnotatedInHierarchy(READONLY)) {
-                if (PICOTypeUtil.isImplicitlyImmutableType(explicitATM)) {
-                    annotatedTypeMirror.replaceAnnotation(IMMUTABLE);
-                } else {
-                    annotatedTypeMirror.replaceAnnotation(MUTABLE);
-                }
-            }
-        }
-    }
-
     class PICOImplicitsTypeAnnotator extends ImplicitsTypeAnnotator {
 
         public PICOImplicitsTypeAnnotator(AnnotatedTypeFactory typeFactory) {
@@ -394,6 +394,11 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             // Strings
             type.replaceAnnotation(IMMUTABLE);
         }
+    }
+
+    @Override
+    public boolean getShouldDefaultTypeVarLocals() {
+        return false;
     }
 
     protected boolean isAssignableField(Element variableElement) {
