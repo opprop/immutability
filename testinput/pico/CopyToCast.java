@@ -1,3 +1,4 @@
+import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
 
@@ -6,7 +7,10 @@ import java.lang.CloneNotSupportedException;
 
 public class CopyToCast {
     void foo(Object o) {
-        String s = (String) o;
+        String s1 = (@Immutable String) o;
+        String s2 = (String) o;
+        //:: error: (type.invalid)
+        String s3 = (@Mutable String) o;
     }
 
     @Override
