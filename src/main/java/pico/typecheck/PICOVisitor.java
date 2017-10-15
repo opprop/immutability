@@ -52,6 +52,7 @@ import java.util.Set;
 
 /**
  * Created by mier on 20/06/17.
+ * Enforce PICO type rules.
  */
 public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory, PICOValue, PICOStore> {
 

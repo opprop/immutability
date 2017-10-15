@@ -160,14 +160,13 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                 && !isAssignableField(fieldElement);
     }
 
-    /** If the dataflow refines the type as something not immutable, then we replace it with
-    immutable, because no other immutability qualifiers are allowed on primitive, boxed primitive and
-    Strings and several other implicitly immutable classes*/
-    @Override
+    /** TODO If the dataflow refines the type as bottom, should we allow such a refinement? If we allow it,
+        PICOValidator will give an error if it begins to enforce @Bottom is not used*/
+/*    @Override
     protected void applyInferredAnnotations(AnnotatedTypeMirror type, PICOValue as) {
         super.applyInferredAnnotations(type, as);
-        applyImmutableIfImplicitlyImmutable(type);
-    }
+        // What to do if refined type is bottom?
+    }*/
 
     /**Forbid applying top annotations to type variables if they are used on local variables*/
     @Override

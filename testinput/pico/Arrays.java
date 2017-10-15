@@ -18,6 +18,7 @@ public class Arrays{
         array[0] = "something";
     }
 
+    /**This method is based on the assumption: Object class is implicitly @Readonly*/
     void test4(@Immutable String @Mutable [] p) {
         Object [] l = p;// By default, array type is @Readonly(local variable); Object class is by default @Readonly. So assignment should typecheck
     }

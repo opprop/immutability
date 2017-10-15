@@ -26,6 +26,8 @@ import javax.lang.model.element.VariableElement;
 
 /**
  * Created by mier on 29/09/17.
+ * Enforce correct usage of immutability and assignability qualifiers.
+ * TODO Enforce @Bottom is used nowhere; @PolyMutable is only used on constructor/method parameters or method return
  */
 public class PICOValidator extends BaseTypeValidator {
     public PICOValidator(BaseTypeChecker checker, BaseTypeVisitor<?> visitor, AnnotatedTypeFactory atypeFactory) {
