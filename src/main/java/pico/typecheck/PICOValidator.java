@@ -16,6 +16,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclared
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import qual.Bottom;
 import qual.Immutable;
 import qual.ReceiverDependantMutable;
 
@@ -31,73 +32,77 @@ public class PICOValidator extends BaseTypeValidator {
         super(checker, visitor, atypeFactory);
     }
 
+    @Override
+    public Void visitDeclared(AnnotatedDeclaredType type, Tree tree) {
+        if (isInStaticContext() && type.hasAnnotation(ReceiverDependantMutable.class)) {
+            reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
+        }
+        checkImplicitlyImmutableTypeError(type, tree);
+        checkOnlyOneAssignabilityModifierOnField(tree);
+        return super.visitDeclared(type, tree);
+    }
+
+    /**Decides if the visitor is in static context right now*/
     private boolean isInStaticContext(){
-        boolean isstatic = false;
+        boolean isStatic = false;
         MethodTree meth = TreeUtils.enclosingMethod(visitor.getCurrentPath());
         if(meth != null){
             ExecutableElement methel = TreeUtils.elementFromDeclaration(meth);
-            isstatic = ElementUtils.isStatic(methel);
+            isStatic = ElementUtils.isStatic(methel);
         } else {
             BlockTree blcktree = TreeUtils.enclosingTopLevelBlock(visitor.getCurrentPath());
             if (blcktree != null) {
-                isstatic = blcktree.isStatic();
+                isStatic = blcktree.isStatic();
             } else {
                 VariableTree vartree = TreeUtils.enclosingVariable(visitor.getCurrentPath());
                 if (vartree != null) {
                     ModifiersTree mt = vartree.getModifiers();
-                    isstatic = mt.getFlags().contains(Modifier.STATIC);
+                    isStatic = mt.getFlags().contains(Modifier.STATIC);
                 }
             }
         }
-        return isstatic;
+        return isStatic;
     }
 
-    @Override
-    public Void visitDeclared(AnnotatedDeclaredType type, Tree tree) {
-        if (isInStaticContext() && type.hasAnnotation(ReceiverDependantMutable.class)) {
-            // TODO Remove duplicate warnings
-            checker.report(
-                    Result.failure(
-                            "static.receiverdependantmutable.forbidden", type), tree);
+    /**Check that implicitly immutable type has immutable annotation. Note that bottom will be handled uniformly on all
+       the other remaining types(reference or primitive), so we don't handle it again here*/
+    private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
+        if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(Immutable.class) && !type.hasAnnotation(Bottom.class)) {
+            reportError(type, tree);
         }
-        if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
-            checkImplicitlyImmutableTypeError(type, tree);
-        }
+    }
+
+    /**Check that only one assignability modifier is used on a field*/
+    private void checkOnlyOneAssignabilityModifierOnField(Tree tree) {
         if (tree.getKind() == Kind.VARIABLE) {
             VariableTree variableTree = (VariableTree) tree;
             VariableElement variableElement = TreeUtils.elementFromDeclaration(variableTree);
-            if (!checkOnlyOneAssignability(variableElement)) {
-                checker.report(Result.failure("one.assignability.invalid", variableElement), variableElement);
+            boolean isValid = false;
+            PICOAnnotatedTypeFactory picoAnnotatedTypeFactory = (PICOAnnotatedTypeFactory) atypeFactory;
+            if (picoAnnotatedTypeFactory.isAssignableField(variableElement) && !picoAnnotatedTypeFactory.isFinalField(variableElement) &&
+                    !picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
+                isValid = true;
+            } else if (!picoAnnotatedTypeFactory.isAssignableField(variableElement) && picoAnnotatedTypeFactory.isFinalField(variableElement) &&
+                    !picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
+                isValid = true;
+            } else if (!picoAnnotatedTypeFactory.isAssignableField(variableElement) && !picoAnnotatedTypeFactory.isFinalField(variableElement) &&
+                    picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
+                isValid = true;
+            }
+            if (!isValid) {
+                reportFieldMultipleAssignabilityModifiersError(variableElement);
             }
         }
-        return super.visitDeclared(type, tree);
     }
 
-    private boolean checkOnlyOneAssignability(VariableElement variableElement) {
-        PICOAnnotatedTypeFactory picoAnnotatedTypeFactory = (PICOAnnotatedTypeFactory) atypeFactory;
-        if (picoAnnotatedTypeFactory.isAssignableField(variableElement) && !picoAnnotatedTypeFactory.isFinalField(variableElement) &&
-                !picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
-            return true;
-        } else if (!picoAnnotatedTypeFactory.isAssignableField(variableElement) && picoAnnotatedTypeFactory.isFinalField(variableElement) &&
-                !picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
-            return true;
-        } else if (!picoAnnotatedTypeFactory.isAssignableField(variableElement) && !picoAnnotatedTypeFactory.isFinalField(variableElement) &&
-                picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
-            return true;
-        }
-        return false;
+    private void reportFieldMultipleAssignabilityModifiersError(VariableElement field) {
+        checker.report(Result.failure("one.assignability.invalid", field), field);
+        isValid = false;
     }
 
     @Override
     public Void visitPrimitive(AnnotatedPrimitiveType type, Tree tree) {
         checkImplicitlyImmutableTypeError(type, tree);
         return super.visitPrimitive(type, tree);
-    }
-
-
-    private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
-        if (!type.hasAnnotation(Immutable.class)) {
-            reportError(type, tree);
-        }
     }
 }

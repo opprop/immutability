@@ -25,7 +25,6 @@ public class Static{
 
     //:: error: (static.receiverdependantmutable.forbidden)
     static @ReceiverDependantMutable Object readStaticReceiverDependantMutableField(@ReceiverDependantMutable Object p) {
-        //:: error: (static.receiverdependantmutable.forbidden)
         return o;
         // TODO Avoid warnings for receiverdependantmutable fields in anonymous class
     }
