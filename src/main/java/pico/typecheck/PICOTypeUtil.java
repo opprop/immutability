@@ -19,6 +19,11 @@ public class PICOTypeUtil {
         return TypesUtils.isBoxedPrimitive(tm);
     }
 
+    public static boolean isString(AnnotatedTypeMirror atm) {
+        TypeMirror tm = atm.getUnderlyingType();
+        return TypesUtils.isString(tm);
+    }
+
     /**Remember to add all the class names that are in @ImplicitFor in the declaration of @Immutable*/
     private static boolean isOtherImmutableImplicitType(AnnotatedTypeMirror atm) {
         if (atm.getKind() != TypeKind.DECLARED) {
@@ -28,11 +33,6 @@ public class PICOTypeUtil {
         String qualifiedName = TypesUtils.getQualifiedName((DeclaredType) tm).toString();
         return (qualifiedName.equals("java.lang.Number") ||
         qualifiedName.equals("java.math.BigDecimal") || qualifiedName.equals("java.math.BigInteger"));
-    }
-
-    public static boolean isString(AnnotatedTypeMirror atm) {
-        TypeMirror tm = atm.getUnderlyingType();
-        return TypesUtils.isString(tm);
     }
 
     public static boolean isImplicitlyImmutableType(AnnotatedTypeMirror atm) {

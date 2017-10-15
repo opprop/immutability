@@ -86,11 +86,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     }
 
     @Override
-    protected boolean isInitializationAnnotation(AnnotationMirror anno) {
-        return super.isInitializationAnnotation(anno);
-    }
-
-    @Override
     protected Set<Class<? extends Annotation>> createSupportedTypeQualifiers() {
         return new LinkedHashSet<Class<? extends Annotation>>(
                 Arrays.asList(
@@ -148,26 +143,28 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     }
 
     @Override
-    public Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
-        Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> pair = super.methodFromUse(tree, methodElt, receiverType);
-        // We want to replace polymutable with substitutablepolymutable when we invoke static methods
-        // TODO Remove this hacky way
-        if (ElementUtils.isStatic(methodElt)) {
-            AnnotatedExecutableType methodType = pair.first;
-            AnnotatedTypeMirror returnType = methodType.getReturnType();
-            if (returnType.hasAnnotation(POLYMUTABLE)) {
-                // Only substitute polymutable but not other qualifiers! Missing the if statement
-                // caused bugs before!
-                returnType.replaceAnnotation(SUBSTITUTABLEPOLYMUTABLE);
+    protected QualifierPolymorphism createQualifierPolymorphism() {
+        return new QualifierPolymorphism(processingEnv, this){
+            @Override
+            public void annotate(NewClassTree tree, AnnotatedExecutableType type) {
+                return;
             }
-            List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
-            for (AnnotatedTypeMirror p : parameterTypes) {
-                if (returnType.hasAnnotation(POLYMUTABLE)) {
-                    p.replaceAnnotation(SUBSTITUTABLEPOLYMUTABLE);
-                }
-            }
-        }
-        return pair;
+        };
+    }
+
+    @Override
+    public QualifierHierarchy createQualifierHierarchy(MultiGraphFactory factory) {
+        return new PICOQualifierHierarchy(factory, (Object[]) null);
+    }
+
+    @Override
+    protected TypeHierarchy createTypeHierarchy() {
+        return new PICOTypeHierarchy(checker, qualHierarchy);
+    }
+
+    @Override
+    protected boolean isInitializationAnnotation(AnnotationMirror anno) {
+        return super.isInitializationAnnotation(anno);
     }
 
     @Override
@@ -176,13 +173,43 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     }
 
     @Override
-    protected QualifierPolymorphism createQualifierPolymorphism() {
-        return new QualifierPolymorphism(processingEnv, this){
-            @Override
-            public void annotate(NewClassTree tree, AnnotatedExecutableType type) {
-                return;
-            }
-        };
+    protected boolean hasFieldInvariantAnnotation(AnnotatedTypeMirror type, VariableElement fieldElement) {
+        // This affects which fields should be guaranteed to be initialized
+        Set<AnnotationMirror> lowerBounds =
+                AnnotatedTypes.findEffectiveLowerBoundAnnotations(qualHierarchy, type);
+        return (AnnotationUtils.containsSame(lowerBounds, IMMUTABLE) || AnnotationUtils.containsSame(lowerBounds, RECEIVERDEPENDANTMUTABLE))
+                && !isAssignableField(fieldElement);
+    }
+
+    @Override
+    protected void applyInferredAnnotations(AnnotatedTypeMirror type, PICOValue as) {
+        super.applyInferredAnnotations(type, as);
+        if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
+            // If the dataflow refines the type as something not immutable, then we replace it with
+            // immutable, because no other immutability qualifiers are allowed on primitive, boxed primitive and
+            // Strings
+            type.replaceAnnotation(IMMUTABLE);
+        }
+    }
+
+    @Override
+    public boolean getShouldDefaultTypeVarLocals() {
+        return false;
+    }
+
+    protected boolean isAssignableField(Element variableElement) {
+        assert variableElement instanceof VariableElement;
+        return getDeclAnnotation(variableElement, Assignable.class) != null;
+    }
+
+    protected boolean isFinalField(Element variableElement) {
+        assert variableElement instanceof VariableElement;
+        return ElementUtils.isFinal(variableElement);
+    }
+
+    protected boolean isReceiverDependantAssignable(Element variableElement) {
+        assert variableElement instanceof VariableElement;
+        return !isAssignableField(variableElement) && !isFinalField(variableElement);
     }
 
     @Override
@@ -243,22 +270,26 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     }
 
     @Override
-    protected boolean hasFieldInvariantAnnotation(AnnotatedTypeMirror type, VariableElement fieldElement) {
-        // This affects which fields should be guaranteed to be initialized
-        Set<AnnotationMirror> lowerBounds =
-                AnnotatedTypes.findEffectiveLowerBoundAnnotations(qualHierarchy, type);
-        return (AnnotationUtils.containsSame(lowerBounds, IMMUTABLE) || AnnotationUtils.containsSame(lowerBounds, RECEIVERDEPENDANTMUTABLE))
-                && !isAssignableField(fieldElement);
-    }
-
-    @Override
-    public QualifierHierarchy createQualifierHierarchy(MultiGraphFactory factory) {
-        return new PICOQualifierHierarchy(factory, (Object[]) null);
-    }
-
-    @Override
-    protected TypeHierarchy createTypeHierarchy() {
-        return new PICOTypeHierarchy(checker, qualHierarchy);
+    public Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
+        Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> pair = super.methodFromUse(tree, methodElt, receiverType);
+        // We want to replace polymutable with substitutablepolymutable when we invoke static methods
+        // TODO Remove this hacky way
+        if (ElementUtils.isStatic(methodElt)) {
+            AnnotatedExecutableType methodType = pair.first;
+            AnnotatedTypeMirror returnType = methodType.getReturnType();
+            if (returnType.hasAnnotation(POLYMUTABLE)) {
+                // Only substitute polymutable but not other qualifiers! Missing the if statement
+                // caused bugs before!
+                returnType.replaceAnnotation(SUBSTITUTABLEPOLYMUTABLE);
+            }
+            List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
+            for (AnnotatedTypeMirror p : parameterTypes) {
+                if (returnType.hasAnnotation(POLYMUTABLE)) {
+                    p.replaceAnnotation(SUBSTITUTABLEPOLYMUTABLE);
+                }
+            }
+        }
+        return pair;
     }
 
     protected class PICOQualifierHierarchy extends InitializationQualifierHierarchy {
@@ -303,20 +334,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         }
     }
 
-    class PICOImplicitsTypeAnnotator extends ImplicitsTypeAnnotator {
-
-        public PICOImplicitsTypeAnnotator(AnnotatedTypeFactory typeFactory) {
-            super(typeFactory);
-        }
-
-        @Override
-        public Void visitExecutable(AnnotatedExecutableType t, Void p) {
-            // Also scan the receiver
-            scan(t.getReceiverType(), p);
-            return super.visitExecutable(t, p);
-        }
-    }
-
     class PICOTypeAnnotator extends TypeAnnotator {
 
         public PICOTypeAnnotator(AnnotatedTypeFactory typeFactory) {
@@ -343,17 +360,17 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         }
     }
 
-    class PICOTreeAnnotator extends TreeAnnotator {
-        public PICOTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
-            super(atypeFactory);
+    class PICOImplicitsTypeAnnotator extends ImplicitsTypeAnnotator {
+
+        public PICOImplicitsTypeAnnotator(AnnotatedTypeFactory typeFactory) {
+            super(typeFactory);
         }
 
         @Override
-        public Void visitVariable(VariableTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            VariableElement element = TreeUtils.elementFromDeclaration(node);
-            // if not primitive type, boxed primitive or string then
-            addDefaultIfStaticField(annotatedTypeMirror, element);
-            return super.visitVariable(node, annotatedTypeMirror);
+        public Void visitExecutable(AnnotatedExecutableType t, Void p) {
+            // Also scan the receiver
+            scan(t.getReceiverType(), p);
+            return super.visitExecutable(t, p);
         }
     }
 
@@ -385,34 +402,17 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         }
     }
 
-    @Override
-    protected void applyInferredAnnotations(AnnotatedTypeMirror type, PICOValue as) {
-        super.applyInferredAnnotations(type, as);
-        if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
-            // If the dataflow refines the type as something not immutable, then we replace it with
-            // immutable, because no other immutability qualifiers are allowed on primitive, boxed primitive and
-            // Strings
-            type.replaceAnnotation(IMMUTABLE);
+    class PICOTreeAnnotator extends TreeAnnotator {
+        public PICOTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
+            super(atypeFactory);
         }
-    }
 
-    @Override
-    public boolean getShouldDefaultTypeVarLocals() {
-        return false;
-    }
-
-    protected boolean isAssignableField(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        return getDeclAnnotation(variableElement, Assignable.class) != null;
-    }
-
-    protected boolean isFinalField(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        return ElementUtils.isFinal(variableElement);
-    }
-
-    protected boolean isReceiverDependantAssignable(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        return !isAssignableField(variableElement) && !isFinalField(variableElement);
+        @Override
+        public Void visitVariable(VariableTree node, AnnotatedTypeMirror annotatedTypeMirror) {
+            VariableElement element = TreeUtils.elementFromDeclaration(node);
+            // if not primitive type, boxed primitive or string then
+            addDefaultIfStaticField(annotatedTypeMirror, element);
+            return super.visitVariable(node, annotatedTypeMirror);
+        }
     }
 }
