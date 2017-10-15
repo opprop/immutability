@@ -54,6 +54,7 @@ import java.util.Set;
  * Created by mier on 20/06/17.
  */
 public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory, PICOValue, PICOStore> {
+
     public PICOVisitor(BaseTypeChecker checker) {
         super(checker);
     }
@@ -63,6 +64,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         return new PICOValidator(checker, this, atypeFactory);
     }
 
+    /**No need to check usage type is subtype of the declaration type*/
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
         return true;
@@ -198,29 +200,34 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     }
 
     private boolean allowWriteField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
-        if (receiverType.hasAnnotation(Mutable.class))
+        // One pico side, if only receiver is mutable, we allow assigning/reassigning. Because if the field
+        // is declared as final, Java compiler will catch that, and we couldn't have reached this point
+        if (receiverType.hasAnnotation(Mutable.class)) {
             return true;
-        else if (isInitializingReceiverDependantMutableOrImmutableObject(receiverType))
+        } else if (isInitializingReceiverDependantMutableOrImmutableObject(receiverType)) {
             return true;
-        else if (isAssigningNonAbstractStateField(receiverType, node))
+        } else if (isAssigningNonAbstractStateField(receiverType, node)) {
             return true;
-        else
+        } else {
             return false;
+        }
     }
 
     private boolean isInitializingReceiverDependantMutableOrImmutableObject(AnnotatedTypeMirror receiverType) {
-        if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(ReceiverDependantMutable.class))
+        if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(ReceiverDependantMutable.class)) {
             return true;
-        else if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(Immutable.class))
+        } else if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(Immutable.class)) {
             return true;
-        else
+        } else {
             return false;
+        }
     }
 
     private boolean isAssigningNonAbstractStateField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
         Element variableElement = TreeUtils.elementFromUse(node);
         if (variableElement == null) return false;
         AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(variableElement);
+        // Forbid the case that might break type soundness
         if (atypeFactory.isAssignableField(variableElement) && receiverType.hasAnnotation(Readonly.class)
                 && fieldType.hasAnnotation(ReceiverDependantMutable.class)) {
             return false;
@@ -250,19 +257,19 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         return super.visitNewClass(node, p);
     }
 
+    @Override
+    public Void visitNewArray(NewArrayTree node, Void p) {
+        checkNewInstanceCreation(node);
+        return super.visitNewArray(node, p);
+    }
+
     private void checkNewInstanceCreation(Tree node) {
-        // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable/@PolyMmutable are used on new instance creation
+        // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable/@PolyMutable are used on new instance creation
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
         if (!(type.hasEffectiveAnnotation(atypeFactory.IMMUTABLE) || type.hasEffectiveAnnotation(atypeFactory.MUTABLE) ||
         type.hasEffectiveAnnotation(atypeFactory.RECEIVERDEPENDANTMUTABLE) || type.hasEffectiveAnnotation(atypeFactory.POLYMUTABLE))) {
             checker.report(Result.failure("pico.new.invalid", type), node);
         }
-    }
-
-    @Override
-    public Void visitNewArray(NewArrayTree node, Void p) {
-        checkNewInstanceCreation(node);
-        return super.visitNewArray(node, p);
     }
 
     @Override
