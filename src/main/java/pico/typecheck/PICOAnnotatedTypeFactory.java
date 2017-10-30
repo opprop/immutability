@@ -14,6 +14,7 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
@@ -51,10 +52,20 @@ import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 
+/**
+ * AnnotatedTypeFactory for PICO. In addition to getting atms, it also propagates and applies mutability
+ * qualifiers correctly depending on AST locations(e.g. fields, binary trees) or methods(toString(), hashCode(),
+ * clone(), equals(Object o)) using TreeAnnotators and TypeAnnotators. It also applies implicits to method
+ * receiver that is not so by default in super implementation.
+ */
+//TODO Use @Immutable for classes that extends those predefined immutable classess like String or Number
+    // and explicitly annotated classes with @Immutable on its declaration
 public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory<PICOValue,
         PICOStore, PICOTransfer, PICOAnalysis> {
 
@@ -351,12 +362,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         @Override
         public Void visitExecutable(AnnotatedExecutableType t, Void p) {
             super.visitExecutable(t, p);
-            if (isMethod(t, "toString") || isMethod(t, "hashCode")) {
+            if (isMethodOrOverridingMethod(t, "toString()") || isMethodOrOverridingMethod(t, "hashCode()")) {
                 t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-            } else if (isMethod(t, "equals")) {
+            } else if (isMethodOrOverridingMethod(t, "equals(java.lang.Object)")) {
                 t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
                 t.getParameterTypes().get(0).addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-            } else if (isMethod(t, "clone")) {
+            } else if (isMethodOrOverridingMethod(t, "clone()")) {
                 t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
                 t.getReturnType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
             }
@@ -364,8 +375,20 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         }
 
         /**Helper method to determine a method using method name*/
-        private boolean isMethod(AnnotatedExecutableType methodType, String methodName) {
-            return methodType.getElement().getSimpleName().contentEquals(methodName);
+        private boolean isMethodOrOverridingMethod(AnnotatedExecutableType methodType, String methodName) {
+            // Check if it is the target method
+            if (methodType.getElement().toString().contentEquals(methodName)) return true;
+            // Check if it is overriding the target method
+            // Because AnnotatedTypes.overriddenMethods returns all the methods overriden in the class hierarchy, we need to
+            // iterate over the set to check if it's overriding corresponding methods specifically in java.lang.Object class
+            Iterator<Entry<AnnotatedDeclaredType, ExecutableElement>> overriddenMethods
+                    = AnnotatedTypes.overriddenMethods(elements, typeFactory, methodType.getElement()).entrySet().iterator();
+            while (overriddenMethods.hasNext()) {
+                if (overriddenMethods.next().getValue().toString().contentEquals(methodName)) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 

@@ -26,3 +26,10 @@ public class OverrideEquals extends A{
         }
     }
 }
+
+class SubOverrideEquals extends OverrideEquals {
+    @Override
+    public boolean equals(@Readonly Object o) {
+        return super.equals(new @Mutable Object());
+    }
+}

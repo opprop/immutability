@@ -46,8 +46,10 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -56,8 +58,13 @@ import java.util.Set;
  */
 public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory, PICOValue, PICOStore> {
 
+    private final boolean shouldOutputFbcError;
+    final Map<String, Integer> fbcViolatedMethods;
+
     public PICOVisitor(BaseTypeChecker checker) {
         super(checker);
+        shouldOutputFbcError = checker.getLintOption("printFbcErrors" , false);
+        fbcViolatedMethods = shouldOutputFbcError ? new HashMap<>() : null;
     }
 
     @Override
@@ -338,18 +345,62 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     @Override
     protected void checkMethodInvocability(AnnotatedExecutableType method, MethodInvocationTree node) {
+        // Check subclass constructor calls the correct super class constructor: mutable calls mutable; immutable
+        // calls immutable; any calls receiverdependantmutable
         if (method.getElement().getKind() == ElementKind.CONSTRUCTOR) {
             AnnotatedTypeMirror subClassConstructorReturnType = atypeFactory.getReceiverType(node);
             AnnotatedTypeMirror superClassConstructorReturnType = method.getReturnType();
             if (!superClassConstructorReturnType.hasAnnotation(ReceiverDependantMutable.class)
-            && !atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType, atypeFactory.READONLY)) {
+                    && !atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType, atypeFactory.READONLY)) {
                 checker.report(
                         Result.failure(
                                 "subclass.constructor.invalid", subClassConstructorReturnType, superClassConstructorReturnType), node);
             }
         }
 
-        super.checkMethodInvocability(method, node);
+        /*Copied Code Starts*/
+        if (method.getReceiverType() == null) {
+            // Static methods don't have a receiver.
+            return;
+        }
+        if (method.getElement().getKind() == ElementKind.CONSTRUCTOR) {
+            // TODO: Explicit "this()" calls of constructors have an implicit passed
+            // from the enclosing constructor. We must not use the self type, but
+            // instead should find a way to determine the receiver of the enclosing constructor.
+            // rcv = ((AnnotatedExecutableType)atypeFactory.getAnnotatedType(atypeFactory.getEnclosingMethod(node))).getReceiverType();
+            return;
+        }
+
+        AnnotatedTypeMirror methodReceiver = method.getReceiverType().getErased();
+        AnnotatedTypeMirror treeReceiver = methodReceiver.shallowCopy(false);
+        AnnotatedTypeMirror rcv = atypeFactory.getReceiverType(node);
+
+        treeReceiver.addAnnotations(rcv.getEffectiveAnnotations());
+
+        if (!skipReceiverSubtypeCheck(node, methodReceiver, rcv)
+                && !atypeFactory.getTypeHierarchy().isSubtype(treeReceiver, methodReceiver)) {
+            checker.report(
+                    Result.failure(
+                            "method.invocation.invalid",
+                            TreeUtils.elementFromUse(node),
+                            treeReceiver.toString(),
+                            methodReceiver.toString()),
+                    node);
+            /*Difference Starts*/
+            if (shouldOutputFbcError) {
+                saveFbcViolatedMethods(TreeUtils.elementFromUse(node), treeReceiver.toString(), methodReceiver.toString());
+            }
+            /*Different Ends*/
+        }
+        /*Copied Code Ends*/
+    }
+
+    private void saveFbcViolatedMethods(ExecutableElement method, String actualReceiver, String declaredReceiver) {
+        if (actualReceiver.contains("@UnderInitialization") && declaredReceiver.contains("@Initialized")) {
+            String key = ElementUtils.enclosingClass(method) + "#" + method;
+            Integer times = fbcViolatedMethods.get(key) == null ? 1 : fbcViolatedMethods.get(key) + 1;
+            fbcViolatedMethods.put(key, times);
+        }
     }
 
     @Override
