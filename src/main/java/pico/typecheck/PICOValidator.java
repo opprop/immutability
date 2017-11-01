@@ -36,12 +36,16 @@ public class PICOValidator extends BaseTypeValidator {
 
     @Override
     public Void visitDeclared(AnnotatedDeclaredType type, Tree tree) {
-        if (isInStaticContext() && type.hasAnnotation(ReceiverDependantMutable.class)) {
-            reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
-        }
+        checkStaticReceiverDependantMutableError(type, tree);
         checkImplicitlyImmutableTypeError(type, tree);
         checkOnlyOneAssignabilityModifierOnField(tree);
         return super.visitDeclared(type, tree);
+    }
+
+    private void checkStaticReceiverDependantMutableError(AnnotatedDeclaredType type, Tree tree) {
+        if (isInStaticContext() && type.hasAnnotation(ReceiverDependantMutable.class)) {
+            reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
+        }
     }
 
     /**Decides if the visitor is in static context right now*/
@@ -74,13 +78,14 @@ public class PICOValidator extends BaseTypeValidator {
         }
     }
 
-    /**Check that only one assignability modifier is used on a field*/
+    /**Ensures the well-formdness in terms of assignability on a field. This covers both instance fields and static fields.*/
     private void checkOnlyOneAssignabilityModifierOnField(Tree tree) {
         if (tree.getKind() == Kind.VARIABLE) {
             VariableTree variableTree = (VariableTree) tree;
             VariableElement variableElement = TreeUtils.elementFromDeclaration(variableTree);
             boolean isValid = false;
             PICOAnnotatedTypeFactory picoAnnotatedTypeFactory = (PICOAnnotatedTypeFactory) atypeFactory;
+
             if (picoAnnotatedTypeFactory.isAssignableField(variableElement) && !picoAnnotatedTypeFactory.isFinalField(variableElement) &&
                     !picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
                 isValid = true;
@@ -89,8 +94,10 @@ public class PICOValidator extends BaseTypeValidator {
                 isValid = true;
             } else if (!picoAnnotatedTypeFactory.isAssignableField(variableElement) && !picoAnnotatedTypeFactory.isFinalField(variableElement) &&
                     picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
+                assert !ElementUtils.isStatic(variableElement);
                 isValid = true;
             }
+
             if (!isValid) {
                 reportFieldMultipleAssignabilityModifiersError(variableElement);
             }

@@ -7,4 +7,6 @@ public class InvalidAssignability {
     @Assignable @Immutable Object io3;
     //:: error: (one.assignability.invalid)
     final @Assignable @Immutable Object o = null;
+    //:: error: (one.assignability.invalid)
+    static final @Assignable @Immutable Object o2 = null;
 }
