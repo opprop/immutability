@@ -214,7 +214,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return true;
         } else if (isInitializingReceiverDependantMutableOrImmutableObject(receiverType)) {
             return true;
-        } else if (isAssigningNonAbstractStateField(receiverType, node)) {
+        } else if (isAssigningAssignableField(receiverType, node)) {
             return true;
         } else {
             return false;
@@ -231,7 +231,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         }
     }
 
-    private boolean isAssigningNonAbstractStateField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
+    private boolean isAssigningAssignableField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
         Element variableElement = TreeUtils.elementFromUse(node);
         if (variableElement == null) return false;
         AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(variableElement);
@@ -241,8 +241,6 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return false;
         } else if (atypeFactory.isAssignableField(variableElement)) {
             return true;
-        } else if (fieldType.hasAnnotation(Mutable.class) || fieldType.hasAnnotation(Readonly.class)) {
-                return true;
         }
         return false;
     }

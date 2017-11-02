@@ -1,3 +1,4 @@
+import qual.Assignable;
 import qual.Mutable;
 import qual.Immutable;
 import qual.Readonly;
@@ -5,10 +6,10 @@ import qual.ReceiverDependantMutable;
 
 public class ViewpointAdaptationRules {
 
-    @Readonly Object rof;
+    @Assignable @Readonly Object rof;
     @ReceiverDependantMutable Object rdmf;
     @Immutable Object imf;
-    @Mutable Object mf;
+    @Assignable @Mutable Object mf;
 
     @ReceiverDependantMutable ViewpointAdaptationRules(@Readonly Object rof, @ReceiverDependantMutable Object rdmf, @Immutable Object imf, @Mutable Object mf) {
         this.rof = rof;
