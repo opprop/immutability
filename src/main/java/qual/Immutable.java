@@ -17,7 +17,6 @@ import java.math.BigInteger;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-/**Remember to add all the class names that are in typeNames to PICOTypeUtil#isOtherImmutableImplicitType(AnnotatedTypeMirror)*/
 @ImplicitFor(typeNames={String.class, Double.class, Boolean.class, Byte.class,
         Character.class, Float.class, Integer.class, Long.class, Short.class, Number.class,
         BigDecimal.class, BigInteger.class},
