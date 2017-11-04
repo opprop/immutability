@@ -24,6 +24,12 @@ else
     (cd $JSR308 && git clone --depth 1 https://github.com/"$SLUGOWNER"/annotation-tools.git)
 fi
 
+# Clone stubparser
+if [ -d $JSR308/stubparser ] ; then
+    (cd $JSR308/stubparser && git pull)
+else
+    (cd $JSR308 && git clone --depth 1 https://github.com/"$SLUGOWNER"/stubparser.git)
+fi
 # Clone checker-framework
 if [ -d $JSR308/checker-framework ] ; then
     (cd $JSR308/checker-framework && git checkout pico-dependant && git pull)
@@ -42,10 +48,12 @@ fi
 
 # Build annotation-tools (and jsr308-langtools)
 (cd $JSR308/annotation-tools/ && ./.travis-build-without-test.sh)
+# Build stubparser
+(cd $JSR308/stubparser/ && mvn package -Dmaven.test.skip=true)
 # Build checker-framework, with jdk
 (cd $JSR308/checker-framework && ant -f checker/build.xml jar)
 # Build checker-framework-inference
-($JSR308/checker-framework-inference && gradle dist)
+(cd $JSR308/checker-framework-inference && gradle dist)
 
 # Build PICO
 (cd $JSR308/immutability && gradle build)
