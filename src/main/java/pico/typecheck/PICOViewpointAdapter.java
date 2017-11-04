@@ -3,7 +3,7 @@ package pico.typecheck;
 import exceptions.UnkownImmutabilityQualifierException;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.util.FrameworkViewpointAdaptor;
+import org.checkerframework.framework.util.FrameworkViewpointAdapter;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 
@@ -14,7 +14,7 @@ import javax.lang.model.type.TypeKind;
 /**
  * Created by mier on 20/06/17.
  */
-public class PICOViewpointAdaptor extends FrameworkViewpointAdaptor {
+public class PICOViewpointAdapter extends FrameworkViewpointAdapter {
     @Override
     protected AnnotationMirror combineModifierWithModifier(AnnotationMirror recvModifier, AnnotationMirror declModifier, AnnotatedTypeFactory f) {
         PICOAnnotatedTypeFactory picoAnnotatedTypeFactory = (PICOAnnotatedTypeFactory)f;

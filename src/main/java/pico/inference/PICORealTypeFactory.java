@@ -1,7 +1,6 @@
 package pico.inference;
 
 import com.sun.source.tree.BinaryTree;
-import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
@@ -22,21 +21,17 @@ import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.framework.util.ViewpointAdaptor;
+import org.checkerframework.framework.util.ViewpointAdapter;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.ErrorReporter;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
-import pico.typecheck.PICOAnnotatedTypeFactory;
 import pico.typecheck.PICOTypeUtil;
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
-import qual.PolyMutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
-import qual.SubstitutablePolyMutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -91,8 +86,8 @@ public class PICORealTypeFactory extends BaseAnnotatedTypeFactory {
 
     // TODO Remove this temporary viewpoint adaptor
     @Override
-    protected ViewpointAdaptor<?> createViewpointAdaptor() {
-        return new PICORealTempViewpointAdaptor();
+    protected ViewpointAdapter<?> createViewpointAdapter() {
+        return new PICORealViewpointAdapter();
     }
 
     /**Annotators are executed by the added order. Same for Type Annotator*/
@@ -293,9 +288,13 @@ public class PICORealTypeFactory extends BaseAnnotatedTypeFactory {
         /**Also applies implicits to method receiver*/
         @Override
         public Void visitExecutable(AnnotatedExecutableType t, Void p) {
+            // There is a TODO in the PICOAnnotatedTypeFactory to investigate. This is just a copy
+            super.visitExecutable(t, p);
             // Also scan the receiver to apply implicit annotation
-            scan(t.getReceiverType(), p);
-            return super.visitExecutable(t, p);
+            if (t.getReceiverType() != null) {
+                return scanAndReduce(t.getReceiverType(), p, null);
+            }
+            return null;
         }
     }
 }

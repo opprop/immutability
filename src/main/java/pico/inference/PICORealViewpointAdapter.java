@@ -3,7 +3,7 @@ package pico.inference;
 import exceptions.UnkownImmutabilityQualifierException;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.util.FrameworkViewpointAdaptor;
+import org.checkerframework.framework.util.FrameworkViewpointAdapter;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 
@@ -15,7 +15,7 @@ import javax.lang.model.type.TypeKind;
  * This class exists because in inference side, we only support a reduced version of mutability qualifier
  * hierarchy.
  */
-public class PICORealTempViewpointAdaptor extends FrameworkViewpointAdaptor {
+public class PICORealViewpointAdapter extends FrameworkViewpointAdapter {
     @Override
     protected AnnotationMirror combineModifierWithModifier(AnnotationMirror recvModifier, AnnotationMirror declModifier, AnnotatedTypeFactory f) {
         PICORealTypeFactory picoRealTypeFactory = (PICORealTypeFactory) f;

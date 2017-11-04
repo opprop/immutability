@@ -28,7 +28,7 @@ import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotato
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
-import org.checkerframework.framework.util.ViewpointAdaptor;
+import org.checkerframework.framework.util.ViewpointAdapter;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.ErrorReporter;
@@ -105,8 +105,8 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     }
 
     @Override
-    protected ViewpointAdaptor<?> createViewpointAdaptor() {
-        return new PICOViewpointAdaptor();
+    protected ViewpointAdapter<?> createViewpointAdapter() {
+        return new PICOViewpointAdapter();
     }
 
     /**Annotators are executed by the added order. Same for Type Annotator*/
@@ -416,9 +416,15 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         /**Also applies implicits to method receiver*/
         @Override
         public Void visitExecutable(AnnotatedExecutableType t, Void p) {
+            // TODO The implementattion before doesn't work after update. Previously, I sanned the
+            // method receiver without null check. But even if I check nullness, scanning receiver
+            // at first caused some tests to fail. Need to investigate the reason.
+            super.visitExecutable(t, p);
             // Also scan the receiver to apply implicit annotation
-            scan(t.getReceiverType(), p);
-            return super.visitExecutable(t, p);
+            if (t.getReceiverType() != null) {
+                return scanAndReduce(t.getReceiverType(), p, null);
+            }
+            return null;
         }
     }
 }
