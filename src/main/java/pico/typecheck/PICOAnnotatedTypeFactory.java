@@ -168,7 +168,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         Set<AnnotationMirror> lowerBounds =
                 AnnotatedTypes.findEffectiveLowerBoundAnnotations(qualHierarchy, type);
         return (AnnotationUtils.containsSame(lowerBounds, IMMUTABLE) || AnnotationUtils.containsSame(lowerBounds, RECEIVERDEPENDANTMUTABLE))
-                && !isAssignableField(fieldElement);
+                && !((PICOVisitor)checker.getVisitor()).isAssignableField(fieldElement);
     }
 
     /** TODO If the dataflow refines the type as bottom, should we allow such a refinement? If we allow it,
@@ -183,37 +183,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     @Override
     public boolean getShouldDefaultTypeVarLocals() {
         return false;
-    }
-
-    /**Util methods to determine fields' assignability*/
-    /**Check if a field is assignable or not.*/
-    protected boolean isAssignableField(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        boolean hasExplicitAssignableAnnotation = getDeclAnnotation(variableElement, Assignable.class) != null;
-        if (!ElementUtils.isStatic(variableElement)) {
-            // Instance fields must have explicit @Assignable annotation to be assignable
-            return hasExplicitAssignableAnnotation;
-        } else {
-            // If there is explicit @Assignable annotation on static fields, then it's assignable; If there isn't,
-            // and the static field is not final, we treat it as if it's assignable field.
-            return hasExplicitAssignableAnnotation || !isFinalField(variableElement);
-        }
-    }
-
-    /**Check if a field is final or not.*/
-    protected boolean isFinalField(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        return ElementUtils.isFinal(variableElement);
-    }
-
-    /**Check if a field is @ReceiverDependantAssignable. Static fields always returns false.*/
-    protected boolean isReceiverDependantAssignable(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        if (ElementUtils.isStatic(variableElement)) {
-            // Static fields can never be @ReceiverDependantAssignable!
-            return false;
-        }
-        return !isAssignableField(variableElement) && !isFinalField(variableElement);
     }
 
     /**Because TreeAnnotator runs before ImplicitsTypeAnnotator, implicitly immutable types are not guaranteed

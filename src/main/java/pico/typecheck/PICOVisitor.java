@@ -32,6 +32,7 @@ import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import qual.Assignable;
 import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
@@ -93,6 +94,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     @Override
     protected boolean checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
+        // TODO Is the copied code really needed?
         /*Copied Code Start*/
         AnnotatedDeclaredType returnType = (AnnotatedDeclaredType) constructor.getReturnType();
         // When an interface is used as the identifier in an anonymous class (e.g. new Comparable() {})
@@ -236,13 +238,44 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (variableElement == null) return false;
         AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(variableElement);
         // Forbid the case that might break type soundness
-        if (atypeFactory.isAssignableField(variableElement) && receiverType.hasAnnotation(Readonly.class)
+        if (isAssignableField(variableElement) && receiverType.hasAnnotation(Readonly.class)
                 && fieldType.hasAnnotation(ReceiverDependantMutable.class)) {
             return false;
-        } else if (atypeFactory.isAssignableField(variableElement)) {
+        } else if (isAssignableField(variableElement)) {
             return true;
         }
         return false;
+    }
+
+    /**Util methods to determine fields' assignability*/
+    /**Check if a field is assignable or not.*/
+    protected boolean isAssignableField(Element variableElement) {
+        assert variableElement instanceof VariableElement;
+        boolean hasExplicitAssignableAnnotation = atypeFactory.getDeclAnnotation(variableElement, Assignable.class) != null;
+        if (!ElementUtils.isStatic(variableElement)) {
+            // Instance fields must have explicit @Assignable annotation to be assignable
+            return hasExplicitAssignableAnnotation;
+        } else {
+            // If there is explicit @Assignable annotation on static fields, then it's assignable; If there isn't,
+            // and the static field is not final, we treat it as if it's assignable field.
+            return hasExplicitAssignableAnnotation || !isFinalField(variableElement);
+        }
+    }
+
+    /**Check if a field is final or not.*/
+    protected boolean isFinalField(Element variableElement) {
+        assert variableElement instanceof VariableElement;
+        return ElementUtils.isFinal(variableElement);
+    }
+
+    /**Check if a field is @ReceiverDependantAssignable. Static fields always returns false.*/
+    protected boolean isReceiverDependantAssignable(Element variableElement) {
+        assert variableElement instanceof VariableElement;
+        if (ElementUtils.isStatic(variableElement)) {
+            // Static fields can never be @ReceiverDependantAssignable!
+            return false;
+        }
+        return !isAssignableField(variableElement) && !isFinalField(variableElement);
     }
 
     @Override
@@ -359,13 +392,6 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         /*Copied Code Starts*/
         if (method.getReceiverType() == null) {
             // Static methods don't have a receiver.
-            return;
-        }
-        if (method.getElement().getKind() == ElementKind.CONSTRUCTOR) {
-            // TODO: Explicit "this()" calls of constructors have an implicit passed
-            // from the enclosing constructor. We must not use the self type, but
-            // instead should find a way to determine the receiver of the enclosing constructor.
-            // rcv = ((AnnotatedExecutableType)atypeFactory.getAnnotatedType(atypeFactory.getEnclosingMethod(node))).getReceiverType();
             return;
         }
 

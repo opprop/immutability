@@ -85,15 +85,15 @@ public class PICOValidator extends BaseTypeValidator {
             VariableElement variableElement = TreeUtils.elementFromDeclaration(variableTree);
             boolean isValid = false;
             PICOAnnotatedTypeFactory picoAnnotatedTypeFactory = (PICOAnnotatedTypeFactory) atypeFactory;
-
-            if (picoAnnotatedTypeFactory.isAssignableField(variableElement) && !picoAnnotatedTypeFactory.isFinalField(variableElement) &&
-                    !picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
+            PICOVisitor picoVisitor = (PICOVisitor) visitor;
+            if (picoVisitor.isAssignableField(variableElement) && !picoVisitor.isFinalField(variableElement) &&
+                    !picoVisitor.isReceiverDependantAssignable(variableElement)) {
                 isValid = true;
-            } else if (!picoAnnotatedTypeFactory.isAssignableField(variableElement) && picoAnnotatedTypeFactory.isFinalField(variableElement) &&
-                    !picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
+            } else if (!picoVisitor.isAssignableField(variableElement) && picoVisitor.isFinalField(variableElement) &&
+                    !picoVisitor.isReceiverDependantAssignable(variableElement)) {
                 isValid = true;
-            } else if (!picoAnnotatedTypeFactory.isAssignableField(variableElement) && !picoAnnotatedTypeFactory.isFinalField(variableElement) &&
-                    picoAnnotatedTypeFactory.isReceiverDependantAssignable(variableElement)) {
+            } else if (!picoVisitor.isAssignableField(variableElement) && !picoVisitor.isFinalField(variableElement) &&
+                    picoVisitor.isReceiverDependantAssignable(variableElement)) {
                 assert !ElementUtils.isStatic(variableElement);
                 isValid = true;
             }
