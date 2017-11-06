@@ -7,7 +7,9 @@ import java.lang.CloneNotSupportedException;
 
 public class CopyToCast {
     void foo(Object o) {
+        //:: warning: (cast.unsafe)
         String s1 = (@Immutable String) o;
+        //:: warning: (cast.unsafe)
         String s2 = (String) o;
         //:: error: (type.invalid)
         String s3 = (@Mutable String) o;
