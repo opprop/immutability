@@ -185,15 +185,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         return false;
     }
 
-    /**Because TreeAnnotator runs before ImplicitsTypeAnnotator, implicitly immutable types are not guaranteed
-       to always have immutable annotation. If this happens, we manually add immutable to type. We use
-       addMissingAnnotations because we want to respect existing annotation on type*/
-    private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
-        if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
-            type.addMissingAnnotations(new HashSet<>(Arrays.asList(IMMUTABLE)));
-        }
-    }
-
     /**This covers the case when static fields are used*/
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
@@ -316,6 +307,15 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
             applyImmutableIfImplicitlyImmutable(type);// Must run before calling super method to respect existing annotation
             return super.visitTypeCast(node, type);
+        }
+
+        /**Because TreeAnnotator runs before ImplicitsTypeAnnotator, implicitly immutable types are not guaranteed
+         to always have immutable annotation. If this happens, we manually add immutable to type. We use
+         addMissingAnnotations because we want to respect existing annotation on type*/
+        private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
+            if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
+                type.addMissingAnnotations(new HashSet<>(Arrays.asList(IMMUTABLE)));
+            }
         }
     }
 
