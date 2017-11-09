@@ -1,0 +1,6 @@
+INF-FR:
+1. Don't need bound annotation and the subtype constraint related to it
+2. Don't need the var annot on extends
+
+AFU:
+1. Can't insert solution to constructor return type

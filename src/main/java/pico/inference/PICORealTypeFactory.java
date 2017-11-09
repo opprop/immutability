@@ -192,15 +192,6 @@ public class PICORealTypeFactory extends BaseAnnotatedTypeFactory {
         return result;
     }
 
-    /**Because TreeAnnotator runs before ImplicitsTypeAnnotator, implicitly immutable types are not guaranteed
-     to always have immutable annotation. If this happens, we manually add immutable to type. We use
-     addMissingAnnotations because we want to respect existing annotation on type*/
-    private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
-        if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
-            type.addMissingAnnotations(new HashSet<>(Arrays.asList(IMMUTABLE)));
-        }
-    }
-
     /**Tree Annotators*/
     class PICOPropagationTreeAnnotator extends PropagationTreeAnnotator {
         public PICOPropagationTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
@@ -219,6 +210,15 @@ public class PICORealTypeFactory extends BaseAnnotatedTypeFactory {
         public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
             applyImmutableIfImplicitlyImmutable(type);// Must run before calling super method to respect existing annotation
             return super.visitTypeCast(node, type);
+        }
+
+        /**Because TreeAnnotator runs before ImplicitsTypeAnnotator, implicitly immutable types are not guaranteed
+         to always have immutable annotation. If this happens, we manually add immutable to type. We use
+         addMissingAnnotations because we want to respect existing annotation on type*/
+        protected void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
+            if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
+                type.addMissingAnnotations(new HashSet<>(Arrays.asList(IMMUTABLE)));
+            }
         }
     }
 

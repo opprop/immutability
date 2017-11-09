@@ -124,6 +124,15 @@ sourceSets {
     }
 }
 
+processResources {
+    doLast {
+        copy {
+            from('src/main/java/pico/typecheck')
+            into('build/classes/main/pico/typecheck')
+            into('build/classes/main/pico/inference')
+        }
+    }
+}
 
 //Switch the Javac used to the JSR308
 tasks.compileJava {
@@ -140,6 +149,7 @@ tasks.compileJava {
     }
     options.forkOptions.executable="$jsr308_langtoolsDir/dist/bin/javac"
 }
+
 
 tasks.clean {
     delete 'bin', 'dist', 'testTmp', 'annotated',

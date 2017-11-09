@@ -19,10 +19,11 @@
 
 # Mac
 .DS_Store
-
 # Annotated
 /annotated/
 *.jaif
 
 # Editor temp files
 *~
+# PICOSolverEngine generated files
+*.txt
