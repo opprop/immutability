@@ -15,9 +15,14 @@ import qual.ReceiverDependantMutable;
 // block, but that seems too cumbersome.
 // TODO Maybe another way is to just forbid @ReceiverDependantMutable in initialization blocks(static
 // initialization blocks don't have this problem because @ReceiverDependantMutable is forbidden anyway)
+// Update after discussing with prof: constructors and helper methods that has explicit location to
+// specify "this" type instead of using initialization blocks. In the existing initialization blocks,
+// we just use @Readonly to be implicit type. And we need case studies to show how this approach works
+// in the real world.
 class InitializationBlockProblem {
     @ReceiverDependantMutable Object o;
 
+    // Conservatively default "this" to be readonly, and do a case study
     {
         this.o = new @Mutable Object();
         // :: error: (assignment.type.incompatible)
