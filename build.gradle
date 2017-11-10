@@ -157,7 +157,7 @@ test {
 }
 
 tasks.clean {
-    delete 'bin', 'dist', 'testTmp', 'annotated',
+    delete 'bin', 'dist', 'testTmp', 'testdata', 'annotated',
             fileTree('.') { include '**/*.jaif',  '**/*.txt'},
             fileTree('testinput') {include '**/*.class'}
 }
