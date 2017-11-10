@@ -151,8 +151,8 @@ tasks.compileJava {
 }
 
 test {
-    systemProperty "path.afu.scripts", "../annotation-tools/annotation-file-utilities/scripts/"
-    systemProperty "path.inference.script", "../checker-framework-inference/scripts/inference"
+    systemProperty "path.afu.scripts", "$jsr308Dir/annotation-tools/annotation-file-utilities/scripts/"
+    systemProperty "path.inference.script", "$cfInferenceDir/scripts/inference"
     environment "external_checker_classpath", "$picoDir/build/classes/main"
 }
 
