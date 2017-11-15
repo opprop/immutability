@@ -50,8 +50,8 @@ fi
 (cd $JSR308/annotation-tools/ && ./.travis-build-without-test.sh)
 # Build stubparser
 (cd $JSR308/stubparser/ && mvn package -Dmaven.test.skip=true)
-# Build checker-framework, with jdk
-(cd $JSR308/checker-framework && ant -f checker/build.xml jar)
+# Build checker-framework, with downloaded jdk
+(cd $JSR308/checker-framework && ant -f checker/build.xml dist-downloadjdk)
 # Build checker-framework-inference
 (cd $JSR308/checker-framework-inference && gradle dist)
 
