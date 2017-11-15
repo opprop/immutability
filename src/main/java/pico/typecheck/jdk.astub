@@ -18,6 +18,7 @@ class String {
   char charAt(@Readonly String this, int var1);
   String substring(@Readonly String this, int var1);
   String substring(@Readonly String this, int var1, int var2);
+  String toString(@Readonly String this);
 }
 
 class Throwable {

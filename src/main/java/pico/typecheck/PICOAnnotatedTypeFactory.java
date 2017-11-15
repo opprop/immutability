@@ -29,12 +29,12 @@ import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
 import org.checkerframework.framework.util.ViewpointAdapter;
+import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
-import qual.Assignable;
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
@@ -74,15 +74,15 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     public PICOAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker, true);
-        READONLY = AnnotationUtils.fromClass(elements, Readonly.class);
-        MUTABLE = AnnotationUtils.fromClass(elements, Mutable.class);
-        POLYMUTABLE = AnnotationUtils.fromClass(elements, PolyMutable.class);
-        RECEIVERDEPENDANTMUTABLE = AnnotationUtils.fromClass(elements, ReceiverDependantMutable.class);
-        SUBSTITUTABLEPOLYMUTABLE = AnnotationUtils.fromClass(elements, SubstitutablePolyMutable.class);
-        IMMUTABLE = AnnotationUtils.fromClass(elements, Immutable.class);
-        BOTTOM = AnnotationUtils.fromClass(elements, Bottom.class);
+        READONLY = AnnotationBuilder.fromClass(elements, Readonly.class);
+        MUTABLE = AnnotationBuilder.fromClass(elements, Mutable.class);
+        POLYMUTABLE = AnnotationBuilder.fromClass(elements, PolyMutable.class);
+        RECEIVERDEPENDANTMUTABLE = AnnotationBuilder.fromClass(elements, ReceiverDependantMutable.class);
+        SUBSTITUTABLEPOLYMUTABLE = AnnotationBuilder.fromClass(elements, SubstitutablePolyMutable.class);
+        IMMUTABLE = AnnotationBuilder.fromClass(elements, Immutable.class);
+        BOTTOM = AnnotationBuilder.fromClass(elements, Bottom.class);
 
-        COMMITED = AnnotationUtils.fromClass(elements, Initialized.class);
+        COMMITED = AnnotationBuilder.fromClass(elements, Initialized.class);
         addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
         postInit();
     }

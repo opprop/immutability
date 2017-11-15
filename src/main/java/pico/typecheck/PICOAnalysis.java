@@ -2,6 +2,7 @@ package pico.typecheck;
 
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
+import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.javacutil.Pair;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -31,6 +32,9 @@ public class PICOAnalysis extends CFAbstractAnalysis<PICOValue, PICOStore, PICOT
 
     @Override
     public PICOValue createAbstractValue(Set<AnnotationMirror> annotations, TypeMirror underlyingType) {
+        if (!CFAbstractValue.validateSet(annotations, underlyingType, qualifierHierarchy)) {
+            return null;
+        }
         return new PICOValue(this, annotations, underlyingType);
     }
 }

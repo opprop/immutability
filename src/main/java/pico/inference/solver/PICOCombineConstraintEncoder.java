@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Contains encoding viewpoint adaptation logic for PICOInfer. Specifies how qualifiers are
+ * Contains viewpoint adaptation encoding logic for PICOInfer. Specifies how qualifiers are
  * combined and what result the combination yields.
  */
 public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncoder implements CombineConstraintEncoder<VecInt[]> {

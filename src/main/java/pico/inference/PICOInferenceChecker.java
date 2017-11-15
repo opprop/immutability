@@ -8,7 +8,7 @@ import checkers.inference.InferrableChecker;
 import checkers.inference.SlotManager;
 import checkers.inference.model.ConstraintManager;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
-import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.AnnotationBuilder;
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
@@ -28,11 +28,11 @@ public class PICOInferenceChecker extends BaseInferrableChecker {
     @Override
     public void initChecker() {
         final Elements elements = processingEnv.getElementUtils();
-        READONLY = AnnotationUtils.fromClass(elements, Readonly.class);
-        MUTABLE = AnnotationUtils.fromClass(elements, Mutable.class);
-        RECEIVERDEPENDANTMUTABLE = AnnotationUtils.fromClass(elements, ReceiverDependantMutable.class);
-        IMMUTABLE = AnnotationUtils.fromClass(elements, Immutable.class);
-        BOTTOM = AnnotationUtils.fromClass(elements, Bottom.class);
+        READONLY = AnnotationBuilder.fromClass(elements, Readonly.class);
+        MUTABLE = AnnotationBuilder.fromClass(elements, Mutable.class);
+        RECEIVERDEPENDANTMUTABLE = AnnotationBuilder.fromClass(elements, ReceiverDependantMutable.class);
+        IMMUTABLE = AnnotationBuilder.fromClass(elements, Immutable.class);
+        BOTTOM = AnnotationBuilder.fromClass(elements, Bottom.class);
         super.initChecker();
     }
 

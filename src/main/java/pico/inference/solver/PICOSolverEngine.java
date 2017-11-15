@@ -7,7 +7,8 @@ import checkers.inference.solver.frontend.Lattice;
 import checkers.inference.util.ConstraintVerifier;
 
 /**
- * PICOSolverEngine that passes PICOFormatTranslator to actual underlying MaxSat solver to solve the constraints
+ * {@link SolverEngine} that creates {@link PICOFormatTranslator} and pass it to actual underlying MaxSat solver
+ * to solve constraints
  */
 public class PICOSolverEngine extends SolverEngine {
     @Override
