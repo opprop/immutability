@@ -22,11 +22,7 @@ import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ImplicitsTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import pico.inference.PICORealTypeFactory.PICOPropagationTreeAnnotator;
 import pico.typecheck.PICOTypeUtil;
-
-import java.util.Arrays;
-import java.util.HashSet;
 
 /**
  * Propagates correct constraints on trees and types using TreeAnnotators and TypeAnnotators.
