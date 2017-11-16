@@ -1,3 +1,5 @@
+// https://github.com/topnessman/immutability-example/blob/master/meeting/2017_11.9_Meeting.txt
+// TODO Really implement what's in the comment below
 public class BlockFieldAssign {
     Object o;
 

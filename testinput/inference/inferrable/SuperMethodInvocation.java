@@ -1,18 +1,22 @@
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import qual.Immutable;
 import qual.Mutable;
+import qual.ReceiverDependantMutable;
 
 public class SuperMethodInvocation {
 
-    Object f;
+    @ReceiverDependantMutable Object f;
 
-    void foo(SuperMethodInvocation this) {
-        this.f = new @Mutable Object();
+    void foo(@UnderInitialization SuperMethodInvocation this) {
+        // :: fixable-error: (assignment.type.incompatible)
+        this.f = new @Immutable Object();
     }
 }
 
 class SubClass extends SuperMethodInvocation{
 
     @Override
-    void foo(SubClass this) {
+    void foo(@UnderInitialization SubClass this) {
         super.foo();
     }
 }

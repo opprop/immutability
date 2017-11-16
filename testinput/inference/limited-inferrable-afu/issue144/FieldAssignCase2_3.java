@@ -1,12 +1,14 @@
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import qual.ReceiverDependantMutable;
 
 public class FieldAssignCase2_3 {
-    Object o;
+    @ReceiverDependantMutable Object o;
     FieldAssignCase2_3() {
         init();
     }
 
     void init(@UnderInitialization FieldAssignCase2_3 this) {
-        o = new Object();
+        // :: fixable-error: (assignment.type.incompatible)
+        o = new @ReceiverDependantMutable Object();
     }
 }

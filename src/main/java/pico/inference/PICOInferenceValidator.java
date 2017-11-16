@@ -24,6 +24,7 @@ import javax.lang.model.element.Modifier;
 /**
  * Generates constraints based on PICO constraint-based well-formedness rules in infer mode.
  * In typecheck mode, it behaves exactly like PICOValidator
+ * TODO Add logic to enforece type rules are not violated in typecheck mode
  */
 public class PICOInferenceValidator extends InferenceValidator{
     public PICOInferenceValidator(BaseTypeChecker checker, InferenceVisitor<?, ?> visitor, AnnotatedTypeFactory atypeFactory) {

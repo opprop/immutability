@@ -37,6 +37,7 @@ import java.util.List;
 /**
  * Generate constraints based on the PICO constraint-based type rules in infer mode. Has typecheck
  * and infer mode. In typecheck mode, has the exact same behaviour as PICOVisitor.
+ * TODO Add logic to enforece type rules are not violated in typecheck mode
  */
 public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker, BaseAnnotatedTypeFactory> {
 
