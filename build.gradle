@@ -113,8 +113,15 @@ dependencies {
 
 sourceSets {
     main {
+        java {
+            srcDir "src/main/java"
+        }
+        resources {
+            srcDir "src/main/java"
+            exclude "**/*.java"
+        }
         compileClasspath += toPackageClasspath
-        resources.srcDirs = ["src/main/java"]
+        output.classesDir = "build/classes/main"
         output.resourcesDir = "build/classes/main"
     }
 
@@ -127,15 +134,15 @@ sourceSets {
 processResources {
     doLast {
         copy {
-            from('src/main/java/pico/typecheck')
-            into('build/classes/main/pico/typecheck')
+            from('build/classes/main/pico/typecheck')
             into('build/classes/main/pico/inference')
+            exclude '**/*.class'
         }
     }
 }
 
 //Switch the Javac used to the JSR308
-tasks.compileJava {
+compileJava {
     description = 'Compiles this project using the jsr308 compiler.'
     options.fork = true
     options.compilerArgs = [
@@ -156,10 +163,9 @@ test {
     environment "external_checker_classpath", "$picoDir/build/classes/main"
 }
 
-tasks.clean {
+clean {
     delete 'bin', 'dist', 'testTmp', 'testdata', 'annotated',
             fileTree('.') { include '**/*.jaif',  '**/*.txt'},
             fileTree('testinput') {include '**/*.class'}
 }
 
-libsDirName="../dist"
