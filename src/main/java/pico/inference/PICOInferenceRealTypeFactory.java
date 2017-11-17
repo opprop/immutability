@@ -49,18 +49,18 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 /**
- * PICORealTypeFactory exists because: 1)PICOAnnotatedTypeFactory is not subtype of
+ * PICOInferenceRealTypeFactory exists because: 1)PICOAnnotatedTypeFactory is not subtype of
  * BaseAnnotatedTypeFactory. 2) In inference side, PICO only supports reduced version of
  * mutability qualifiers. 3) In inference side, PICO doesn't need to care initialization hierarchy.
  * We have all the logic that are in PICOAnnotatedTypeFactory except those that belong
  * to InitializationAnnotatedTypeFactory as if there is only one mutability qualifier hierarchy.
  * This class has lots of copied code from PICOAnnotatedTypeFactory. The two should be in sync.
  */
-public class PICORealTypeFactory extends BaseAnnotatedTypeFactory {
+public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
 
     public final AnnotationMirror READONLY, MUTABLE, RECEIVERDEPENDANTMUTABLE, IMMUTABLE, BOTTOM;
 
-    public PICORealTypeFactory(BaseTypeChecker checker, boolean useFlow) {
+    public PICOInferenceRealTypeFactory(BaseTypeChecker checker, boolean useFlow) {
         super(checker, useFlow);
         READONLY = AnnotationBuilder.fromClass(elements, Readonly.class);
         MUTABLE = AnnotationBuilder.fromClass(elements, Mutable.class);
@@ -87,7 +87,7 @@ public class PICORealTypeFactory extends BaseAnnotatedTypeFactory {
     // TODO Remove this temporary viewpoint adaptor
     @Override
     protected ViewpointAdapter<?> createViewpointAdapter() {
-        return new PICORealViewpointAdapter();
+        return new PICOInferenceRealViewpointAdapter();
     }
 
     /**Annotators are executed by the added order. Same for Type Annotator*/
@@ -159,7 +159,7 @@ public class PICORealTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     /**This method gets lhs WITH flow sensitive refinement*/
-    // TODO Should refactor super class to avoid too much duplicate code.
+    // TODO This method is completely copied from PICOAnnotatedTypeFactory
     @Override
     public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
         AnnotatedTypeMirror result = null;

@@ -6,6 +6,7 @@ import checkers.inference.InferenceValidator;
 import checkers.inference.InferenceVisitor;
 import checkers.inference.SlotManager;
 import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
@@ -13,6 +14,7 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.Tree.Kind;
 import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.source.Result;
@@ -21,6 +23,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclared
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import qual.Assignable;
@@ -37,7 +40,6 @@ import java.util.List;
 /**
  * Generate constraints based on the PICO constraint-based type rules in infer mode. Has typecheck
  * and infer mode. In typecheck mode, has the exact same behaviour as PICOVisitor.
- * TODO Add logic to enforece type rules are not violated in typecheck mode
  */
 public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker, BaseAnnotatedTypeFactory> {
 
@@ -90,9 +92,26 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 type = atypeFactory.getAnnotatedType(tree);
         }
 
-        typeValidator.isValid(type, tree);
-        // The below if statement always holds. If we put type validator aftere this,
-        // it's never executed! The initial purpose of always returning true in validateTypeOf
+        return validateType(tree, type);
+    }
+
+    @Override
+    public boolean validateType(Tree tree, AnnotatedTypeMirror type) {
+        // basic consistency checks
+        if (!AnnotatedTypes.isValidType(atypeFactory.getQualifierHierarchy(), type)) {
+            if (!infer) {
+                checker.report(
+                        Result.failure("type.invalid", type.getAnnotations(), type.toString()), tree);
+                return false;
+            }
+        }
+
+        if (!typeValidator.isValid(type, tree)) {
+            if (!infer) {
+                return false;
+            }
+        }
+        // The initial purpose of always returning true in validateTypeOf in inference mode
         // might be that inference we want to generate constraints over all the ast location,
         // but not like in typechecking mode, if something is not valid, we abort checking the
         // remaining parts that are based on the invalid type. For example, in assignment, if
@@ -100,15 +119,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // we always generate constraints on all places and let solver to decide if there is
         // solution or not. This might be the reason why we have a always true if statement and
         // validity check always returns true.
-        if (!AnnotatedTypes.isValidType(atypeFactory.getQualifierHierarchy(), type)) {
-//            checker.report(Result.failure("type.invalid", type.getAnnotations(),
-//                    type.toString()), tree);
-//            return false;
-            return true;
-        }
-
-        //TODO: THIS MIGHT FAIL
-        // more checks (also specific to checker, potentially)
         return true;
     }
 
@@ -117,6 +127,13 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (infer) {
             AnnotationMirror constructorReturn = getVarAnnot(constructor.getReturnType());
             mainIsSubtype(invocation, constructorReturn, "constructor.invocation.invalid", newClassTree);
+        } else {
+            AnnotatedDeclaredType returnType = (AnnotatedDeclaredType) constructor.getReturnType();
+            if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType)) {
+                checker.report(Result.failure(
+                        "constructor.invocation.invalid", invocation, returnType), newClassTree);
+                return false;
+            }
         }
         return super.checkConstructorInvocation(invocation, constructor, newClassTree);
     }
@@ -128,11 +145,15 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     @Override
     public Void visitMethod(MethodTree node, Void p) {
-        if (infer) {
-            if (TreeUtils.isConstructor(node)) {
-                AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(node);
-                AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
+        if (TreeUtils.isConstructor(node)) {
+            AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(node);
+            AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
+            if (infer) {
                 mainIsNot(constructorReturnType, realChecker.READONLY, "constructor.return.invalid", node);
+            } else {
+                if (constructorReturnType.hasAnnotation(realChecker.READONLY)) {
+                    checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
+                }
             }
         }
         return super.visitMethod(node, p);
@@ -140,37 +161,81 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
-        if (infer) {
-            ExpressionTree variable = node.getVariable();
-            // TODO Question Here, receiver type uses flow refinement. But in commonAssignmentCheck to compute lhs type
-            // , it doesn't. This causes inconsistencies when enforcing immutability and doing subtype check. I overrode
-            // getAnnotatedTypeLhs() to also use flow sensitive refinement, but came across with "private access" problem
-            // on field "computingAnnotatedTypeMirrorOfLHS"
-            AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
-            // Cannot use receiverTree = TreeUtils.getReceiverTree(variable) to determine if it's
-            // field assignment or not. Because for field assignment with implicit "this", receiverTree
-            // is null but receiverType is non-null. We still need to check this case.
-            if (receiverType == null) {
-                return super.visitAssignment(node, p);
-            }
-            // TODO INF-FR Constructor return type can correct constraints and solutions now, but we don't insert the result
-            // back into constructor return type.
-            // TODO INF-FR Right now, "this" parameter in initialization block doesn't have VarAnnot. No matter 2nd or 3rd
-            // branch is executed, mainIsNot silently igonre the constraint and mainIs throws NPE in DefaultSlotManager#
-            // getAnnotation() (the method I added)
-            // Must be a field assignment or array write
-            if (isAssigningAssignableField(node)) {
-                // TODO PICOINF We just selected one way to break the combination of readonly receiver, assignable and rdm field
-                // Does this make sense?
-                mainIsNot(receiverType, realChecker.READONLY, "illegal.field.write", node);
-            } else if (isInitializingObject(node)) {
-                // Can be mutable, immutable or receiverdependantmutable
-                mainIsNot(receiverType, realChecker.READONLY, "illegal.field.write", node);
-            } else {
-                mainIs(receiverType, realChecker.MUTABLE, "illegal.field.write", node);
-            }
+        ExpressionTree variable = node.getVariable();
+        // TODO Question Here, receiver type uses flow refinement. But in commonAssignmentCheck to compute lhs type
+        // , it doesn't. This causes inconsistencies when enforcing immutability and doing subtype check. I overrode
+        // getAnnotatedTypeLhs() to also use flow sensitive refinement, but came across with "private access" problem
+        // on field "computingAnnotatedTypeMirrorOfLHS"
+        AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
+        // Cannot use receiverTree = TreeUtils.getReceiverTree(variable) to determine if it's
+        // field assignment or not. Because for field assignment with implicit "this", receiverTree
+        // is null but receiverType is non-null. We still need to check this case.
+        if (receiverType == null) {
+            return super.visitAssignment(node, p);
+        }
+        // TODO INF-FR Constructor return type can correct constraints and solutions now, but we don't insert the result
+        // back into constructor return type.
+        // TODO INF-FR Right now, "this" parameter in initialization block doesn't have VarAnnot. No matter 2nd or 3rd
+        // branch is executed, mainIsNot silently ignore the constraint and mainIs throws NPE in DefaultSlotManager#
+        // getAnnotation() (the method I added)
+        // Must be a field assignment or array write
+        if (isAssigningAssignableField(node)) {
+            checkAssignableField(node, variable, receiverType);
+        } else if (isInitializingObject(node)) {
+            checkInitializingObject(node, variable, receiverType);
+        } else {
+            checkOtherAssignmentCase(node, variable, receiverType);
         }
         return super.visitAssignment(node, p);
+    }
+
+    private void checkAssignableField(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+        if (infer) {
+            // TODO PICOINF We just selected one way to break the combination of readonly receiver, assignable and rdm field
+            // Does this make sense?
+            mainIsNot(receiverType, realChecker.READONLY, "illegal.field.write", node);
+        } else {
+            Element fieldElement = TreeUtils.elementFromUse(node);
+            if (fieldElement != null) {//TODO Can this bu null?
+                AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
+                if (receiverType.hasAnnotation(realChecker.READONLY) && fieldType.hasAnnotation(realChecker.RECEIVERDEPENDANTMUTABLE)) {
+                    reportFieldOrArrayWriteError(node, variable, receiverType);
+                }
+            }
+        }
+    }
+
+    private void checkInitializingObject(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+        if (infer) {
+            // Can be anything from mutable, immutable or receiverdependantmutable
+            mainIsNot(receiverType, realChecker.READONLY, "illegal.field.write", node);
+        } else {
+            if (receiverType.hasAnnotation(realChecker.READONLY)) {
+                reportFieldOrArrayWriteError(node, variable, receiverType);
+            }
+        }
+    }
+
+    private void checkOtherAssignmentCase(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+        if (infer) {
+            mainIs(receiverType, realChecker.MUTABLE, "illegal.field.write", node);
+        } else {
+            if (!receiverType.hasAnnotation(realChecker.MUTABLE)) {
+                reportFieldOrArrayWriteError(node, variable, receiverType);
+            }
+        }
+    }
+
+    private void reportFieldOrArrayWriteError(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+        if (variable.getKind() == Kind.MEMBER_SELECT) {
+            checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
+        } else if (variable.getKind() == Kind.IDENTIFIER) {
+            checker.report(Result.failure("illegal.field.write", receiverType), node);
+        } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
+            checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
+        } else {
+            ErrorReporter.errorAbort("Unknown assignment variable at: ", node);
+        }
     }
 
     private boolean isAssigningAssignableField(AssignmentTree node) {
@@ -244,54 +309,58 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     @Override
     public Void visitNewClass(NewClassTree node, Void p) {
-        if (infer) {
-            generateNewInstanceCreationConstraint(node);
-        }
+        checkNewInstanceCreation(node);
         return super.visitNewClass(node, p);
     }
 
     @Override
     public Void visitNewArray(NewArrayTree node, Void p) {
-        if (infer) {
-            generateNewInstanceCreationConstraint(node);
-        }
+        checkNewInstanceCreation(node);
         return super.visitNewArray(node, p);
     }
 
-    private void generateNewInstanceCreationConstraint(Tree node) {
+    private void checkNewInstanceCreation(Tree node) {
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
-        // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable are inferred on new instance creation
-        mainIsNoneOf(type, new AnnotationMirror[]{realChecker.READONLY}, "pico.new.invalid", node);
+        if (infer) {
+            // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable are inferred on new instance creation
+            mainIsNoneOf(type, new AnnotationMirror[]{realChecker.READONLY}, "pico.new.invalid", node);
+        } else {
+            if (type.hasAnnotation(realChecker.READONLY)) {
+                checker.report(Result.failure("pico.new.invalid", type), node);
+            }
+        }
     }
 
     /**This is really copied from PICOVisitor#visitMethodInvocation(MethodInvocationTree).*/
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         super.visitMethodInvocation(node, p);
-        if (infer) {
-            Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> mfuPair =
-                    atypeFactory.methodFromUse(node);
-            AnnotatedExecutableType invokedMethod = mfuPair.first;
-            ExecutableElement invokedMethodElement = invokedMethod.getElement();
-            // Only check invocability if it's super call, as non-super call is already checked
-            // by super implementation(of course in both cases, invocability is not checked when
-            // invoking static methods)
-            if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperCall(node)) {
-                checkMethodInvocability(invokedMethod, node);
-            }
+        Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> mfuPair =
+                atypeFactory.methodFromUse(node);
+        AnnotatedExecutableType invokedMethod = mfuPair.first;
+        ExecutableElement invokedMethodElement = invokedMethod.getElement();
+        // Only check invocability if it's super call, as non-super call is already checked
+        // by super implementation(of course in both cases, invocability is not checked when
+        // invoking static methods)
+        if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperCall(node)) {
+            checkMethodInvocability(invokedMethod, node);
         }
         return null;
     }
 
     @Override
     protected void checkMethodInvocability(AnnotatedExecutableType method, MethodInvocationTree node) {
-        if (infer) {
-            if (method.getElement().getKind() == ElementKind.CONSTRUCTOR) {
-                AnnotatedTypeMirror subClassConstructorReturnType = atypeFactory.getReceiverType(node);
-                AnnotatedTypeMirror superClassConstructorReturnType = method.getReturnType();
-                // In infer mode, InferenceQualifierHierarchy that is internally used should generate subtype constraint between the
-                // below two types
-                if (!atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType)) {
+        if (method.getElement().getKind() == ElementKind.CONSTRUCTOR) {
+            AnnotatedTypeMirror subClassConstructorReturnType = atypeFactory.getReceiverType(node);
+            AnnotatedTypeMirror superClassConstructorReturnType = method.getReturnType();
+            // In infer mode, InferenceQualifierHierarchy that is internally used should generate subtype constraint between the
+            // below two types
+            if (!atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType)) {
+                if (infer) {
+                    // Usually the subtyping check returns true. If not, that means subtype constraint doesn't hold between two
+                    // ConstantSlots. Then this unsatisfiable constraint should be captured by ConstraintManager. So we don't report
+                    // duplicate error message here.
+                } else {
                     checker.report(
                             Result.failure(
                                     "subclass.constructor.invalid", subClassConstructorReturnType, superClassConstructorReturnType), node);

@@ -10,7 +10,6 @@ import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
-import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
@@ -22,9 +21,6 @@ import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
-import org.checkerframework.framework.type.AnnotatedTypeParameterBounds;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
@@ -193,21 +189,25 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return super.visitAssignment(node, p);
         }
         // If receiver != null, it's field assignment
-        if (!allowWriteField(receiverType, node)) {
-            if (variable.getKind() == Kind.MEMBER_SELECT) {
-                checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
-            } else if (variable.getKind() == Kind.IDENTIFIER) {
-                checker.report(Result.failure("illegal.field.write", receiverType), node);
-            } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
-                checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
-            } else {
-                ErrorReporter.errorAbort("Unknown assignment variable at: ", node);
-            }
+        if (!allowWrite(receiverType, node)) {
+            reportFieldOrArrayWriteError(node, variable, receiverType);
         }
         return super.visitAssignment(node, p);
     }
 
-    private boolean allowWriteField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
+    private void reportFieldOrArrayWriteError(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+        if (variable.getKind() == Kind.MEMBER_SELECT) {
+            checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
+        } else if (variable.getKind() == Kind.IDENTIFIER) {
+            checker.report(Result.failure("illegal.field.write", receiverType), node);
+        } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
+            checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
+        } else {
+            ErrorReporter.errorAbort("Unknown assignment variable at: ", node);
+        }
+    }
+
+    private boolean allowWrite(AnnotatedTypeMirror receiverType, AssignmentTree node) {
         // One pico side, if only receiver is mutable, we allow assigning/reassigning. Because if the field
         // is declared as final, Java compiler will catch that, and we couldn't have reached this point
         if (receiverType.hasAnnotation(Mutable.class)) {
@@ -232,14 +232,14 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     }
 
     private boolean isAssigningAssignableField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
-        Element variableElement = TreeUtils.elementFromUse(node);
-        if (variableElement == null) return false;
-        AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(variableElement);
+        Element fieldElement = TreeUtils.elementFromUse(node);
+        if (fieldElement == null) return false;
+        AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
         // Forbid the case that might break type soundness
-        if (isAssignableField(variableElement) && receiverType.hasAnnotation(Readonly.class)
+        if (isAssignableField(fieldElement) && receiverType.hasAnnotation(Readonly.class)
                 && fieldType.hasAnnotation(ReceiverDependantMutable.class)) {
             return false;
-        } else if (isAssignableField(variableElement)) {
+        } else if (isAssignableField(fieldElement)) {
             return true;
         }
         return false;

@@ -15,19 +15,19 @@ import javax.lang.model.type.TypeKind;
  * This class exists because in inference side, we only support a reduced version of mutability qualifier
  * hierarchy.
  */
-public class PICORealViewpointAdapter extends FrameworkViewpointAdapter {
+public class PICOInferenceRealViewpointAdapter extends FrameworkViewpointAdapter {
     @Override
     protected AnnotationMirror combineModifierWithModifier(AnnotationMirror recvModifier, AnnotationMirror declModifier, AnnotatedTypeFactory f) {
-        PICORealTypeFactory picoRealTypeFactory = (PICORealTypeFactory) f;
-        if (AnnotationUtils.areSame(declModifier, picoRealTypeFactory.READONLY)) {
-            return picoRealTypeFactory.READONLY;
-        } else if (AnnotationUtils.areSame(declModifier, picoRealTypeFactory.MUTABLE)) {
-            return picoRealTypeFactory.MUTABLE;
-        } else if (AnnotationUtils.areSame(declModifier, picoRealTypeFactory.IMMUTABLE)) {
-            return picoRealTypeFactory.IMMUTABLE;
-        } else if (AnnotationUtils.areSame(declModifier, picoRealTypeFactory.BOTTOM)) {
-            return picoRealTypeFactory.BOTTOM;
-        } else if (AnnotationUtils.areSame(declModifier, picoRealTypeFactory.RECEIVERDEPENDANTMUTABLE)) {
+        PICOInferenceRealTypeFactory picoInferenceRealTypeFactory = (PICOInferenceRealTypeFactory) f;
+        if (AnnotationUtils.areSame(declModifier, picoInferenceRealTypeFactory.READONLY)) {
+            return picoInferenceRealTypeFactory.READONLY;
+        } else if (AnnotationUtils.areSame(declModifier, picoInferenceRealTypeFactory.MUTABLE)) {
+            return picoInferenceRealTypeFactory.MUTABLE;
+        } else if (AnnotationUtils.areSame(declModifier, picoInferenceRealTypeFactory.IMMUTABLE)) {
+            return picoInferenceRealTypeFactory.IMMUTABLE;
+        } else if (AnnotationUtils.areSame(declModifier, picoInferenceRealTypeFactory.BOTTOM)) {
+            return picoInferenceRealTypeFactory.BOTTOM;
+        } else if (AnnotationUtils.areSame(declModifier, picoInferenceRealTypeFactory.RECEIVERDEPENDANTMUTABLE)) {
             return recvModifier;
         } else {
             ErrorReporter.errorAbort("Unkown declared modifier: " + declModifier, new UnkownImmutabilityQualifierException());
@@ -37,7 +37,7 @@ public class PICORealViewpointAdapter extends FrameworkViewpointAdapter {
 
     @Override
     protected AnnotationMirror getModifier(AnnotatedTypeMirror atm, AnnotatedTypeFactory f) {
-        return atm.getAnnotationInHierarchy(((PICORealTypeFactory)f).READONLY);
+        return atm.getAnnotationInHierarchy(((PICOInferenceRealTypeFactory)f).READONLY);
     }
 
     @Override

@@ -6,14 +6,18 @@ import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.WildcardTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedNullType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import qual.Bottom;
@@ -27,7 +31,7 @@ import javax.lang.model.element.VariableElement;
 /**
  * Created by mier on 29/09/17.
  * Enforce correct usage of immutability and assignability qualifiers.
- * TODO Enforce @Bottom is used nowhere; @PolyMutable is only used on constructor/method parameters or method return
+ * TODO @PolyMutable is only used on constructor/method parameters or method return
  */
 public class PICOValidator extends BaseTypeValidator {
     public PICOValidator(BaseTypeChecker checker, BaseTypeVisitor<?> visitor, AnnotatedTypeFactory atypeFactory) {
@@ -39,10 +43,11 @@ public class PICOValidator extends BaseTypeValidator {
         checkStaticReceiverDependantMutableError(type, tree);
         checkImplicitlyImmutableTypeError(type, tree);
         checkOnlyOneAssignabilityModifierOnField(tree);
+        checkInvalidBottom(type, tree);
         return super.visitDeclared(type, tree);
     }
 
-    private void checkStaticReceiverDependantMutableError(AnnotatedDeclaredType type, Tree tree) {
+    private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
         if (isInStaticContext() && type.hasAnnotation(ReceiverDependantMutable.class)) {
             reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
         }
@@ -73,7 +78,7 @@ public class PICOValidator extends BaseTypeValidator {
     /**Check that implicitly immutable type has immutable annotation. Note that bottom will be handled uniformly on all
        the other remaining types(reference or primitive), so we don't handle it again here*/
     private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
-        if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(Immutable.class) && !type.hasAnnotation(Bottom.class)) {
+        if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(Immutable.class)) {
             reportError(type, tree);
         }
     }
@@ -110,8 +115,42 @@ public class PICOValidator extends BaseTypeValidator {
     }
 
     @Override
+    public Void visitArray(AnnotatedArrayType type, Tree tree) {
+        checkStaticReceiverDependantMutableError(type, tree);
+        checkImplicitlyImmutableTypeError(type, tree);
+        checkInvalidBottom(type, tree);
+        return super.visitArray(type, tree);
+    }
+
+    private void checkInvalidBottom(AnnotatedTypeMirror type, Tree tree) {
+        // Only wildcard tree with explicit lower bound can reach this point, because otherwise lower
+        // bounds are implicitly null and the lower bound would have already go to visitNull(). And
+        // type variables can't have explicit lower bound
+        if (tree instanceof WildcardTree) {
+            AnnotatedWildcardType awt = (AnnotatedWildcardType) atypeFactory.getAnnotatedTypeFromTypeTree(tree);
+            if (awt.getSuperBound().equals(type)) {
+                // Means that we're checking the usage of @Bottom on the super(of wildcard).
+                // But @Bottom can be used on lower bounds, so skip the check
+                return;
+            }
+        }
+        if (type.hasAnnotation(Bottom.class)) {
+            reportError(type, tree);
+        }
+    }
+
+    @Override
     public Void visitPrimitive(AnnotatedPrimitiveType type, Tree tree) {
         checkImplicitlyImmutableTypeError(type, tree);
         return super.visitPrimitive(type, tree);
+    }
+
+    // "null" literal should always be @Bottom
+    @Override
+    public Void visitNull(AnnotatedNullType type, Tree tree) {
+        if (!type.hasAnnotation(Bottom.class)) {
+            reportError(type, tree);
+        }
+        return super.visitNull(type, tree);
     }
 }

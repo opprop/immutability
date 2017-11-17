@@ -207,6 +207,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     /**This method gets lhs WITH flow sensitive refinement*/
     // TODO Should refactor super class to avoid too much duplicate code.
+    // This method is pretty hacky right now.
     @Override
     public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
         boolean oldComputingAnnotatedTypeMirrorOfLHS = computingAnnotatedTypeMirrorOfLHS;
