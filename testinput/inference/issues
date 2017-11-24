@@ -1,6 +1,12 @@
 INF-FR:
 1. Don't need bound annotation and the subtype constraint related to it
-2. Don't need the var annot on extends
+2. Don't need the var annot on extends(?)
+3. Create refinement variable slot for local variable variable tree, too.
 
 AFU:
 1. Can't insert solution to constructor return type
+
+Change CFI to add @Target(TypeUse) to jaif files.
+Use method return syntax for constructor return.
+
+2. Insertion anomoly for array types on rhs.

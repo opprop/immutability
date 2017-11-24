@@ -2,6 +2,7 @@ package pico;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.checkerframework.framework.test.TestUtilities;
@@ -22,7 +23,7 @@ public class ImmutabilityInferenceTest extends CFInferenceTest {
     @Override
     public Pair<String, List<String>> getSolverNameAndOptions() {
         return Pair.<String, List<String>> of(PICOSolverEngine.class.getCanonicalName(),
-                new ArrayList<String>());
+                new ArrayList<String>(Arrays.asList("useGraph=false", "collectStatistic=true")));
     }
 
     @Override
