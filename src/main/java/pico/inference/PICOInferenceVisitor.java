@@ -8,6 +8,7 @@ import checkers.inference.SlotManager;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
@@ -15,6 +16,7 @@ import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
+import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.source.Result;
@@ -22,16 +24,19 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import qual.Assignable;
+import qual.Immutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import java.util.Iterator;
@@ -145,8 +150,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     @Override
     public Void visitMethod(MethodTree node, Void p) {
+        AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(node);
+        boolean hasImmutableBoundAnnotation = hasImmutableAnnotationOnTypeDeclaration(node);
         if (TreeUtils.isConstructor(node)) {
-            AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(node);
             AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
             if (infer) {
                 mainIsNot(constructorReturnType, realChecker.READONLY, "constructor.return.invalid", node);
@@ -155,8 +161,65 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                     checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
                 }
             }
+
+            if (hasImmutableBoundAnnotation) {
+                if(infer) {
+                    mainIsSubtype(constructorReturnType, realChecker.IMMUTABLE, "immutable.class.constructor.invalid", node);
+                } else {
+                    AnnotationMirror constructorReturnAnnotation = constructorReturnType.getAnnotationInHierarchy(realChecker.READONLY);
+                    if(!atypeFactory.getQualifierHierarchy().isSubtype(constructorReturnAnnotation, realChecker.IMMUTABLE)) {
+                        checker.report(Result.failure("immutable.class.constructor.invalid"), node);
+                    }
+                }
+            }
+            /*Doesn't check constructor parameters if constructor return is immutable or receiverdependantmutable*/
+        } else {
+            AnnotatedDeclaredType declareReceiverType = executableType.getReceiverType();
+            if (hasImmutableBoundAnnotation && declareReceiverType != null) {
+                if (infer) {
+                    mainIsNoneOf(declareReceiverType,
+                            new AnnotationMirror[]{realChecker.MUTABLE, realChecker.RECEIVERDEPENDANTMUTABLE, realChecker.BOTTOM},
+                            "immutable.class.method.receiver.invalid", node.getReceiverParameter());
+                } else {
+                    if(!(declareReceiverType.hasAnnotation(realChecker.READONLY) ||
+                            declareReceiverType.hasAnnotation(realChecker.IMMUTABLE)))
+                        checker.report(Result.failure("immutable.class.method.receiver.invalid"), node.getReceiverParameter());
+                }
+            }
         }
         return super.visitMethod(node, p);
+    }
+
+    // Completely copied from PICOVisitor
+    private boolean hasImmutableAnnotationOnTypeDeclaration(Tree node) {
+        TypeElement typeElement = null;
+        if (node instanceof MethodTree) {
+            MethodTree methodTree = (MethodTree) node;
+            ExecutableElement element = TreeUtils.elementFromDeclaration(methodTree);
+            typeElement = ElementUtils.enclosingClass(element);
+        } else if (node instanceof TypeParameterTree) {
+            TypeParameterTree typeParameterTree = (TypeParameterTree) node;
+            TreePath treePath = atypeFactory.getPath(typeParameterTree);
+            ClassTree classTree = TreeUtils.enclosingClass(treePath);
+            // This means type parameter is declared not on type declaration, but on generic methods
+            if (classTree != treePath.getParentPath().getLeaf()) {
+                return false;
+            }
+            typeElement = TreeUtils.elementFromDeclaration(classTree);
+        }
+        if (typeElement == null) {
+            ErrorReporter.errorAbort("Enclosing typeElement should not be null!", node);
+        }
+        // Ignore anonymous classes. It doesn't have bound annotation. The annotation on new instance
+        // creation is mis-passed here as bound annotation. As a result, if anonymous class is instantiated
+        // with @Immutable instance, it gets warned "immutable.class.constructor.invalid" because anonymous
+        // class only has @Mutable constructor
+        if (typeElement.toString().contains("anonymous")) return false;
+        AnnotatedTypeMirror bound = atypeFactory.fromElement(typeElement);
+        AnnotationMirror boundAnnotation = bound.getAnnotationInHierarchy(realChecker.READONLY);
+        return boundAnnotation != null
+                && AnnotationUtils.areSameByClass(boundAnnotation, Immutable.class);
+
     }
 
     @Override
@@ -226,6 +289,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
     }
 
+    // Completely copied from PICOVisitor
     private void reportFieldOrArrayWriteError(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (variable.getKind() == Kind.MEMBER_SELECT) {
             checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
@@ -266,16 +330,35 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         return ElementUtils.isFinal(variableElement);
     }
 
+    /**
+     * Determines if an assignment is initializaing an object.
+     *
+     * True if:
+     * 1) Inside initialization block
+     * 2) In constructor
+     * 3) In instance method, declared receiver is @UnderInitialized
+     *
+     * @param node assignment tree that might be initializing an object
+     * @return true if the assignment tree is initializing an object
+     *
+     * @see #hasUnderInitializationDeclaredReceiver(MethodTree)
+     */
     private boolean isInitializingObject(AssignmentTree node) {
         Element element = TreeUtils.elementFromUse(node);
-        if (element == null) return false;
+        // If the assignment is not field assignment, there is no possibility of initializing object.
+        if (element == null || !element.getKind().isField()) return false;
         ExpressionTree variable = node.getVariable();
         TreePath treePath = atypeFactory.getPath(node);
         if (treePath == null) return false;
+
+        if (TreeUtils.enclosingTopLevelBlock(treePath) != null) {
+            // In the initialization block => always allow assigning fields!
+            return true;
+        }
+
         MethodTree enclosingMethod = TreeUtils.enclosingMethod(treePath);
         // No possibility of initialiazing object if the assignment is not within constructor or method(both MethodTree)
-        // If the assignment is not field assignment, there is no possibility of initializing object either.
-        if (enclosingMethod == null || !element.getKind().isField()) return false;
+        if (enclosingMethod == null) return false;
         // At this point, we already know that this assignment is field assignment within a method
         if (TreeUtils.isConstructor(enclosingMethod) || hasUnderInitializationDeclaredReceiver(enclosingMethod)) {
             ExpressionTree receiverTree = TreeUtils.getReceiverTree(variable);

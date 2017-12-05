@@ -167,6 +167,11 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (typeElement == null) {
             ErrorReporter.errorAbort("Enclosing typeElement should not be null!", node);
         }
+        // Ignore anonymous classes. It doesn't have bound annotation. The annotation on new instance
+        // creation is mis-passed here as bound annotation. As a result, if anonymous class is instantiated
+        // with @Immutable instance, it gets warned "immutable.class.constructor.invalid" because anonymous
+        // class only has @Mutable constructor
+        if (typeElement.toString().contains("anonymous")) return false;
         AnnotatedTypeMirror bound = atypeFactory.fromElement(typeElement);
         AnnotationMirror boundAnnotation = bound.getAnnotationInHierarchy(atypeFactory.READONLY);
         return boundAnnotation != null
