@@ -331,7 +331,41 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         public Void visitVariable(VariableTree node, AnnotatedTypeMirror annotatedTypeMirror) {
             VariableElement element = TreeUtils.elementFromDeclaration(node);
             addDefaultForStaticField(annotatedTypeMirror, element);
+            viewpointAdaptInstanceFieldToClassBound(annotatedTypeMirror, element, node);
             return super.visitVariable(node, annotatedTypeMirror);
+        }
+
+        /**
+         * Adapts main modifier of an instance field to the bound of the enclosing class.
+         *
+         * So if a field declaration has initializer, viewpoint adapted field type is used.
+         * But this viewpoint adaptation doesn't affect the type of usage of field in other
+         * locations, for example in constructors and initialization blocks: declared type
+         * of the field is still used for viewpoint adaptation inside constructors and initialization
+         * blocks instead of the adapted field type. So the affecting scope of the viewpoint
+         * adaptation is only instance field declarations with initializer on it.
+         *
+         * If the field type is type variable, it doesn't viewpoint adapt the bounds of the type
+         * variable. If there is annotation on that type variable use, this method still adapts
+         * that main modifier to the bound of the enclosing class.
+         */
+        private void viewpointAdaptInstanceFieldToClassBound(
+                AnnotatedTypeMirror annotatedTypeMirror, VariableElement element, VariableTree tree) {
+            if (element != null && element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
+                AnnotationMirror boundAnnotation = PICOTypeUtil.getBoundAnnotationOnEnclosingTypeDeclaration(tree, (PICOAnnotatedTypeFactory) atypeFactory);
+                if (boundAnnotation == null) return;
+                AnnotatedDeclaredType typeDeclaration = atypeFactory.fromElement(ElementUtils.enclosingClass(element));
+                // Because boundAnnotation is the result of applying all different cases to determine bound annotation of
+                // a type element, so we forcely replace the bound with boundAnnotation. They might be the same sometimes,
+                // but we still replace it anyway.
+                typeDeclaration.replaceAnnotation(boundAnnotation);
+                AnnotatedTypeMirror adaptedFieldType = AnnotatedTypes.asMemberOf(types, atypeFactory, typeDeclaration, element, tree);
+                // Type variable use with no annotation on its main modifier hits null case
+                if (adaptedFieldType.getAnnotationInHierarchy(READONLY) != null) {
+                    // Possible cases: AnnotatedDeclaredType, AnnotatedArrayType or AnnotatedTypeVariable with annotation on it
+                    annotatedTypeMirror.replaceAnnotation(adaptedFieldType.getAnnotationInHierarchy(READONLY));
+                }
+            }
         }
     }
 

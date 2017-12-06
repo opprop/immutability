@@ -8,6 +8,7 @@ import java.util.Date;
 
 /*If upper bound is @Readonly, @Mutable, type parameter is not in the abstract state of
 * the entire object*/
+@Immutable
 class Wrapper<T>{
     T t;
     @Immutable Wrapper(T t) {

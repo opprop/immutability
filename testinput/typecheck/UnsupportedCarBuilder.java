@@ -1,12 +1,16 @@
 package typecheck;
 
 import qual.Immutable;
+import qual.Readonly;
+import qual.ReceiverDependantMutable;
 
 /**
  * This builder pattern is NOT supported if the builder internally holds the constructed
  * object rather than having the representation states.
+ * Update: this is fake builder pattern from Wikipedia!
  */
 public class UnsupportedCarBuilder {
+    @ReceiverDependantMutable
     class Car {
         private int wheels;
         private String color;
@@ -15,7 +19,7 @@ public class UnsupportedCarBuilder {
         private @Immutable Car() {
         }
 
-        public String getColor() {
+        public String getColor(@Readonly Car this) {
             return color;
         }
 
@@ -23,7 +27,7 @@ public class UnsupportedCarBuilder {
             this.color = color;
         }
 
-        public int getWheels() {
+        public int getWheels(@Readonly Car this) {
             return wheels;
         }
 
@@ -42,9 +46,7 @@ public class UnsupportedCarBuilder {
     public UnsupportedCarBuilder() {
         car = new @Immutable Car();
     }
-    public @Immutable Car build() {
-        return car;
-    }
+
     public UnsupportedCarBuilder setColor(final String color) {
         // :: error: (method.invocation.invalid)
         car.setColor(color);
@@ -60,9 +62,13 @@ public class UnsupportedCarBuilder {
         return new UnsupportedCarBuilder();
     }
 
+    public @Immutable Car build() {
+        return car;
+    }
+
 }
 class A {
     void foo() {
-        UnsupportedCarBuilder.Car car = UnsupportedCarBuilder.getBuilder().setColor("red").setWheels(4).build();
+        UnsupportedCarBuilder.@Immutable Car car = UnsupportedCarBuilder.getBuilder().setColor("red").setWheels(4).build();
     }
 }

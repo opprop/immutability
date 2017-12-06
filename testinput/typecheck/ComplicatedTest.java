@@ -6,6 +6,7 @@ import qual.ReceiverDependantMutable;
 import qual.Readonly;
 import java.util.ArrayList;
 
+@ReceiverDependantMutable
 class Person {
 
     protected String name;

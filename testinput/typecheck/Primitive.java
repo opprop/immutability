@@ -5,6 +5,7 @@ import qual.Immutable;
 import qual.Mutable;
 import qual.ReceiverDependantMutable;
 
+@Immutable
 public class Primitive {
     // In the abstract state
     int implicitImmutableInt;

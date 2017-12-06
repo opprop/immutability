@@ -5,6 +5,7 @@ import qual.Immutable;
 import qual.ReceiverDependantMutable;
 import qual.Readonly;
 
+@ReceiverDependantMutable
 public class ReceiverDependantMutableConstructor {
 
     @Readonly Object rof;

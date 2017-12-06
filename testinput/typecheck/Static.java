@@ -6,6 +6,7 @@ import qual.PolyMutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
 
+@ReceiverDependantMutable
 public class Static{
     // :: error: (static.receiverdependantmutable.forbidden)
     static @ReceiverDependantMutable Object o = new @ReceiverDependantMutable Object();

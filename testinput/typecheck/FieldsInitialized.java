@@ -6,6 +6,7 @@ import qual.Mutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
 
+@ReceiverDependantMutable
 public class FieldsInitialized {
     final @Immutable Object f1;
     @Immutable Object f2;

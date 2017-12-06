@@ -32,12 +32,14 @@ class Throwable {
 
 package java.util;
 
+@ReceiverDependantMutable
 class Date {
   @ReceiverDependantMutable Date();
   @ReceiverDependantMutable Date(long var1);
   int getHours(@Readonly Date this);
 }
 
+@ReceiverDependantMutable
 class ArrayList<E> {
   @ReceiverDependantMutable ArrayList();
   boolean add(@Mutable ArrayList<E> this, E var1);

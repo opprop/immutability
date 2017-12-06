@@ -7,6 +7,7 @@ import qual.ReceiverDependantMutable;
 
 import java.util.Date;
 
+@ReceiverDependantMutable
 public class SupportedBuilderPattern {
     private final int id;
     private String address;

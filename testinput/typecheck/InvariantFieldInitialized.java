@@ -5,6 +5,7 @@ import qual.Mutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
 
+@Immutable
 public class InvariantFieldInitialized {
     @Immutable Object o1;
     @ReceiverDependantMutable Object o2;

@@ -6,6 +6,7 @@ import qual.ReceiverDependantMutable;
 
 import java.util.Date;
 
+@ReceiverDependantMutable
 public class SuperClass{
     @ReceiverDependantMutable Date p;
     @Immutable SuperClass(@Immutable Date p){
@@ -19,7 +20,7 @@ public class SuperClass{
 
 class SubClass extends SuperClass{
     @Mutable SubClass(){
-        // :: error: (subclass.constructor.invalid)
+        // :: error: (super.constructor.invocation.incompatible)
         super(new @Immutable Date(1L));
     }
 
@@ -29,9 +30,10 @@ class SubClass extends SuperClass{
     }
 }
 
+@ReceiverDependantMutable
 class AnotherSubClass extends SuperClass{
     @ReceiverDependantMutable AnotherSubClass(){
-        // :: error: (subclass.constructor.invalid)
+        // :: error: (super.constructor.invocation.incompatible)
         super(new @Immutable Date(1L));
     }
 

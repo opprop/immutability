@@ -3,9 +3,11 @@ package typecheck;
 import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
+import qual.ReceiverDependantMutable;
 
 import java.util.Date;
 
+@ReceiverDependantMutable
 public class DateCell2 {
     @Immutable Date imdate;
 

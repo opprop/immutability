@@ -5,6 +5,7 @@ import qual.Mutable;
 import qual.PolyMutable;
 import qual.Readonly;
 
+@Immutable
 public class ImmutabilityFactoryPattern {
     public @Immutable ImmutabilityFactoryPattern() {
 

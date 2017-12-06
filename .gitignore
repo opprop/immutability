@@ -27,3 +27,7 @@
 *~
 # PICOSolverEngine generated files
 *.txt
+
+# Test temporary directories
+/testdata/
+/testTmp/

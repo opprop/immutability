@@ -5,6 +5,7 @@ import qual.Mutable;
 import qual.Immutable;
 import qual.ReceiverDependantMutable;
 
+@ReceiverDependantMutable
 public class FieldAssignment {
 
     @ReceiverDependantMutable Object f;

@@ -5,6 +5,7 @@ import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
 
+@Immutable
 class A<T extends @Readonly Object>{
     @Assignable T t;
     @Immutable A(T t){

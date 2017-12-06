@@ -5,7 +5,8 @@ import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
 
-class RDMBug {
+// :: error: (constructor.return.incompatible) :: error: (type.invalid)
+@Immutable class RDMBug {
     @Mutable Object o;
     @Readonly Object o2;
     void foo(@Immutable RDMBug this) {

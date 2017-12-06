@@ -5,6 +5,7 @@ import qual.Mutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
 
+@ReceiverDependantMutable
 public class SuperMethodInvocation {
     @ReceiverDependantMutable Object f;
 
@@ -17,6 +18,7 @@ public class SuperMethodInvocation {
     }
 }
 
+@Immutable
 class Subclass extends SuperMethodInvocation {
 
     @Immutable Subclass() {

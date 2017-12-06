@@ -10,6 +10,7 @@ import java.util.Date;
  * Planet is an immutable class, since there is no way to change
  * its state after construction.
  */
+@Immutable
 public class Planet {
     /**
      * Final primitive data is always immutable.
@@ -42,7 +43,7 @@ public class Planet {
      * value. The caller sees its "own" double that simply has the
      * same value as fMass.
      */
-    public double getMass() {
+    public double getMass(@Readonly Planet this) {
         return fMass;
     }
 
@@ -52,7 +53,7 @@ public class Planet {
      * The caller gets a direct reference to the internal field. But this is not
      * dangerous, since String is immutable and cannot be changed.
      */
-    public String getName() {
+    public String getName(@Readonly Planet this) {
         return fName;
     }
 
@@ -83,7 +84,7 @@ public class Planet {
 
     public static void main(String[] args) {
         @Immutable Date discoveryDate = new @Immutable Date();
-        // :: error: (constructor.invocation.invalid)
+        // :: error: (type.invalid)
         @Mutable Planet mPlanet = new @Mutable Planet(1, "Earth", discoveryDate);
         @Immutable Planet imPlanet = new @Immutable Planet(1, "Earth", discoveryDate);
         // None of the fields are allowed to be modified on an immutable object

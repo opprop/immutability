@@ -8,6 +8,7 @@ import qual.ReceiverDependantMutable;
 
 import java.util.Date;
 
+@ReceiverDependantMutable
 class Thief {
     @NotOnlyInitialized @ReceiverDependantMutable
     SuperClass2 victimCaptured;
@@ -17,6 +18,7 @@ class Thief {
     }
 }
 
+@ReceiverDependantMutable
 public class SuperClass2{
     @ReceiverDependantMutable Date p;
     @NotOnlyInitialized @ReceiverDependantMutable
@@ -29,18 +31,20 @@ public class SuperClass2{
     }
 }
 
+@Immutable
 class SubClass2 extends SuperClass2{
     @Immutable SubClass2(){
         // This is not ok any more
-        // :: error: (subclass.constructor.invalid)
+        // :: error: (super.constructor.invocation.incompatible)
         super(new @Mutable Date());
     }
 }
 
+@ReceiverDependantMutable
 class AnotherSubClass2 extends SuperClass2{
     @ReceiverDependantMutable AnotherSubClass2(){
         // This is not ok any more
-        // :: error: (subclass.constructor.invalid)
+        // :: error: (super.constructor.invocation.incompatible)
         super(new @Mutable Date());
     }
 }

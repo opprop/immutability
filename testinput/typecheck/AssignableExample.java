@@ -3,9 +3,11 @@ package typecheck;
 import qual.Immutable;
 import qual.Mutable;
 import qual.Assignable;
+import qual.ReceiverDependantMutable;
 
 import java.util.Date;
 
+@ReceiverDependantMutable
 public class AssignableExample {
     @Immutable Object o;
     @Immutable Date date;
@@ -25,6 +27,8 @@ public class AssignableExample {
         this.o = new @Immutable Object();
     }
 }
+
+@ReceiverDependantMutable
 class Subclass extends AssignableExample {
     void bar(@Immutable Subclass this) {
         // :: error: (illegal.field.write)

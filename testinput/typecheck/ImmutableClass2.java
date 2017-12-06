@@ -5,22 +5,22 @@ import qual.Mutable;
 import qual.ReceiverDependantMutable;
 import qual.Readonly;
 
-// :: error: (immutable.class.type.parameter.bound.invalid)
+// ok
 @Immutable class ImmutableClass2<T extends @Readonly Object>{
     @Immutable ImmutableClass2(){}
 }
 
-// :: error: (immutable.class.type.parameter.bound.invalid)
+// ok
 @Immutable class ImmutableClass3<T extends @ReceiverDependantMutable Object>{
     @Immutable ImmutableClass3(){}
 }
 
-// :: error: (immutable.class.type.parameter.bound.invalid)
+// ok
 @Immutable class ImmutableClass4<T extends @Mutable Object>{
     @Immutable ImmutableClass4(){}
 }
 
-// :: error: (immutable.class.type.parameter.bound.invalid) :: error: (immutable.class.type.parameter.bound.invalid)
+// ok
 @Immutable class ImmutableClass5<T extends @Mutable Object, S extends T>{
     @Immutable ImmutableClass5(){}
 }

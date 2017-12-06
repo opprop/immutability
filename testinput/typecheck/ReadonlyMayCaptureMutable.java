@@ -5,6 +5,7 @@ import qual.Readonly;
 import qual.Mutable;
 import qual.ReceiverDependantMutable;
 
+@ReceiverDependantMutable
 public class ReadonlyMayCaptureMutable {
     static @Mutable Object smf = new @Mutable Object();
 

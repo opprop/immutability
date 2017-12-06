@@ -6,6 +6,7 @@ import qual.Readonly;
 import qual.ReceiverDependantMutable;
 import qual.Assignable;
 
+@ReceiverDependantMutable
 public class ForbidAssignmentCase {
     @Assignable @ReceiverDependantMutable Object f;
     @ReceiverDependantMutable ForbidAssignmentCase() {

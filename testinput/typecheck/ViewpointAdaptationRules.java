@@ -6,6 +6,7 @@ import qual.Immutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
 
+@ReceiverDependantMutable
 public class ViewpointAdaptationRules {
 
     @Assignable @Readonly Object rof;

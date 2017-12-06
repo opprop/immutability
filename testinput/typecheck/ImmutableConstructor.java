@@ -5,6 +5,7 @@ import qual.Immutable;
 import qual.ReceiverDependantMutable;
 import qual.Readonly;
 
+@Immutable
 public class ImmutableConstructor {
 
     @Readonly Object rof;
@@ -31,10 +32,11 @@ public class ImmutableConstructor {
         this.imf = po;
     }
 
-    void invokeConstructor(@Readonly Object ro, @Mutable Object mo, @ReceiverDependantMutable Object po, @Immutable Object io) {
+    void invokeConstructor(@Readonly ImmutableConstructor this, @Readonly Object ro, @Mutable Object mo,
+                           @ReceiverDependantMutable Object po, @Immutable Object io) {
         new @Immutable ImmutableConstructor(io, io);
 
-        // :: error: (constructor.invocation.invalid)
+        // :: error: (type.invalid)
         new @Mutable ImmutableConstructor(mo, io);
 
         // This no longer is error now(?). Because instantiating @Immutable constructor
