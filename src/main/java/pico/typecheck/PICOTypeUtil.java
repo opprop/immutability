@@ -95,6 +95,8 @@ public class PICOTypeUtil {
         return null;
     }
 
+    // TODO This method does very similar job with AnnotatedTypeFactory#getAnnotatedType(Element). Maybe should call
+    // that method inside this method and add additional logic here
     public static AnnotationMirror getBoundAnnotationOnTypeDeclaration(TypeElement typeElement, PICOAnnotatedTypeFactory atypeFactory) {
         // Ignore anonymous classes. It doesn't have bound annotation. The annotation on new instance
         // creation is wrongly passed here as bound annotation. As a result, if anonymous class is instantiated

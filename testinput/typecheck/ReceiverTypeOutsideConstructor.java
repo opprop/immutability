@@ -121,7 +121,6 @@ class D {
     @ReceiverDependantMutable Date d = new @Mutable Date();
 
     {
-        //
         d = new @Mutable Date();
     }
 }
