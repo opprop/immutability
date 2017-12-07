@@ -10,7 +10,6 @@ import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
-import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
@@ -59,7 +58,6 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         super(checker);
         shouldOutputFbcError = checker.getLintOption("printFbcErrors" , false);
         fbcViolatedMethods = shouldOutputFbcError ? new HashMap<>() : null;
-
     }
 
     @Override
