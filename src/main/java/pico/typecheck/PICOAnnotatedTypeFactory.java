@@ -205,6 +205,20 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         }
     }
 
+    @Override
+    protected void annotateInheritedFromClass(AnnotatedTypeMirror type, Set<AnnotationMirror> fromClass) {
+        // If interitted from class element is @Mutable or @Immutable, then apply this annotation to the usage type
+        if (fromClass.contains(MUTABLE) || fromClass.contains(IMMUTABLE)) {
+            super.annotateInheritedFromClass(type, fromClass);
+            return;
+        }
+        // If interitted from class element is @ReceiverDependantMutable, then don't apply and wait for @Mutable
+        // (default qualifier in hierarchy to be applied to the usage type). This is to avoid having @ReceiverDependantMutable
+        // on type usages as a default behaviour. By default, @Mutable is better used as the type for usages that
+        // don't have explicit annotation.
+        return;// Don't add annotations from class element
+    }
+
     /**This method gets lhs WITH flow sensitive refinement*/
     // TODO Should refactor super class to avoid too much duplicate code.
     // This method is pretty hacky right now.
@@ -431,4 +445,13 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             return null;
         }
     }
+
+    // TODO Right now, instance method receiver cannot inherit bound annotation from class element, and
+    // this caused the inconsistency when accessing the type of receiver while visiting the method and
+    // while visiting the variable tree. Implicit annotation can be inserted to method receiver via
+    // extending ImplicitsTypeAnnotator; But InheritedFromClassAnnotator cannot be inheritted because its
+    // constructor is private and I can't override it to also inherit bound annotation from class element
+    // to the declared receiver type of instance methods. To view the details, look at ImmutableClass1.java
+    // testcase.
+    // class PICOInheritedFromClassAnnotator extends InheritedFromClassAnnotator {}
 }
