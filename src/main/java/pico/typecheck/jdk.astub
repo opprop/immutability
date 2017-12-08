@@ -5,6 +5,7 @@ import qual.Readonly;
 
 package java.lang;
 
+@ReceiverDependantMutable
 class Object {
   @ReceiverDependantMutable Object();
   String toString(@Readonly Object this);
@@ -42,12 +43,29 @@ class Date {
 @ReceiverDependantMutable
 class ArrayList<E> {
   @ReceiverDependantMutable ArrayList();
+  @ReceiverDependantMutable ArrayList(@Readonly Collection<? extends E> var1);
   boolean add(@Mutable ArrayList<E> this, E var1);
 }
 
+@ReceiverDependantMutable
+class List<E> {}
+
+@ReceiverDependantMutable
 class HashSet<E> {
+  @ReceiverDependantMutable HashSet();
+  @ReceiverDependantMutable HashSet(@Readonly Collection<? extends E> var1);
   boolean contains(@Readonly Object var1);
   boolean remove(@Readonly Object var1);
+}
+
+@ReceiverDependantMutable
+class HashMap<K, V> {
+  @ReceiverDependantMutable HashMap();
+  @ReceiverDependantMutable HashMap(@Readonly Map<? extends K, ? extends V> var1);
+}
+
+class Arrays {
+  static <T> @Immutable List<T> asList(T... var0);
 }
 
 class Stack<E> {

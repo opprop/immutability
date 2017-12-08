@@ -8,7 +8,9 @@ class A extends Throwable {
 }
 
 public class ThrowableOverridingError extends Throwable{
-    // :: error: (override.receiver.invalid)
+    // getXXX() methods are now defaulted to have @Readonly declared receiver, so
+    // override.receiver.invalid is not expected anymore(previously @Mutable
+    // didn't override @Readonly)
     @Override public String getMessage() {
         return super.getMessage();
     }

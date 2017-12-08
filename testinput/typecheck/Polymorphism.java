@@ -11,7 +11,10 @@ class B{
     @PolyMutable B getObject(){return null;}
     @PolyMutable B getSecondObject(@PolyMutable B this){return null;}
     @PolyMutable B getThirdObject(@Mutable B this){return null;}
+    // Declared receiver type of getXXX() methods now gets defaulted to @Readonly
+    // if no explicit annotation exists on the declared receiver.
     @Immutable B getForthObject(){
+        // :: error: (method.invocation.invalid)
         return this.getThirdObject();
     }
 }

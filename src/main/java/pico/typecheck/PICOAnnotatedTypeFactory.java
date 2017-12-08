@@ -387,15 +387,30 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         @Override
         public Void visitExecutable(AnnotatedExecutableType t, Void p) {
             super.visitExecutable(t, p);
-            if (isMethodOrOverridingMethod(t, "toString()") || isMethodOrOverridingMethod(t, "hashCode()")) {
-                t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-            } else if (isMethodOrOverridingMethod(t, "equals(java.lang.Object)")) {
-                t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-                t.getParameterTypes().get(0).addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-            } else if (isMethodOrOverridingMethod(t, "clone()")) {
-                t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
-                t.getReturnType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
+
+            // Only handle instance methods, not static methods
+            if (!ElementUtils.isStatic(t.getElement())) {
+                if (isMethodOrOverridingMethod(t, "toString()") || isMethodOrOverridingMethod(t, "hashCode()")) {
+                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+                } else if (isMethodOrOverridingMethod(t, "equals(java.lang.Object)")) {
+                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+                    t.getParameterTypes().get(0).addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+                } else if (isMethodOrOverridingMethod(t, "clone()")) {
+                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
+                    t.getReturnType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
+                }
+
+                // Add @Readonly default to getters
+                if (isGetter(t)) {
+                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+                }
+
+                // Add @Mutable default to setters
+                if (isSetter(t)) {
+                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(MUTABLE)));
+                }
             }
+
             return null;
         }
 
@@ -414,6 +429,14 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                 }
             }
             return false;
+        }
+
+        private boolean isGetter(AnnotatedExecutableType methodType) {
+            return methodType.getElement().toString().startsWith("get");
+        }
+
+        private boolean isSetter(AnnotatedExecutableType methodType) {
+            return methodType.getElement().toString().startsWith("set");
         }
     }
 

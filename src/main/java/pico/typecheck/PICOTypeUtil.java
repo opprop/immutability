@@ -102,21 +102,15 @@ public class PICOTypeUtil {
         // If there is bound annotation on type element, then addMissingAnnotations() won't affect it and it falls through and is returned
         AnnotatedDeclaredType bound = atypeFactory.fromElement(typeElement); // Reads bound annotation from source code or stub files
 
-        // TODO It's a bit strange that bound annotations on java.lang.Object and implicilty immutable types
-        // are not specified in the stub file. Because bound annotation on stub file causes use type to be
-        // also the same bound annotation. But for java.lang.Object, we want it to be defaulted to @Readonly
-        // everywhere(@ImplicitFor trick to do this). But having it in stub file causes java.lang.Object is
-        // defaulted to @rdm, which is not what we want; For implicitly immutable types, having bounds in stub
+        // TODO It's a bit strange that bound annotations on implicilty immutable types
+        // are not specified in the stub file. For implicitly immutable types, having bounds in stub
         // file suppresses type cast warnings, because in base implementation, it checks cast type is whether
         // from element itself. If yes, no matter what the casted type is, the warning is suppressed, which is
         // also not wanted. So we have the logic of determining bounds for different type elements here.
         if (isImplicitlyImmutableType(bound)) {
             bound.addMissingAnnotations(Arrays.asList(atypeFactory.IMMUTABLE));
-        } else if (typeElement.toString().equals("java.lang.Object")) {
-            // defaults to rdm for java.lang.Object
-            bound.addMissingAnnotations(Arrays.asList(atypeFactory.RECEIVERDEPENDANTMUTABLE));
         } else {
-            // defaults to all other elements that are: not java.lang.Object; not implicitly immutable types
+            // defaults to all other elements that are: not implicitly immutable types
             // specified in definition of @Immutable qualifier; has no bound annotation on its type element
             // declaration either in source tree or stub file(jdk.astub)
             bound.addMissingAnnotations(Arrays.asList(atypeFactory.MUTABLE));

@@ -30,7 +30,7 @@ cmd=""
 if [ "$DEBUG" == "" ]; then
 	cmd="javac -cp "${CLASSPATH}" -processor "${CHECKER}" "${ARGS[@]}""
 else
-	cmd="javac "$DEBUG" -cp "${CLASSPATH}" -processor "${CHECKER}" "${ARGS[@]}""
+	cmd="javac "$DEBUG" -cp "${CLASSPATH}" -processor "${CHECKER}" -AatfDoNotCache "${ARGS[@]}""
 fi
 
 eval "$cmd"
