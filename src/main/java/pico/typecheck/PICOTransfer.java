@@ -18,14 +18,15 @@ public class PICOTransfer extends InitializationTransfer<PICOValue, PICOTransfer
 
     @Override
     public TransferResult<PICOValue, PICOStore> visitAssignment(AssignmentNode n, TransferInput<PICOValue, PICOStore> in) {
-        if (n.getExpression() instanceof NullLiteralNode) {
-            // Forbid refinement from null literal
-            PICOStore store = in.getRegularStore();
-            PICOValue storeValue = in.getValueOfSubNode(n);
-            PICOValue factoryValue = getValueFromFactory(n.getTree(), n);
-            PICOValue value = moreSpecificValue(factoryValue, storeValue);
-            return new RegularTransferResult<>(finishValue(value, store), store);
-        }
-        return super.visitAssignment(n, in);
+//        if (n.getExpression() instanceof NullLiteralNode) {
+//            // Forbid refinement from null literal
+//            PICOStore store = in.getRegularStore();
+//            PICOValue storeValue = in.getValueOfSubNode(n);
+//            PICOValue factoryValue = getValueFromFactory(n.getTree(), n);
+//            PICOValue value = moreSpecificValue(factoryValue, storeValue);
+//            return new RegularTransferResult<>(finishValue(value, store), store);
+//        }
+        TransferResult<PICOValue, PICOStore> result = super.visitAssignment(n, in);
+        return result;
     }
 }

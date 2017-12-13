@@ -43,7 +43,7 @@ public class PICOValidator extends BaseTypeValidator {
         checkStaticReceiverDependantMutableError(type, tree);
         checkImplicitlyImmutableTypeError(type, tree);
         checkOnlyOneAssignabilityModifierOnField(tree);
-        checkInvalidBottom(type, tree);
+        //checkInvalidBottom(type, tree);
         return super.visitDeclared(type, tree);
     }
 
@@ -75,10 +75,10 @@ public class PICOValidator extends BaseTypeValidator {
         return isStatic;
     }
 
-    /**Check that implicitly immutable type has immutable annotation. Note that bottom will be handled uniformly on all
-       the other remaining types(reference or primitive), so we don't handle it again here*/
+    /**Check that implicitly immutable type has immutable or bottom type. Dataflow might refine immtable type to @Bottom,
+     * so we accept @Bottom as a valid qualifier for implicitly immutable types*/
     private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
-        if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(Immutable.class)) {
+        if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(Immutable.class) && !type.hasAnnotation(Bottom.class)) {
             reportError(type, tree);
         }
     }
@@ -118,7 +118,7 @@ public class PICOValidator extends BaseTypeValidator {
     public Void visitArray(AnnotatedArrayType type, Tree tree) {
         checkStaticReceiverDependantMutableError(type, tree);
         checkImplicitlyImmutableTypeError(type, tree);
-        checkInvalidBottom(type, tree);
+        //checkInvalidBottom(type, tree);
         return super.visitArray(type, tree);
     }
 

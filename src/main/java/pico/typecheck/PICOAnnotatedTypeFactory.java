@@ -4,6 +4,7 @@ import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
+import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.qual.FBCBottom;
@@ -306,7 +307,19 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         @Override
         public Void visitBinary(BinaryTree node, AnnotatedTypeMirror type) {
             applyImmutableIfImplicitlyImmutable(type);// Usually there isn't existing annotation on binary trees, but to be safe, run it first
-            return super.visitBinary(node, type);
+            super.visitBinary(node, type);
+            // NullnessPropagationTreeAnnotator says result type of binary tree is always @Initialized. So replace it
+            // with COMMITED here.
+            type.replaceAnnotation(COMMITED);
+            return null;
+        }
+
+        @Override
+        public Void visitUnary(UnaryTree node, AnnotatedTypeMirror type) {
+            super.visitUnary(node, type);
+            // Same reason as above
+            type.replaceAnnotation(COMMITED);
+            return null;
         }
 
         /**Add immutable to the result type of a cast if the result type is implicitly immutable*/
@@ -399,16 +412,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                     t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
                     t.getReturnType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
                 }
-
-                // Add @Readonly default to getters
-                if (isGetter(t)) {
-                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-                }
-
-                // Add @Mutable default to setters
-                if (isSetter(t)) {
-                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(MUTABLE)));
-                }
             }
 
             return null;
@@ -431,13 +434,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             return false;
         }
 
-        private boolean isGetter(AnnotatedExecutableType methodType) {
-            return methodType.getElement().toString().startsWith("get");
-        }
-
-        private boolean isSetter(AnnotatedExecutableType methodType) {
-            return methodType.getElement().toString().startsWith("set");
-        }
     }
 
     class PICOImplicitsTypeAnnotator extends ImplicitsTypeAnnotator {
@@ -449,7 +445,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         /**Also applies implicits to method receiver*/
         @Override
         public Void visitExecutable(AnnotatedExecutableType t, Void p) {
-            // TODO The implementattion before doesn't work after update. Previously, I sanned the
+            // TODO The implementation before doesn't work after update. Previously, I sanned the
             // method receiver without null check. But even if I check nullness, scanning receiver
             // at first caused some tests to fail. Need to investigate the reason.
             super.visitExecutable(t, p);

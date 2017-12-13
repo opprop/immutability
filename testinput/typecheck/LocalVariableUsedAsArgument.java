@@ -6,7 +6,7 @@ class B {
 
 }
 
-public class LocalVariableUsedAsArgumentWithoutBeingInitialized {
+public class LocalVariableUsedAsArgument {
 
     private A a;
 
@@ -32,13 +32,6 @@ public class LocalVariableUsedAsArgumentWithoutBeingInitialized {
             }
         }*/
 
-        // So b is never properly refined to a concrete type, so it stays as the declared type
-        // Issues "argument.type.incompatible" because @UnknownInitialization @Readonly B is not
-        // subtype of @Initialized @Mutable B
-        // Issues "initialization.invalid.field.write.initialized" because new A(b) returns
-        // @UnderInitialization @Mutable A, and @UnderInitialization argument is not allowed to
-        // be written into @Initialized field a.
-        // :: error: (argument.type.incompatible) :: error: (initialization.invalid.field.write.initialized)
         a = new A(b);
         return a;
     }

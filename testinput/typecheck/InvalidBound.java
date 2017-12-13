@@ -11,9 +11,6 @@ import qual.ReceiverDependantMutable;
 // :: error: (class.bound.invalid)
 @PolyMutable class A{}
 
-// :: error: (class.bound.invalid)
-@Bottom class B{}
-
 // ok
 @Immutable class C{ @Immutable C(){}}
 

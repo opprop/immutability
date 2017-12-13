@@ -21,7 +21,7 @@ public class ImmutableListImmutableElement {
         List<A> l2 = new @Immutable ArrayList<A>(l1);
         // :: error: (method.invocation.invalid)
         l2.add(new A(1));
-        // :: error: (illegal.field.write)
+        // :: error: (illegal.field.write) :: error: (method.invocation.invalid)
         l2.get(0).i = 2;
     }
 }

@@ -1,0 +1,36 @@
+1. Typecasting raw iterator's next() method's return to a local variable and pass it as method invocation argument.
+@Readonly cannot be passed to @Mutable parameter(default)
+e.g. /home/mier/jsr308/jdepend/src/jdepend/textui/JDepend.java:241
+
+2 cast to Number String got type cast warning: @Readonly to @Immutable
+Algebra 655
+
+3. Similar to above, but now used as actual receiver
+e.g. /home/mier/jsr308/jdepend/src/jdepend/textui/JDepend.java:192
+
+4. Calling instance method from constructor, and get fbc error
+e.g. /home/mier/jsr308/jdepend/src/jdepend/textui/JDepend.java:47
+
+5. Object[] component type used as actual receiver. Invoked method has default @Mutable declared receiver
+e.g. ObjectArrayList 477
+
+6. Object[] component type is casted to local variable, and that local variable is used to call the instance method in jkd,
+whose declared receiver is declared to be @Mutable
+e.g. /home/mier/jsr308/colt/src/cern/colt/matrix/objectalgo/Partitioning.java:127:
+
+7. Typecasting Object method parameter into a subtype, and call instance method on that subtype. Got method invocation error
+e.g. /home/mier/jsr308/colt/src/cern/jet/stat/quantile/UnknownDoubleQuantileEstimator.java:159
+
+8. toString() has @Readonly declared receiver. clone() has @ReceiverDependantMutable declared receiver. Any call to instance
+method with defaulted @Mutable causes warnings.
+e.g. DoubleQuantileEstimator.java:251
+
+9. Too much method invocation noise
+e.g. AbstractBin 56 call to size is not allowed
+
+10. clone() method:
+e.g. DoubleBuffer 63
+illgeal field write, return incompatible, method invocation invalid, argument type incompatible
+e.g. CharArrayList.java:113
+method invocation invalid, argument type incompatible
+sol: allow flexible overriding in mutable and immutble classes

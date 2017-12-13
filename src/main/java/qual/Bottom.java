@@ -18,6 +18,11 @@ import java.lang.annotation.Target;
 @ImplicitFor(literals = {LiteralKind.NULL})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@TargetLocations({TypeUseLocation.LOWER_BOUND})
+// Stop allowing any explicit usage of @Bottom qualifier in source. As it causes difficulty to
+// differentiate correct explicit usage of @Bottom and internally propagated @Bottom. Instead,
+// if programmers don't write anything on explicit lower bound(of a wildcard), we still have
+// defaulting mechanism to make the explicit lower bound to be @Bottom. They can still use other
+// qualifier than @Bottom explicitly on explicit lower bound to have different-than-default type.
+@Target({})
+@TargetLocations({})
 public @interface Bottom {}
