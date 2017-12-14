@@ -9,7 +9,6 @@ class A extends Throwable {
 
 public class ThrowableOverridingError extends Throwable{
 
-    // :: error: (override.receiver.invalid)
     @Override public String getMessage() {
         return super.getMessage();
     }

@@ -36,7 +36,7 @@ public class UnsupportedCarBuilder {
         }
 
         @Override
-        public String toString() {
+        public String toString(@Readonly Car this) {
             return "Car [wheels = " + wheels + ", color = " + color + "]";
         }
     }

@@ -108,17 +108,18 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
         AnnotationMirror declared = declarationType.getAnnotationInHierarchy(atypeFactory.READONLY);
-        if (AnnotationUtils.areSame(declared, atypeFactory.READONLY)) {
-            // Special case for java.lang.Object. Usually @Readonly is never used as a bound annotation for a
-            // TypeElement. But we want to have @Readonly as the default for java.lang.Object. There is no way
-            // of doing this using any exsisting family of @DefaultFor qualifiers, but @ImplicitFor annotation
-            // does the trick. But the side effect is, we can't write @ReceiverDependantMutable, which is the
-            // correct bound for Object element, in jdk.astub, because otherwise it makes all java.lang.Object
-            // to be @ReceiverDependantMutable; Another side effect is here @Readonly is passed into here as
-            // the element type for java.lang.Object. So we have to have this special case only for java.lang.
-            // Object
-            return true;
-        }
+        // No need to have special case for java.lang.Object, as it's not by default @Readonly anymore
+//        if (AnnotationUtils.areSame(declared, atypeFactory.READONLY)) {
+//            // Special case for java.lang.Object. Usually @Readonly is never used as a bound annotation for a
+//            // TypeElement. But we want to have @Readonly as the default for java.lang.Object. There is no way
+//            // of doing this using any exsisting family of @DefaultFor qualifiers, but @ImplicitFor annotation
+//            // does the trick. But the side effect is, we can't write @ReceiverDependantMutable, which is the
+//            // correct bound for Object element, in jdk.astub, because otherwise it makes all java.lang.Object
+//            // to be @ReceiverDependantMutable; Another side effect is here @Readonly is passed into here as
+//            // the element type for java.lang.Object. So we have to have this special case only for java.lang.
+//            // Object
+//            return true;
+//        }
         if (AnnotationUtils.areSame(declared, atypeFactory.RECEIVERDEPENDANTMUTABLE)) {
             // Element is declared with @ReceiverDependantMutable bound, any instantiation is allowed. We don't use
             // a subtype check to validate the correct usage here. Because @Readonly is the super type of
@@ -215,7 +216,44 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                 }
             }
         }
+
+        // Method overriding checks
+        // TODO Copied from super, hence has lots of duplicate code with super. We need to
+        // change the signature of checkOverride() method to also pass ExecutableElement for
+        // viewpoint adaptation.
+        ExecutableElement methodElement = TreeUtils.elementFromDeclaration(node);
+        AnnotatedDeclaredType enclosingType =
+                (AnnotatedDeclaredType)
+                        atypeFactory.getAnnotatedType(methodElement.getEnclosingElement());
+
+        Map<AnnotatedDeclaredType, ExecutableElement> overriddenMethods =
+                AnnotatedTypes.overriddenMethods(elements, atypeFactory, methodElement);
+        for (Map.Entry<AnnotatedDeclaredType, ExecutableElement> pair :
+                overriddenMethods.entrySet()) {
+            AnnotatedDeclaredType overriddenType = pair.getKey();
+            AnnotatedExecutableType overriddenMethod =
+                    AnnotatedTypes.asMemberOf(
+                            types, atypeFactory, overriddenType, pair.getValue(), node);
+            // Viewpoint adapt super method executable type to current class bound(is this always class bound?)
+            // to allow flexible overriding
+            atypeFactory.viewpointAdaptMethod(pair.getValue(), enclosingType, overriddenMethod);
+            AnnotatedExecutableType overrider = atypeFactory.getAnnotatedType(node);
+            if (!checkOverride(node, overrider, enclosingType, overriddenMethod, overriddenType)) {
+                // Stop at the first mismatch; this makes a difference only if
+                // -Awarns is passed, in which case multiple warnings might be raised on
+                // the same method, not adding any value. See Issue 373.
+                break;
+            }
+        }
         return super.visitMethod(node, p);
+    }
+
+    // Disables method overriding checks in BaseTypeVisitor
+    @Override
+    protected boolean checkOverride(
+            MethodTree overriderTree, AnnotatedDeclaredType overridingType,
+            AnnotatedExecutableType overridden, AnnotatedDeclaredType overriddenType) {
+        return true;
     }
 
     @Override

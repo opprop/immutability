@@ -151,6 +151,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         return new PICOQualifierHierarchy(factory, (Object[]) null);
     }
 
+    // Transfer the visibility to package
+    @Override
+    protected void viewpointAdaptMethod(ExecutableElement methodElt, AnnotatedTypeMirror receiverType, AnnotatedExecutableType methodType) {
+        super.viewpointAdaptMethod(methodElt, receiverType, methodType);
+    }
+
     /**Just to transfer the method from super class to package*/
     @Override
     protected boolean isInitializationAnnotation(AnnotationMirror anno) {
@@ -402,17 +408,17 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             super.visitExecutable(t, p);
 
             // Only handle instance methods, not static methods
-            if (!ElementUtils.isStatic(t.getElement())) {
-                if (isMethodOrOverridingMethod(t, "toString()") || isMethodOrOverridingMethod(t, "hashCode()")) {
-                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-                } else if (isMethodOrOverridingMethod(t, "equals(java.lang.Object)")) {
-                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-                    t.getParameterTypes().get(0).addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-                } else if (isMethodOrOverridingMethod(t, "clone()")) {
-                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
-                    t.getReturnType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
-                }
-            }
+//            if (!ElementUtils.isStatic(t.getElement())) {
+//                if (isMethodOrOverridingMethod(t, "toString()") || isMethodOrOverridingMethod(t, "hashCode()")) {
+//                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+//                } else if (isMethodOrOverridingMethod(t, "equals(java.lang.Object)")) {
+//                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+//                    t.getParameterTypes().get(0).addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+//                } else if (isMethodOrOverridingMethod(t, "clone()")) {
+//                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
+//                    t.getReturnType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
+//                }
+//            }
 
             return null;
         }

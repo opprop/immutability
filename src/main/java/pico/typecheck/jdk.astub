@@ -8,27 +8,29 @@ package java.lang;
 @ReceiverDependantMutable
 class Object {
   @ReceiverDependantMutable Object();
-  String toString(@Readonly Object this);
-  int hashCode(@Readonly Object this);
-  boolean equals(@Readonly Object this, @Readonly Object var1);
+  String toString(@ReceiverDependantMutable Object this);
+  int hashCode(@ReceiverDependantMutable Object this);
+  boolean equals(@ReceiverDependantMutable Object this, @ReceiverDependantMutable Object var1);
   @ReceiverDependantMutable Object clone(@ReceiverDependantMutable Object this);
 }
 
 class String {
-  int length(@Readonly String this);
-  char charAt(@Readonly String this, int var1);
-  String substring(@Readonly String this, int var1);
-  String substring(@Readonly String this, int var1, int var2);
-  String toString(@Readonly String this);
+  int length(@Immutable String this);
+  char charAt(@Immutable String this, int var1);
+  String substring(@Immutable String this, int var1);
+  String substring(@Immutable String this, int var1, int var2);
+  String toString(@Immutable String this);
+  boolean equals(@Immutable Object var1);
+  static String valueOf(@Readonly Object var0);
 }
 
 class Throwable {
-  String getMessage(@Readonly Throwable this);
-  String getLocalizedMessage(@Readonly Throwable this);
-  Throwable getCause(@Readonly Throwable this);
-  void printStackTrace(@Readonly Throwable this);
-  void printStackTrace(@Readonly Throwable this, PrintStream var1);
-  void printStackTrace(@Readonly Throwable this, Throwable.PrintStreamOrWriter var1);
+  String getMessage(@ReceiverDependantMutable Throwable this);
+  String getLocalizedMessage(@ReceiverDependantMutable Throwable this);
+  Throwable getCause(@ReceiverDependantMutable Throwable this);
+  void printStackTrace(@ReceiverDependantMutable Throwable this);
+  void printStackTrace(@ReceiverDependantMutable Throwable this, PrintStream var1);
+  void printStackTrace(@ReceiverDependantMutable Throwable this, Throwable.PrintStreamOrWriter var1);
 }
 
 package java.util;
@@ -37,7 +39,7 @@ package java.util;
 class Date {
   @ReceiverDependantMutable Date();
   @ReceiverDependantMutable Date(long var1);
-  int getHours(@Readonly Date this);
+  int getHours(@ReceiverDependantMutable Date this);
 }
 
 @ReceiverDependantMutable
@@ -48,7 +50,18 @@ class ArrayList<E> {
 }
 
 @ReceiverDependantMutable
-class List<E> {}
+interface List<E> {}
+
+@ReceiverDependantMutable
+class AbstractList<E> {
+  @ReceiverDependantMutable AbstractList();
+  void add(@Mutable AbstractList<E> this, int var1, E var2);
+}
+
+@ReceiverDependantMutable
+interface Set<E> {
+  boolean contains(@Readonly Object var1);
+}
 
 @ReceiverDependantMutable
 class HashSet<E> {
@@ -56,6 +69,12 @@ class HashSet<E> {
   @ReceiverDependantMutable HashSet(@Readonly Collection<? extends E> var1);
   boolean contains(@Readonly Object var1);
   boolean remove(@Readonly Object var1);
+}
+
+@ReceiverDependantMutable
+interface Map<K, V> {
+  boolean containsKey(@Readonly Object var1);
+  V get(@Readonly Object var1);
 }
 
 @ReceiverDependantMutable
@@ -69,16 +88,16 @@ class Arrays {
 }
 
 class Stack<E> {
-  E peek(@Readonly Stack<E> this);
-  boolean empty(@Readonly Stack<E> this);
+  E peek(@ReceiverDependantMutable Stack<E> this);
+  boolean empty(@ReceiverDependantMutable Stack<E> this);
 }
 
 class Vector<E> {
-  boolean isEmpty(@Readonly Vector<E> this);
+  boolean isEmpty(@ReceiverDependantMutable Vector<E> this);
 }
 
 package java.io;
 
 class PrintStream {
-  void print(@Readonly PrintStream this, String var1);
+  void print(@ReceiverDependantMutable PrintStream this, String var1);
 }

@@ -34,3 +34,25 @@ illgeal field write, return incompatible, method invocation invalid, argument ty
 e.g. CharArrayList.java:113
 method invocation invalid, argument type incompatible
 sol: allow flexible overriding in mutable and immutble classes
+
+11. override methods from Object class fails because of default @Mutable declared receiver is not super type of @Readonly
+e.g. /home/mier/jsr308/colt/src/cern/colt/matrix/linalg/Smp.java:36
+
+12. CFCrash
+/home/mier/jsr308/colt/src/cern/colt/matrix/impl/TridiagonalDoubleMatrix2D.java
+
+13.
+e.g. ShortArrayList 354  AbstractShortList 160
+
+14. cannot override error because of no raw class
+DoubleListAdapter.java:101: error: [override.param.invalid]
+RawList(viewpointAdaptMethod() has problem I think)
+
+!!! In inference mode, we shouldn't always generate (@1) @2 @2 <: @1 constraint. We need the downcasting to allow more flexbile operation
+on the expression(@2)
+
+mutable doesn't mean always mutating; rdm and immutable are also "readonly" in its scope, but has more specific information
+
+15. @Immutable String cannot be assigned to @Mutable(default) Object
+e.g. Converter 281
+sol: make Object @Readonly(because String and other mutable objects can both be passed into Object), and enable downcasting.

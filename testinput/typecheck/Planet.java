@@ -77,7 +77,7 @@ public class Planet {
     }
 
     @Override
-    public String toString() {
+    public String toString(@Immutable Planet this) {
         // TODO Handle case in which fDateOfDiscovery is not @Immutable
         return "Name: " + fName + " mass: " + fMass + " date of discovery: " + fDateOfDiscovery;
     }
