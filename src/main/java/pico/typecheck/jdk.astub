@@ -24,6 +24,7 @@ class String {
   static String valueOf(@Readonly Object var0);
 }
 
+@ReceiverDependantMutable
 class Throwable {
   String getMessage(@ReceiverDependantMutable Throwable this);
   String getLocalizedMessage(@ReceiverDependantMutable Throwable this);
@@ -87,17 +88,20 @@ class Arrays {
   static <T> @Immutable List<T> asList(T... var0);
 }
 
+@ReceiverDependantMutable
 class Stack<E> {
   E peek(@ReceiverDependantMutable Stack<E> this);
   boolean empty(@ReceiverDependantMutable Stack<E> this);
 }
 
+@ReceiverDependantMutable
 class Vector<E> {
   boolean isEmpty(@ReceiverDependantMutable Vector<E> this);
 }
 
 package java.io;
 
+@ReceiverDependantMutable
 class PrintStream {
   void print(@ReceiverDependantMutable PrintStream this, String var1);
 }
