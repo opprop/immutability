@@ -32,12 +32,12 @@ class ObjectMethods2 {
     @Immutable ObjectMethods2() {}
 
     @Override
-    public int hashCode(@Immutable ObjectMethods2 this) {
+    public int hashCode() {
         return super.hashCode();
     }
 
     @Override
-    public boolean equals(@Immutable ObjectMethods2 this, @Immutable Object o) {
+    public boolean equals(Object o) {
         return super.equals(o);
     }
 
@@ -47,7 +47,7 @@ class ObjectMethods2 {
     }
 
     @Override
-    public String toString(@Immutable ObjectMethods2 this) {
+    public String toString() {
         return super.toString();
     }
 }
@@ -58,12 +58,12 @@ class ObjectMethods3 {
     @ReceiverDependantMutable ObjectMethods3() {}
 
     @Override
-    public int hashCode(@ReceiverDependantMutable ObjectMethods3 this) {
+    public int hashCode() {
         return super.hashCode();
     }
 
     @Override
-    public boolean equals(@ReceiverDependantMutable ObjectMethods3 this, @ReceiverDependantMutable Object o) {
+    public boolean equals(Object o) {
         return super.equals(o);
     }
 
@@ -73,7 +73,7 @@ class ObjectMethods3 {
     }
 
     @Override
-    public String toString(@ReceiverDependantMutable ObjectMethods3 this) {
+    public String toString() {
         return super.toString();
     }
 }

@@ -1,16 +1,27 @@
 1. Typecasting raw iterator's next() method's return to a local variable and pass it as method invocation argument.
 @Readonly cannot be passed to @Mutable parameter(default)
 e.g. /home/mier/jsr308/jdepend/src/jdepend/textui/JDepend.java:241
+A: it's ok because we can only conservatively say type argument is "? extends @Readonly Object". When we read, we can only say that element
+type is @Readonly Object because we don't have any knowledge about what's stored inside. Since we have no knowledge about what's inside,
+we can't also write anything to wildcarded types(like wildcarded lists). So here, we can only know that rhs is @Readonly Object, and that's
+all. So it's OK to have method.invocation.invalid error because this is a conservative behaviour.
 
-2 cast to Number String got type cast warning: @Readonly to @Immutable
-Algebra 655
-
-3. Similar to above, but now used as actual receiver
+2. Similar to above, but now used as actual receiver
 e.g. /home/mier/jsr308/jdepend/src/jdepend/textui/JDepend.java:192
+A: similar to the 1.
+
+3. cast to Number String got type cast warning: @Mutable Object to @Immutable String/Number
+Algebra 655
+A: This is fine: downcasting or even casting between different types are warned but allowed. Static type systems always have this loophole and
+needs runtime enforcement. The only difference is that PICO doesn't have runtime checks.
+We should use inference to solve this issue.
 
 4. Calling instance method from constructor, and get fbc error
 e.g. /home/mier/jsr308/jdepend/src/jdepend/textui/JDepend.java:47
+A: good to print all the methods that're invoked inside constructors(-AprintFbcError). If it's a long list, then we skip the library. If it's
+relatively small, we can manually annotate the libraries using @UnderInitialization.
 
+// Solved: Use @Mutable for java.lang.Object for: 1) consistency 2)lock() and unlock() are allowed to be called by default
 5. Object[] component type used as actual receiver. Invoked method has default @Mutable declared receiver
 e.g. ObjectArrayList 477
 
@@ -20,39 +31,68 @@ e.g. /home/mier/jsr308/colt/src/cern/colt/matrix/objectalgo/Partitioning.java:12
 
 7. Typecasting Object method parameter into a subtype, and call instance method on that subtype. Got method invocation error
 e.g. /home/mier/jsr308/colt/src/cern/jet/stat/quantile/UnknownDoubleQuantileEstimator.java:159
+// Solved: Another way is to still keep @Readonly as the default for java.lang.Object, and in downcasting locations, use @Mutable always
+if no annotation exist(instead of copying @Readonly from the casted expression)
 
 8. toString() has @Readonly declared receiver. clone() has @ReceiverDependantMutable declared receiver. Any call to instance
 method with defaulted @Mutable causes warnings.
 e.g. DoubleQuantileEstimator.java:251
+A: toString(), hashCode(), equals() should have @Readonly receiver, and @Readonly parameter for equals() because they shouldn't change
+the state of the object. If @Mutable, then abstract state fields might be changed via @Mutable reference.
+We need to add back the logic of handling those three methods - i.e. copying @Readonly method receiver into subclass method receiver.
+For clone() method, it makes sense to have @RDM receiver and @RDM return type. But we don't copy that into subclass. Instead, we use
+the standard defaulting way(@Mutable as default qualifier).
 
 9. Too much method invocation noise
 e.g. AbstractBin 56 call to size is not allowed
+A: @Readonly Object is solved by using @Mutable as default for Object;
+method.invocation.invalid caused by @Readonly receiver in toString(), hashCode(), equals() is OK, as those methods should be @Readonly too.
+If they(instance methods) mutate the state of the object, that state must be out of abstract state. We should use inference to propagate
+@Readonly to those invoked instance methods inside toString(), hashCode(), equals().
 
 10. clone() method:
 e.g. DoubleBuffer 63
 illgeal field write, return incompatible, method invocation invalid, argument type incompatible
 e.g. CharArrayList.java:113
 method invocation invalid, argument type incompatible
-sol: allow flexible overriding in mutable and immutble classes
+A: allow flexible overriding in mutable and immutble classes. Viewpoint adapt the super method signature to the bound of the class, and then
+use the standard method overriding rules to check against that adapted method signature.
 
 11. override methods from Object class fails because of default @Mutable declared receiver is not super type of @Readonly
 e.g. /home/mier/jsr308/colt/src/cern/colt/matrix/linalg/Smp.java:36
+A: Use special handling for those three methods: toString(), hashCode(), equals() (for equals(), also copy @Readonly to its parameter).
 
 12. CFCrash
 /home/mier/jsr308/colt/src/cern/colt/matrix/impl/TridiagonalDoubleMatrix2D.java
+Need to investigate
 
-13.
+13. Return type is @Readonly Object, and @Readonly propagates via type casting and caused method invocation invalid error.
 e.g. ShortArrayList 354  AbstractShortList 160
+A: solved by using @Mutable as the default for java.lang.Object
 
 14. cannot override error because of no raw class
 DoubleListAdapter.java:101: error: [override.param.invalid]
 RawList(viewpointAdaptMethod() has problem I think)
-
-!!! In inference mode, we shouldn't always generate (@1) @2 @2 <: @1 constraint. We need the downcasting to allow more flexbile operation
-on the expression(@2)
-
-mutable doesn't mean always mutating; rdm and immutable are also "readonly" in its scope, but has more specific information
+DoubleMatrix 2349 Raw Comparator
+A: there is bug in viewpoint adapter - wildcard gets lost
 
 15. @Immutable String cannot be assigned to @Mutable(default) Object
 e.g. Converter 281
-sol: make Object @Readonly(because String and other mutable objects can both be passed into Object), and enable downcasting.
+sol: Use inference to insert Readonly to Object parameter(because String and other mutable objects can both be passed into Object), and
+enable downcasting.
+
+Some Gotchas:
+!!! In inference mode, we shouldn't always generate (@1) @2 @2 <: @1 constraint. We need the downcasting to allow more flexbile operation
+on the expression(@2)
+
+mutable doesn't mean always mutating, but may leak the permission to let object mutated;
+rdm and immutable are also "readonly" in its scope, but has more specific information
+
+Analyzed Libraries:
+colt
+exp4j
+dyn4j
+jablas
+ejml(too large)
+
+Only use abstract state fields in hashCode(), equals(), otherwise warn

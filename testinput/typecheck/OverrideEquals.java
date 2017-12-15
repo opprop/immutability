@@ -11,7 +11,7 @@ public class OverrideEquals extends A{
     void foo(@Readonly Object o){}
 
     @Override
-    public boolean equals(@Mutable Object o) {
+    public boolean equals(Object o) {
         return super.equals(o);
     }
 

@@ -8,9 +8,9 @@ package java.lang;
 @ReceiverDependantMutable
 class Object {
   @ReceiverDependantMutable Object();
-  String toString(@ReceiverDependantMutable Object this);
-  int hashCode(@ReceiverDependantMutable Object this);
-  boolean equals(@ReceiverDependantMutable Object this, @ReceiverDependantMutable Object var1);
+  String toString(@Readonly Object this);
+  int hashCode(@Readonly Object this);
+  boolean equals(@Readonly Object this, @Readonly Object var1);
   @ReceiverDependantMutable Object clone(@ReceiverDependantMutable Object this);
 }
 
@@ -22,6 +22,7 @@ class String {
   String toString(@Immutable String this);
   boolean equals(@Immutable Object var1);
   static String valueOf(@Readonly Object var0);
+  static String format(String var0, @Readonly Object... var1);
 }
 
 @ReceiverDependantMutable
@@ -33,6 +34,9 @@ class Throwable {
   void printStackTrace(@ReceiverDependantMutable Throwable this, PrintStream var1);
   void printStackTrace(@ReceiverDependantMutable Throwable this, Throwable.PrintStreamOrWriter var1);
 }
+
+@Immutable
+interface CharSequence {}
 
 package java.util;
 
@@ -104,4 +108,10 @@ package java.io;
 @ReceiverDependantMutable
 class PrintStream {
   void print(@ReceiverDependantMutable PrintStream this, String var1);
+  PrintStream printf(@ReceiverDependantMutable PrintStream this, String var1, @Readonly Object... var2);
+}
+
+@ReceiverDependantMutable
+class PrintWriter {
+  PrintWriter printf(@ReceiverDependantMutable PrintWriter this, String var1, @Readonly Object... var2);
 }

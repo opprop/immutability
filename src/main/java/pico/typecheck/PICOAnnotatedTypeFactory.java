@@ -73,6 +73,8 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     public final AnnotationMirror READONLY, MUTABLE, POLYMUTABLE
     , RECEIVERDEPENDANTMUTABLE, SUBSTITUTABLEPOLYMUTABLE, IMMUTABLE, BOTTOM, COMMITED;
 
+    boolean enableFlow = true;
+
     public PICOAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker, true);
         READONLY = AnnotationBuilder.fromClass(elements, Readonly.class);
@@ -257,6 +259,35 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         return result;
     }
 
+    @Override
+    protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
+        assert root != null
+                : "GenericAnnotatedTypeFactory.addComputedTypeAnnotations: "
+                + " root needs to be set when used on trees; factory: "
+                + this.getClass();
+
+        treeAnnotator.visit(tree, type);
+        typeAnnotator.visit(type, null);
+        defaults.annotate(tree, type);
+
+        // Only different from super is: there is a enableFlow to enable/disable flow sensitive refinement
+        if (enableFlow && iUseFlow) {
+            PICOValue as = getInferredValueFor(tree);
+
+            if (as != null) {
+                applyInferredAnnotations(type, as);
+            }
+        }
+    }
+
+    public AnnotatedTypeMirror getReceiverTypeWithNoFlowRefinement(ExpressionTree expression) {
+        boolean oldEnableFlow = enableFlow;
+        enableFlow = false;
+        AnnotatedTypeMirror result = super.getReceiverType(expression);
+        enableFlow = oldEnableFlow;
+        return result;
+    }
+
     /**Handles invoking static methods with polymutable on its declaration*/
     @Override
     public Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
@@ -408,17 +439,19 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             super.visitExecutable(t, p);
 
             // Only handle instance methods, not static methods
-//            if (!ElementUtils.isStatic(t.getElement())) {
-//                if (isMethodOrOverridingMethod(t, "toString()") || isMethodOrOverridingMethod(t, "hashCode()")) {
-//                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-//                } else if (isMethodOrOverridingMethod(t, "equals(java.lang.Object)")) {
-//                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-//                    t.getParameterTypes().get(0).addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+            if (!ElementUtils.isStatic(t.getElement())) {
+                if (isMethodOrOverridingMethod(t, "toString()") || isMethodOrOverridingMethod(t, "hashCode()")) {
+                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+                } else if (isMethodOrOverridingMethod(t, "equals(java.lang.Object)")) {
+                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+                    t.getParameterTypes().get(0).addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+                    // Don't specially handle clone(), just use standard defaulting way for instance methods
 //                } else if (isMethodOrOverridingMethod(t, "clone()")) {
 //                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
 //                    t.getReturnType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
 //                }
-//            }
+                }
+            }
 
             return null;
         }

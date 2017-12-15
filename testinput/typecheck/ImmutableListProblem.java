@@ -3,6 +3,7 @@ import java.util.List;
 
 import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import qual.Immutable;
+import qual.Readonly;
 
 import java.util.ArrayList;
 
@@ -42,5 +43,16 @@ public class ImmutableListProblem {
         // Third way is to create a local mutable list, and wrap it with the immutable list but has the same
         // content as the mutable list
         list = new @Immutable ArrayList<String>(localList);
+    }
+
+    @Immutable List<String> createImmutableList(@Readonly ImmutableListProblem this) {
+        List<String> localList = new ArrayList<String>();
+        localList.add("hi");
+        localList.add("how");
+        localList.add("are");
+        localList.add("you");
+        // After initializing, forcably cast @Mutable list into @Immutable as long as no @Mutable aliases exist
+        // :: warning: (cast.unsafe)
+        return (@Immutable List<String>) localList;
     }
 }

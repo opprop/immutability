@@ -27,6 +27,7 @@ import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import qual.Assignable;
+import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
@@ -264,6 +265,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         // getAnnotatedTypeLhs() to also use flow sensitive refinement, but came across with "private access" problem
         // on field "computingAnnotatedTypeMirrorOfLHS"
         AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
+        AnnotatedTypeMirror receiverTypeWithNoFlowRefinement = atypeFactory.getReceiverTypeWithNoFlowRefinement(variable);
         // Cannot use receiverTree = TreeUtils.getReceiverTree(variable) to determine if it's
         // field assignment or not. Because for field assignment with implicit "this", receiverTree
         // is null but receiverType is non-null. We still need to check this case.
@@ -271,7 +273,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return super.visitAssignment(node, p);
         }
         // If receiver != null, it's field assignment
-        if (!allowWrite(receiverType, node)) {
+        if (!allowWrite(receiverType, receiverTypeWithNoFlowRefinement, node)) {
             reportFieldOrArrayWriteError(node, variable, receiverType);
         }
         return super.visitAssignment(node, p);
@@ -289,10 +291,13 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         }
     }
 
-    private boolean allowWrite(AnnotatedTypeMirror receiverType, AssignmentTree node) {
+    private boolean allowWrite(AnnotatedTypeMirror receiverType, AnnotatedTypeMirror receiverTypeWithNoFlowRefinement, AssignmentTree node) {
         // One pico side, if only receiver is mutable, we allow assigning/reassigning. Because if the field
         // is declared as final, Java compiler will catch that, and we couldn't have reached this point
         if (receiverType.hasAnnotation(Mutable.class)) {
+            return true;
+        } else if (receiverType.hasAnnotation(Bottom.class) && receiverTypeWithNoFlowRefinement.hasAnnotation(Mutable.class)) {
+            // This works on testcase BottomArrayWrite, but still has some errors for real library - jblas. Need to investigate that
             return true;
         } else if (isInitializingReceiverDependantMutableOrImmutableObject(receiverType)) {
             return true;
