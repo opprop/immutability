@@ -1,0 +1,11 @@
+package qual:
+annotation @A:
+
+package bug:
+class Bug:
+
+insert-annotation Class.typeParameter 0: @qual.A
+insert-annotation Class.typeParameter 0, TypeParameter.bound 0: @qual.A
+
+method <init>()V:
+insert-annotation Method.type: @qual.A
