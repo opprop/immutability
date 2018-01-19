@@ -33,4 +33,8 @@ public class Arrays{
     void test6(double @Readonly [] a1, double @Readonly [] a2) {
         java.util.Arrays.equals(a1, a2);
     }
+
+    void test7() {
+        @Readonly Object[] f = new String @Immutable []{"HELLO"};
+    }
 }
