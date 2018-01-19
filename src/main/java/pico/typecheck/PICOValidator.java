@@ -48,38 +48,18 @@ public class PICOValidator extends BaseTypeValidator {
     }
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
-        if (isInStaticContext() && type.hasAnnotation(ReceiverDependantMutable.class)) {
+        if (TreeUtils.isTreeInStaticScope(visitor.getCurrentPath())
+                && !"".contentEquals(TreeUtils.enclosingClass(visitor.getCurrentPath()).getSimpleName())// Exclude @RDM usages in anonymous classes
+                && type.hasAnnotation(ReceiverDependantMutable.class)) {
             reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
         }
-    }
-
-    /**Decides if the visitor is in static context right now*/
-    private boolean isInStaticContext(){
-        boolean isStatic = false;
-        MethodTree meth = TreeUtils.enclosingMethod(visitor.getCurrentPath());
-        if(meth != null){
-            ExecutableElement methel = TreeUtils.elementFromDeclaration(meth);
-            isStatic = ElementUtils.isStatic(methel);
-        } else {
-            BlockTree blcktree = TreeUtils.enclosingTopLevelBlock(visitor.getCurrentPath());
-            if (blcktree != null) {
-                isStatic = blcktree.isStatic();
-            } else {
-                VariableTree vartree = TreeUtils.enclosingVariable(visitor.getCurrentPath());
-                if (vartree != null) {
-                    ModifiersTree mt = vartree.getModifiers();
-                    isStatic = mt.getFlags().contains(Modifier.STATIC);
-                }
-            }
-        }
-        return isStatic;
     }
 
     /**Check that implicitly immutable type has immutable or bottom type. Dataflow might refine immtable type to @Bottom,
      * so we accept @Bottom as a valid qualifier for implicitly immutable types*/
     private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
         if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(Immutable.class) && !type.hasAnnotation(Bottom.class)) {
-            reportError(type, tree);
+            reportInvalidAnnotationsOnUse(type, tree);
         }
     }
 
@@ -135,7 +115,7 @@ public class PICOValidator extends BaseTypeValidator {
             }
         }
         if (type.hasAnnotation(Bottom.class)) {
-            reportError(type, tree);
+            reportInvalidAnnotationsOnUse(type, tree);
         }
     }
 
@@ -149,7 +129,7 @@ public class PICOValidator extends BaseTypeValidator {
     @Override
     public Void visitNull(AnnotatedNullType type, Tree tree) {
         if (!type.hasAnnotation(Bottom.class)) {
-            reportError(type, tree);
+            reportInvalidType(type, tree);
         }
         return super.visitNull(type, tree);
     }
