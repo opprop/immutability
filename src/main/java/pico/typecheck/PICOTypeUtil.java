@@ -10,8 +10,10 @@ import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import qual.Immutable;
+import qual.ObjectIdentityMethod;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
@@ -142,5 +144,24 @@ public class PICOTypeUtil {
             boundAnnotsOnSupers.add(getBoundAnnotationOnTypeDeclaration(superitf, atypeFactory));
         }
         return boundAnnotsOnSupers;
+    }
+
+    public static boolean isObjectIdentityMethod(MethodTree node,
+                                                 PICOAnnotatedTypeFactory annotatedTypeFactory) {
+        Element element = TreeUtils.elementFromTree(node);
+        return isObjectIdentityMethod((ExecutableElement) element, annotatedTypeFactory);
+
+    }
+
+    public static boolean isObjectIdentityMethod(ExecutableElement executableElement,
+                                                 PICOAnnotatedTypeFactory annotatedTypeFactory) {
+        return annotatedTypeFactory.isMethodOrOverridingMethod(executableElement, "hashCode()") ||
+                annotatedTypeFactory.isMethodOrOverridingMethod(executableElement, "equals(java.lang.Object)") ||
+                hasObjectIdentityMethodDeclAnnotation(executableElement, annotatedTypeFactory);
+    }
+
+    private static boolean hasObjectIdentityMethodDeclAnnotation(ExecutableElement element,
+                                                                PICOAnnotatedTypeFactory annotatedTypeFactory) {
+        return annotatedTypeFactory.getDeclAnnotation(element, ObjectIdentityMethod.class) != null;
     }
 }

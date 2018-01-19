@@ -245,6 +245,11 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                 break;
             }
         }
+
+        // ObjectIdentityMethod check
+        if (PICOTypeUtil.isObjectIdentityMethod(node, atypeFactory)) {
+            ObjectIdentityMethodEnforcer.check(atypeFactory.getPath(node.getBody()), atypeFactory, checker);
+        }
         return super.visitMethod(node, p);
     }
 
