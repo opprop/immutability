@@ -138,6 +138,21 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         return false;
     }
 
+    // Copied from PICOAnnotatedTypeFactory
+    @Override
+    protected void annotateInheritedFromClass(AnnotatedTypeMirror type, Set<AnnotationMirror> fromClass) {
+        // If interitted from class element is @Mutable or @Immutable, then apply this annotation to the usage type
+        if (fromClass.contains(MUTABLE) || fromClass.contains(IMMUTABLE)) {
+            super.annotateInheritedFromClass(type, fromClass);
+            return;
+        }
+        // If interitted from class element is @ReceiverDependantMutable, then don't apply and wait for @Mutable
+        // (default qualifier in hierarchy to be applied to the usage type). This is to avoid having @ReceiverDependantMutable
+        // on type usages as a default behaviour. By default, @Mutable is better used as the type for usages that
+        // don't have explicit annotation.
+        return;// Don't add annotations from class element
+    }
+
     /**This covers the case when static fields are used*/
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
