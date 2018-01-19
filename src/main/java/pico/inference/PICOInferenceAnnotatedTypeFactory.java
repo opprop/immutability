@@ -9,14 +9,11 @@ import checkers.inference.VariableAnnotator;
 import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.Slot;
-import checkers.inference.model.VariableSlot;
 import com.sun.source.tree.BinaryTree;
-import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
@@ -26,6 +23,8 @@ import org.checkerframework.framework.type.typeannotator.ImplicitsTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
+
+import javax.lang.model.element.AnnotationMirror;
 
 /**
  * Propagates correct constraints on trees and types using TreeAnnotators and TypeAnnotators.
@@ -62,18 +61,29 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
 
     // TODO This will be implemented in higher level, as lots of type systems actually don't need the declaration constraint
     @Override
-    protected VariableAnnotator createVariableAnnotator(BaseAnnotatedTypeFactory realTypeFactory, InferrableChecker realChecker, SlotManager slotManager, ConstraintManager constraintManager) {
-        return new VariableAnnotator(this, realTypeFactory, realChecker, slotManager, constraintManager) {
-            @Override
-            protected void handleClassDeclarationBound(AnnotatedDeclaredType classType) {
-                return;
-            }
+    public VariableAnnotator createVariableAnnotator() {
+        return new PICOVariableAnnotator(this, realTypeFactory, realChecker, slotManager, constraintManager);
+    }
 
-            @Override
-            protected void handleInstantiationConstraint(AnnotatedDeclaredType adt, VariableSlot instantiationSlot, Tree tree) {
-                return;
-            }
-        };
+    private void applyConstant(AnnotatedTypeMirror type, AnnotationMirror am) {
+        SlotManager slotManager = PICOInferenceAnnotatedTypeFactory.this.slotManager;
+        ConstraintManager constraintManager = PICOInferenceAnnotatedTypeFactory.this.constraintManager;
+        // Might be null. It's normal. In typechecking side, we use addMissingAnnotations(). Only if
+        // there is existing annotation in code, then here is non-null. Otherwise, VariableAnnotator
+        // hasn't come into the picture yet, so no VarAnnot exists here, which is normal.
+        Slot shouldBeAppliedTo = slotManager.getVariableSlot(type);
+        ConstantSlot constant = slotManager.createConstantSlot(am);
+        if (shouldBeAppliedTo == null) {
+            // Here, we are adding VarAnnot that represents @Immutable. There won't be solution for this ConstantSlot for this type,
+            // so the inserted-back source code doesn't have explicit annotation @Immutable. But it is not wrong. It makes the code
+            // cleaner by omitting implicit annotations. General principle is that for ConstantSlot, there won't be annotation inserted
+            // back to the original source code, BUT this ConstantSlot(representing @Immutable) will be used for constraint generation
+            // that affects the solutions for other VariableSlots
+            type.addAnnotation(slotManager.getAnnotation(constant));// Insert Constant VarAnnot that represents @Immutable
+            type.addAnnotation(am);// Insert real @Immutable. This should be removed if INF-FR only uses VarAnnot
+        } else {
+            constraintManager.addEqualityConstraint(shouldBeAppliedTo, constant);
+        }
     }
 
     class PICOInferencePropagationTreeAnnotator extends PropagationTreeAnnotator {
@@ -99,24 +109,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
          to always have immutable annotation. If this happens, we manually add immutable to type. */
         private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
             if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
-                SlotManager slotManager = PICOInferenceAnnotatedTypeFactory.this.slotManager;
-                ConstraintManager constraintManager = PICOInferenceAnnotatedTypeFactory.this.constraintManager;
-                // Might be null. It's normal. In typechecking side, we use addMissingAnnotations(). Only if
-                // there is existing annotation in code, then here is non-null. Otherwise, VariableAnnotator
-                // hasn't come into the picture yet, so no VarAnnot exists here, which is normal.
-                Slot shouldBeInferredImmutableVar = slotManager.getVariableSlot(type);
-                ConstantSlot immutableConstant = slotManager.createConstantSlot(PICOInferenceChecker.IMMUTABLE);
-                if (shouldBeInferredImmutableVar == null) {
-                    // Here, we are adding VarAnnot that represents @Immutable. There won't be solution for this ConstantSlot for this type,
-                    // so the inserted-back source code doesn't have explicit annotation @Immutable. But it is not wrong. It makes the code
-                    // cleaner by omitting implicit annotations. General principle is that for ConstantSlot, there won't be annotation inserted
-                    // back to the original source code, BUT this ConstantSlot(representing @Immutable) will be used for constraint generation
-                    // that affects the solutions for other VariableSlots
-                    type.addAnnotation(slotManager.getAnnotation(immutableConstant));// Insert Constant VarAnnot that represents @Immutable
-                    type.addAnnotation(PICOInferenceChecker.IMMUTABLE);// Insert real @Immutable. This should be removed if INF-FR only uses VarAnnot
-                } else {
-                    constraintManager.addEqualityConstraint(shouldBeInferredImmutableVar, immutableConstant);
-                }
+                applyConstant(type, PICOInferenceChecker.IMMUTABLE);
             }
         }
     }

@@ -15,8 +15,8 @@ import org.sat4j.core.VecInt;
  */
 public class PICOFormatTranslator extends MaxSatFormatTranslator{
 
-    public PICOFormatTranslator(Lattice lattice, ConstraintVerifier verifier) {
-        super(lattice, verifier);
+    public PICOFormatTranslator(Lattice lattice) {
+        super(lattice);
 
     }
 

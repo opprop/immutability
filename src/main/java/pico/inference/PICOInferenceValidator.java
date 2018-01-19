@@ -40,12 +40,12 @@ public class PICOInferenceValidator extends InferenceValidator{
         PICOInferenceChecker picoInferenceChecker = picoInferenceVisitor.realChecker;
         checkStaticReceiverDependantMutableError(type, tree, picoInferenceVisitor, picoInferenceChecker);
         checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor, picoInferenceChecker);
-        checkInvalidBottom(type, tree, picoInferenceVisitor, picoInferenceChecker);
+        //checkInvalidBottom(type, tree, picoInferenceVisitor, picoInferenceChecker);
         return super.visitDeclared(type, tree);
     }
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree, PICOInferenceVisitor picoInferenceVisitor, PICOInferenceChecker picoInferenceChecker) {
-        if (isInStaticContext()) {
+        if (TreeUtils.isTreeInStaticScope(visitor.getCurrentPath())) {
             if (picoInferenceVisitor.infer) {
                 picoInferenceVisitor.mainIsNot(type, picoInferenceChecker.RECEIVERDEPENDANTMUTABLE, "static.receiverdependantmutable.forbidden", tree);
             } else {
@@ -98,7 +98,7 @@ public class PICOInferenceValidator extends InferenceValidator{
         PICOInferenceChecker picoInferenceChecker = picoInferenceVisitor.realChecker;
         checkStaticReceiverDependantMutableError(type, tree, picoInferenceVisitor, picoInferenceChecker);
         checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor, picoInferenceChecker);
-        checkInvalidBottom(type, tree, picoInferenceVisitor, picoInferenceChecker);
+        //checkInvalidBottom(type, tree, picoInferenceVisitor, picoInferenceChecker);
         return super.visitArray(type, tree);
     }
 
@@ -108,41 +108,5 @@ public class PICOInferenceValidator extends InferenceValidator{
         PICOInferenceChecker picoInferenceChecker = picoInferenceVisitor.realChecker;
         checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor, picoInferenceChecker);
         return super.visitPrimitive(type, tree);
-    }
-
-    @Override
-    public Void visitNull(AnnotatedNullType type, Tree tree) {
-        PICOInferenceVisitor picoInferenceVisitor = (PICOInferenceVisitor) visitor;
-        PICOInferenceChecker picoInferenceChecker = picoInferenceVisitor.realChecker;
-        if (picoInferenceVisitor.infer) {
-            picoInferenceVisitor.mainIs(type, picoInferenceChecker.BOTTOM, "type.invalid", tree);
-        } else {
-            if (!type.hasAnnotation(picoInferenceChecker.BOTTOM)) {
-                reportError(type, tree);
-            }
-        }
-        return super.visitNull(type, tree);
-    }
-
-    /**Decides if the visitor is in static context right now*/
-    private boolean isInStaticContext(){
-        boolean isStatic = false;
-        MethodTree meth = TreeUtils.enclosingMethod(visitor.getCurrentPath());
-        if(meth != null){
-            ExecutableElement methel = TreeUtils.elementFromDeclaration(meth);
-            isStatic = ElementUtils.isStatic(methel);
-        } else {
-            BlockTree blcktree = TreeUtils.enclosingTopLevelBlock(visitor.getCurrentPath());
-            if (blcktree != null) {
-                isStatic = blcktree.isStatic();
-            } else {
-                VariableTree vartree = TreeUtils.enclosingVariable(visitor.getCurrentPath());
-                if (vartree != null) {
-                    ModifiersTree mt = vartree.getModifiers();
-                    isStatic = mt.getFlags().contains(Modifier.STATIC);
-                }
-            }
-        }
-        return isStatic;
     }
 }
