@@ -21,7 +21,8 @@ done
 if [[ "$1" = "-t" ]] ; then
     echo "Running typechecking"
     CHECKER="pico.typecheck.PICOChecker"
-    running_cmd="python $DLJC/dljc -t checker --checker "${CHECKER}" --cfArgs=\"-AprintErrorStack -AprintFbcErrors\" --log_to_stderr -- $build_cmd"
+    #checker tool doesn't support --cfArgs yet, so the arguments don't have effect right now
+    running_cmd="python $DLJC/dljc -t checker --checker "${CHECKER}" --cfArgs=\"-AprintErrorStack,-AprintFbcErrors\" --log_to_stderr -- $build_cmd"
 elif [[ "$1" = "-i" ]] ; then
     echo "Running inference"
     CHECKER="pico.inference.PICOInferenceChecker"

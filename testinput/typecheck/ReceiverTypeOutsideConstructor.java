@@ -23,13 +23,13 @@ class A {
         d = new @ReceiverDependantMutable Date();
     }
 
-    // :: error: (constructor.return.incompatible) :: error: (type.invalid)
+    // :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
     @Mutable A(Object o1, Object o2) {
         d = new @Mutable Date();
     }
 }
 
-// :: error: (super.constructor.invocation.incompatible) :: error: (constructor.return.incompatible) :: error: (type.invalid)
+// :: error: (super.constructor.invocation.incompatible) :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
 @Immutable class AIMS extends A {}
 
 // :: error: (subclass.bound.incompatible)
@@ -67,7 +67,7 @@ class B {
     }
 }
 
-// :: error: (super.constructor.invocation.incompatible) :: error: (constructor.return.incompatible) :: error: (type.invalid)
+// :: error: (super.constructor.invocation.incompatible) :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
 @Immutable class BIMS extends B {}
 
 // :: error: (super.constructor.invocation.incompatible)
@@ -90,7 +90,7 @@ class C {
         d = new @Mutable Date();
     }
 
-    // :: error: (constructor.return.incompatible) :: error: (type.invalid)
+    // :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
     @Immutable C() {
         d = new @Immutable Date();
     }
@@ -130,7 +130,7 @@ interface E {
     void foo(@Immutable E this);
 }
 
-// :: error: (constructor.return.incompatible) :: error: (type.invalid)
+// :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
 @Immutable public class ReceiverTypeOutsideConstructor implements E{
     @Override
     public void foo(@Immutable ReceiverTypeOutsideConstructor this) {

@@ -29,4 +29,8 @@ public class Arrays{
         // :: error: (assignment.type.incompatible)
         @Mutable Object @Readonly [] l = p;
     }
+
+    void test6(double @Readonly [] a1, double @Readonly [] a2) {
+        java.util.Arrays.equals(a1, a2);
+    }
 }

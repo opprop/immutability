@@ -37,7 +37,7 @@ public class MutableConstructor {
         // The same argument as the one in ImmutableConstructor
         // :: error: (constructor.invocation.invalid)
         new @ReceiverDependantMutable MutableConstructor(mo, po, io);
-        // :: error: (type.invalid)
+        // :: error: (type.invalid.annotations.on.use)
         new @Immutable MutableConstructor(mo, io, io);
     }
 }

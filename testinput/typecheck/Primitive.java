@@ -13,11 +13,11 @@ public class Primitive {
     // If you want to exclude primitive(including boxed primitive) and String from
     // abstract state, use @Readonly to do this, but not @Mutable, because they can't
     // be mutated conceptually.
-    // :: error: (type.invalid)
+    // :: error: (type.invalid.annotations.on.use)
     @Readonly int implicitOverridenInt;
-    // :: error: (type.invalid)
+    // :: error: (type.invalid.annotations.on.use)
     @Mutable int invalidInt;
-    // :: error: (type.invalid)
+    // :: error: (type.invalid.annotations.on.use)
     @ReceiverDependantMutable int invalidInt2;
 
     // :: error: (initialization.fields.uninitialized)

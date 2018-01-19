@@ -11,7 +11,7 @@ public class CopyToCast {
         String s1 = (@Immutable String) o;
         // :: warning: (cast.unsafe)
         String s2 = (String) o;
-        // :: error: (type.invalid)
+        // :: error: (type.invalid.annotations.on.use)
         String s3 = (@Mutable String) o;
     }
 

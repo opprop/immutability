@@ -36,7 +36,7 @@ public class ImmutableConstructor {
                            @ReceiverDependantMutable Object po, @Immutable Object io) {
         new @Immutable ImmutableConstructor(io, io);
 
-        // :: error: (type.invalid)
+        // :: error: (type.invalid.annotations.on.use)
         new @Mutable ImmutableConstructor(mo, io);
 
         // This no longer is error now(?). Because instantiating @Immutable constructor

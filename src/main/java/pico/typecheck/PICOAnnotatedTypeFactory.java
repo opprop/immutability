@@ -2,6 +2,7 @@ package pico.typecheck;
 
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
@@ -49,9 +50,11 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -72,8 +75,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     public final AnnotationMirror READONLY, MUTABLE, POLYMUTABLE
     , RECEIVERDEPENDANTMUTABLE, SUBSTITUTABLEPOLYMUTABLE, IMMUTABLE, BOTTOM, COMMITED;
-
-    boolean enableFlow = true;
 
     public PICOAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker, true);
@@ -259,35 +260,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         return result;
     }
 
-    @Override
-    protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
-        assert root != null
-                : "GenericAnnotatedTypeFactory.addComputedTypeAnnotations: "
-                + " root needs to be set when used on trees; factory: "
-                + this.getClass();
-
-        treeAnnotator.visit(tree, type);
-        typeAnnotator.visit(type, null);
-        defaults.annotate(tree, type);
-
-        // Only different from super is: there is a enableFlow to enable/disable flow sensitive refinement
-        if (enableFlow && iUseFlow) {
-            PICOValue as = getInferredValueFor(tree);
-
-            if (as != null) {
-                applyInferredAnnotations(type, as);
-            }
-        }
-    }
-
-    public AnnotatedTypeMirror getReceiverTypeWithNoFlowRefinement(ExpressionTree expression) {
-        boolean oldEnableFlow = enableFlow;
-        enableFlow = false;
-        AnnotatedTypeMirror result = super.getReceiverType(expression);
-        enableFlow = oldEnableFlow;
-        return result;
-    }
-
     /**Handles invoking static methods with polymutable on its declaration*/
     @Override
     public Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
@@ -425,6 +397,27 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         }
     }
 
+    /**Helper method to determine a method using method name*/
+    public boolean isMethodOrOverridingMethod(AnnotatedExecutableType methodType, String methodName) {
+        return isMethodOrOverridingMethod(methodType.getElement(), methodName);
+    }
+
+    public boolean isMethodOrOverridingMethod(ExecutableElement executableElement, String methodName) {
+        // Check if it is the target method
+        if (executableElement.toString().contentEquals(methodName)) return true;
+        // Check if it is overriding the target method
+        // Because AnnotatedTypes.overriddenMethods returns all the methods overriden in the class hierarchy, we need to
+        // iterate over the set to check if it's overriding corresponding methods specifically in java.lang.Object class
+        Iterator<Entry<AnnotatedDeclaredType, ExecutableElement>> overriddenMethods
+                = AnnotatedTypes.overriddenMethods(elements, this, executableElement).entrySet().iterator();
+        while (overriddenMethods.hasNext()) {
+            if (overriddenMethods.next().getValue().toString().contentEquals(methodName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**Type Annotators*/
     class PICOTypeAnnotator extends TypeAnnotator {
 
@@ -445,32 +438,10 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                 } else if (isMethodOrOverridingMethod(t, "equals(java.lang.Object)")) {
                     t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
                     t.getParameterTypes().get(0).addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-                    // Don't specially handle clone(), just use standard defaulting way for instance methods
-//                } else if (isMethodOrOverridingMethod(t, "clone()")) {
-//                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
-//                    t.getReturnType().addMissingAnnotations(new HashSet<>(Arrays.asList(RECEIVERDEPENDANTMUTABLE)));
-//                }
                 }
             }
 
             return null;
-        }
-
-        /**Helper method to determine a method using method name*/
-        private boolean isMethodOrOverridingMethod(AnnotatedExecutableType methodType, String methodName) {
-            // Check if it is the target method
-            if (methodType.getElement().toString().contentEquals(methodName)) return true;
-            // Check if it is overriding the target method
-            // Because AnnotatedTypes.overriddenMethods returns all the methods overriden in the class hierarchy, we need to
-            // iterate over the set to check if it's overriding corresponding methods specifically in java.lang.Object class
-            Iterator<Entry<AnnotatedDeclaredType, ExecutableElement>> overriddenMethods
-                    = AnnotatedTypes.overriddenMethods(elements, typeFactory, methodType.getElement()).entrySet().iterator();
-            while (overriddenMethods.hasNext()) {
-                if (overriddenMethods.next().getValue().toString().contentEquals(methodName)) {
-                    return true;
-                }
-            }
-            return false;
         }
 
     }

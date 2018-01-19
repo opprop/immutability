@@ -8,7 +8,7 @@ import qual.Readonly;
 
 @Immutable
 class ImmutableClass1{
-    // :: error: (constructor.return.incompatible) :: error: (type.invalid)
+    // :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
     @Mutable ImmutableClass1(Object o) {}
     // :: error: (constructor.return.incompatible)
     @ReceiverDependantMutable ImmutableClass1() {}
@@ -22,7 +22,7 @@ class ImmutableClass1{
 
     void method4(@PolyMutable ImmutableClass1 this) {}
 
-    // :: error: (method.receiver.incompatible) :: error: (type.invalid)
+    // :: error: (method.receiver.incompatible) :: error: (type.invalid.annotations.on.use)
     void method5(@Mutable ImmutableClass1 this) {}
 
     // Note: the reason why there is no "type.invalid" error

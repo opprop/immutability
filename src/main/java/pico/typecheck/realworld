@@ -89,10 +89,156 @@ mutable doesn't mean always mutating, but may leak the permission to let object 
 rdm and immutable are also "readonly" in its scope, but has more specific information
 
 Analyzed Libraries:
-colt
-exp4j
-dyn4j
-jablas
-ejml(too large)
+colt : Used "-encoding", "cp1252" in typecheck mode
+exp4j : no errors
+dyn4j : QualifierPolymorphism line 206. Has exception that is framework level:
+error: AsSuperVisitor: type is not an erased subtype of supertype.
+  type: @Initialized @Mutable ClosestEdgeToVertexSearchCriteria
+  superType: @Initialized @Mutable SweepLineEdge
+  Compilation unit: /home/mier/jsr308/dyn4j/src/org/dyn4j/geometry/decompose/SweepLine.java
+1 error
 
+jblas: 26 expected errors
+ejml(too large)
+nd4j
+ode4j: running . Found: DxRagdoll caused infinite loop
+ojAlgo
+
+2017-12-21
 Only use abstract state fields in hashCode(), equals(), otherwise warn
+Q: What if instance methods are called that access non-AS fields. How to track which fields are accessed?
+A: @OnlyDependantASField(method annotation like @Pure, @Override): call another method with @OnlyDepdantASField or only access AS fields
+Update: done. Added a new annotation @ObjectIdentityMethod to enforce shallow enforcement: f, this.f, foo(), this.foo(), super
+.foo() are checked: in the first two cases, f must be within the abstract state; for 3-5, foo() must be declared with
+@OnlyDependantASField, too. Also static field access is forbidden inside @OnlyDependantASField method, as static fields are
+not part of the abstract state of the current receiver object.
+
+Why having unknown initialization error?
+Test, LocalVariableUsedAsArgument.java
+A: File an issue LocalVariableUsedAsArgument. General problem for dataflow(already issued:
+https://github.com/typetools/checker-framework/issues/1727)
+For initialization specific, primitives should always be @Initialized(this may not matter that much, I think)
+
+How to get the assignment context of a method invocation nicely?
+catch(AssertionError)
+https://github.com/typetools/checker-framework/blame/master/framework/src/org/checkerframework/framework/util/typeinference/TypeArgInferenceUtil.java
+Try pulling from typetools, removing the several lines in assignedTo() and see if that helps resolves the problem.
+Maybe remove this:
+https://github.com/typetools/checker-framework/blame/master/framework/src/org/checkerframework/framework/util/typeinference/TypeArgInferenceUtil.java#L147
+TODO: This still needs some investigation.
+
+Inference of bound annotation
+ImpliesConstraint: it's time to introduce this. We don't have a declarative way to specify this kind of constraints:
+e.g. If bound is @Mutable(not known), please infer method declared receiver not to be @Immutable
+Difference between existing Constraint and Constraints in ImpliesConstraints: use createXXXConstraint to get the reference, and cal
+addImpliesConstraint to add the composite constraint into ConstraintManager.
+TODO: Adding ImpliesConstraint seems helpful. Will add that.
+Update: pushed to PR: https://github.com/opprop/checker-framework-inference/pull/135
+
+Discuss Constraint hierarchy
+Don't need CompositeConstraint, becasue we already don't have a API in ConstraintManager that accepts a parameter of type XXXConstraint,
+so adding add(CompositeConstraint) doesn't really help.
+
+TODO: Anonymous class initialization problem(bound):
+Add helper method(maybe make it directly as standard behavior if it applies to every type system) to get the of annonymous class, which
+should be the bound annotation of its super class(need to see if this really makes sense)
+NewAnnonymousClass
+
+2018-01-05
+TODO: StackOverflowException on PICOStore(run PICO on PICO source file)
+
+TODO: explain unsatisfiable
+Update: code reviewing: https://github.com/opprop/checker-framework-inference/pull/128
+
+Inference Result:
+exp4j: successfully inferred results
+dyn4j: SEVERE: Non-OK return code from javac! Quitting. Result code is: ERROR
+       Jan 07, 2018 7:19:17 PM checkers.inference.InferenceMain$DefaultResultHandler handleCompilerResult
+       SEVERE: error: AsSuperVisitor: type is not an erased subtype of supertype.
+         type: @VarAnnot(145) @Readonly ClosestEdgeToVertexSearchCriteria
+         superType: @VarAnnot(144) @Readonly SweepLineEdge
+ojAlgo: too many errors. Given up.
+jblas: inference failed and triggerred explanation
+
+AFHbackdoor:
+TODO
+For projects like this, if this project uses third party APIs, we must have some stub files for those APIs, because
+@Immutable primitives could cause inference fail because by default @Mutable is the default for every bytecode. At least
+we should have a bare minimum stub file for classes&methods that are referenced from this project. Otherwise, the project
+analysis can't continue. Hopefully, this won't take too much time.
+Example: package org.hibernate;
+         class Session {
+           Object get(@Readonly Class clazz, @Readonly Serializable id);
+         }
+If we don't have this stub, then everything is by default @Mutable, thus 2 can't be passed into Session#get() method and
+caused inference to give no solution and triggers explanation.
+
+
+bdoorClient:
+if generate inequality constraint from @Bottom in validator, some instance method receiver were still inferred
+@Bottom. This is incorrect. Should work on this.
+Find a way to forbid explicit use of @Bottom but permit internal use
+Update: solved by overriding VariableAnnotator#createVariable() to also generate inequality constraint between ordinary
+VariableSlot and @Bottom. And change VariableAnnotator to only call createVariable() method to apply for a new Variable-
+Slot instead of calling slotManager(changed 1st line of VariableAnnotator#addImpliedPrimaryVariable())
+
+Unable to insert constructor return type is still a problem now. Need to fix this.
+Update: this is fixed by PR: https://github.com/opprop/checker-framework-inference/pull/129. This triggers a bug in
+annotation-tools: https://github.com/typetools/annotation-tools/issues/154
+
+
+Investigate Request Packet for possible constructor invocation error
+Update: Used FieldAssignCase2_1 to reproduce the problem and the generated constraints look no problem. But to be more
+sure, investigate it more!
+Update2: there is no problem in generating the constraints when invoking super constructor. Instead, it is the problem
+in annotation-tools: it doesn't insert annotations back to source code. CFI generates VariableSlots correctly, generates
+Constraints correctly and the inferred result is also correct. Issue link is here:
+https://github.com/opprop/checker-framework-inference/issues/131
+TODO Constructor return type fix is also in local. Need to push to remote.
+Update: pushed to remote already. PR: https://github.com/opprop/checker-framework-inference/pull/129
+
+Six projects in corpus folder are really good benchmark projects that are not too big but still big enough to discover
+problems in inference. Should make these six project pass with no errors first. This is the most important thing to do
+right now.
+Update: Ran old version of PICOInference on six project, got good results on two projects - ECC-RSA-Backdoor and JBS.
+Inferred results look good.
+TODO Update PICOInfer to reflect class bound annotation
+
+InfrenceFailureReason:
+dataflow calls isSubtype() between two ConstantSlots that are not subtype, and it generates SubtypeConstraint and since
+we early fail inference, we get error and abort the inference process. Changed this by checking the subtype relation
+really holds or not and simply return true/false without generating SubtypeConstraint.
+TODO Might still have other places that have similar errors. For example, always generate EqualityConstraint without
+verifying if two ConstantSlot really satisfy relationship, i.e. EqualityConstraint
+
+http://errorprone.info/bugpattern/Immutable
+Restul: ALB cannot be immutable class just because it extends from ArrayList and there is elementData field which is not
+final. This is a very strict schema. But in PICO, ALB can still be immutable class, as along as it passes PICOChecker:
+elementData won't be reassigned; elementData cannot be assigned to new element; cannot call mutating methods on ALB
+instance, so ALB is effectively immutable.
+ErrorProne doesn't allow an immutable class to have array typed field, because it treats every array as mutable.
+Example:
+
+@Immutable
+public class Test {
+    final Object[] f;// This is not allowed in error prone, because there is no way to annotated array to be @Immutable
+    // in error prone
+    Test() {
+        f = new String []{"HELLO"};
+    }
+}
+
+
+But pico allows this:
+@Immutable
+public class Test {
+    final @Readonly Object[] f;
+    @Immutable Test() {
+        f = new String @Immutable []{"HELLO"};
+    }
+
+    void mutate(@Readonly Test this) {
+        f[0] = 2;
+    }
+}
+
