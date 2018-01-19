@@ -3,15 +3,18 @@ import qual.Immutable;
 // https://github.com/typetools/annotation-tools/issues/144
 // TODO https://github.com/opprop/checker-framework-inference/issues/109
 public class ConstructorInvocationInSubclassConstructor {
-    @Immutable ConstructorInvocationInSubclassConstructor() {
+    Object f;
 
+    @Immutable ConstructorInvocationInSubclassConstructor(Object f) {
+        // :: fixable-error: (assignment.type.incompatible)
+        this.f = f;
     }
 }
 
 class SubClass extends ConstructorInvocationInSubclassConstructor {
-    SubClass() {
+    SubClass(Object p) {
         // Handled by PICOInferenceVisito##checkMethodInvocability
-        // :: fixable-error: (constructor.invocation.invalid)
-        super();
+        // :: fixable-error: (subclass.constructor.invalid)
+        super(p);
     }
 }
