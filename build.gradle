@@ -165,7 +165,7 @@ test {
 
 clean {
     delete 'bin', 'dist', 'testTmp', 'testdata', 'annotated',
-            fileTree('.') { include '**/*.jaif',  '**/*.txt'},
+            fileTree('.') { include '**/*.txt'},
             fileTree('testinput') {include '**/*.class'}
 }
 
