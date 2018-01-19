@@ -40,12 +40,4 @@ public class PICOViewpointAdapter extends FrameworkViewpointAdapter {
     protected AnnotationMirror getModifier(AnnotatedTypeMirror atm, AnnotatedTypeFactory f) {
         return atm.getAnnotationInHierarchy(((PICOAnnotatedTypeFactory)f).READONLY);
     }
-
-    @Override
-    public boolean shouldBeAdapted(AnnotatedTypeMirror type, Element element) {
-        if (type.getKind() != TypeKind.DECLARED && type.getKind() != TypeKind.ARRAY) {
-            return false;
-        }
-        return true;
-    }
 }
