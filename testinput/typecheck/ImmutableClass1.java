@@ -33,6 +33,8 @@ class ImmutableClass1{
     // from its class element. So that's why we get "method.receiver.incompatible"
     // error becasue method receiver is @Mutable, but we didn't get "type.invalid"
     // because @Immutable ImmutableClass1 is the correct usage of ImmutableClass1.
+    // See comment: https://github.com/opprop/checker-framework/blob/master/framework/src/org/checkerframework/framework/type/AnnotatedTypeFactory.java#L1593
+    // for why class bound annotation is not applied to instance method receiver
     // :: error: (method.receiver.incompatible)
     void method6(ImmutableClass1 this) {}
 }

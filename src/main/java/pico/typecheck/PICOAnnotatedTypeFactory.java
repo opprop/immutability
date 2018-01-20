@@ -424,6 +424,8 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         @Override
         public Void visitMethod(MethodTree node, AnnotatedTypeMirror p) {
             Element element = TreeUtils.elementFromDeclaration(node);
+            // See: https://github.com/opprop/checker-framework/blob/master/framework/src/org/checkerframework/framework/type/AnnotatedTypeFactory.java#L1593
+            // for why constructor return is not applied class bound annotation
             PICOTypeUtil.applyImmutableToConstructorReturnOfImmutableClass(atypeFactory, element, p);
             return super.visitMethod(node, p);
         }
