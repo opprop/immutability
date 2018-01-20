@@ -11,12 +11,17 @@ import checkers.inference.util.ConstraintVerifier;
 import exceptions.solver.EncodingStuckException;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.sat4j.core.VecInt;
-import pico.inference.PICOInferenceChecker;
 
 import javax.lang.model.element.AnnotationMirror;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
 /**
  * Contains viewpoint adaptation encoding logic for PICOInfer. Specifies how qualifiers are
@@ -24,20 +29,8 @@ import java.util.Map;
  */
 public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncoder implements CombineConstraintEncoder<VecInt[]> {
 
-    /**AnnotationMirrors that are used in viewpoint adaptation encoding*/
-    private final AnnotationMirror READONLY;
-    private final AnnotationMirror MUTABLE;
-    private final AnnotationMirror IMMUTABLE;
-    private final AnnotationMirror BOTTOM;
-    private final AnnotationMirror RECEIVERDEPENDANTMUTABLE;
-
     public PICOCombineConstraintEncoder(Lattice lattice, ConstraintVerifier verifier, Map<AnnotationMirror, Integer> typeToInt) {
         super(lattice, verifier, typeToInt);
-        READONLY = PICOInferenceChecker.READONLY;
-        MUTABLE = PICOInferenceChecker.MUTABLE;
-        IMMUTABLE = PICOInferenceChecker.IMMUTABLE;
-        BOTTOM = PICOInferenceChecker.BOTTOM;
-        RECEIVERDEPENDANTMUTABLE = PICOInferenceChecker.RECEIVERDEPENDANTMUTABLE;
     }
 
     /**Wrapper method to get integer id of an AnnotationMirror to avoid Map get operations*/
@@ -46,7 +39,7 @@ public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncode
     }
 
     private boolean isReceiverDependantMutable(ConstantSlot cSlot) {
-        if (AnnotationUtils.areSame(cSlot.getValue(), RECEIVERDEPENDANTMUTABLE)) {
+        if (AnnotationUtils.areSame(cSlot.getValue(), RECEIVER_DEPENDANT_MUTABLE)) {
             return true;
         } else if (AnnotationUtils.areSame(cSlot.getValue(), READONLY) ||
                 AnnotationUtils.areSame(cSlot.getValue(), MUTABLE) ||
@@ -74,25 +67,25 @@ public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncode
                 -MathUtils.mapIdToMatrixEntry(declared.getId(), id(BOTTOM), lattice),
                 MathUtils.mapIdToMatrixEntry(result.getId(), id(BOTTOM), lattice)));
         resultClauses.add(VectorUtils.asVec(
-                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVERDEPENDANTMUTABLE), lattice),
+                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVER_DEPENDANT_MUTABLE), lattice),
                 -MathUtils.mapIdToMatrixEntry(target.getId(), id(READONLY), lattice),
                 MathUtils.mapIdToMatrixEntry(result.getId(), id(READONLY), lattice)));
         resultClauses.add(VectorUtils.asVec(
-                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVERDEPENDANTMUTABLE), lattice),
+                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVER_DEPENDANT_MUTABLE), lattice),
                 -MathUtils.mapIdToMatrixEntry(target.getId(), id(MUTABLE), lattice),
                 MathUtils.mapIdToMatrixEntry(result.getId(), id(MUTABLE), lattice)));
         resultClauses.add(VectorUtils.asVec(
-                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVERDEPENDANTMUTABLE), lattice),
+                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVER_DEPENDANT_MUTABLE), lattice),
                 -MathUtils.mapIdToMatrixEntry(target.getId(), id(IMMUTABLE), lattice),
                 MathUtils.mapIdToMatrixEntry(result.getId(), id(IMMUTABLE), lattice)));
         resultClauses.add(VectorUtils.asVec(
-                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVERDEPENDANTMUTABLE), lattice),
+                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVER_DEPENDANT_MUTABLE), lattice),
                 -MathUtils.mapIdToMatrixEntry(target.getId(), id(BOTTOM), lattice),
                 MathUtils.mapIdToMatrixEntry(result.getId(), id(BOTTOM), lattice)));
         resultClauses.add(VectorUtils.asVec(
-                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVERDEPENDANTMUTABLE), lattice),
-                -MathUtils.mapIdToMatrixEntry(target.getId(), id(RECEIVERDEPENDANTMUTABLE), lattice),
-                MathUtils.mapIdToMatrixEntry(result.getId(), id(RECEIVERDEPENDANTMUTABLE), lattice)));
+                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVER_DEPENDANT_MUTABLE), lattice),
+                -MathUtils.mapIdToMatrixEntry(target.getId(), id(RECEIVER_DEPENDANT_MUTABLE), lattice),
+                MathUtils.mapIdToMatrixEntry(result.getId(), id(RECEIVER_DEPENDANT_MUTABLE), lattice)));
         return resultClauses.toArray(new VecInt[resultClauses.size()]);
     }
 
@@ -113,8 +106,8 @@ public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncode
                     -MathUtils.mapIdToMatrixEntry(target.getId(), id(IMMUTABLE), lattice),
                     MathUtils.mapIdToMatrixEntry(result.getId(), id(IMMUTABLE), lattice)));
             resultClauses.add(VectorUtils.asVec(
-                    -MathUtils.mapIdToMatrixEntry(target.getId(), id(RECEIVERDEPENDANTMUTABLE), lattice),
-                    MathUtils.mapIdToMatrixEntry(result.getId(), id(RECEIVERDEPENDANTMUTABLE), lattice)));
+                    -MathUtils.mapIdToMatrixEntry(target.getId(), id(RECEIVER_DEPENDANT_MUTABLE), lattice),
+                    MathUtils.mapIdToMatrixEntry(result.getId(), id(RECEIVER_DEPENDANT_MUTABLE), lattice)));
             resultClauses.add(VectorUtils.asVec(
                     -MathUtils.mapIdToMatrixEntry(target.getId(), id(BOTTOM), lattice),
                     MathUtils.mapIdToMatrixEntry(result.getId(), id(BOTTOM), lattice)));
@@ -139,7 +132,7 @@ public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncode
                 -MathUtils.mapIdToMatrixEntry(declared.getId(), id(BOTTOM), lattice),
                 MathUtils.mapIdToMatrixEntry(result.getId(), id(BOTTOM), lattice)));
         resultClauses.add(VectorUtils.asVec(
-                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVERDEPENDANTMUTABLE), lattice),
+                -MathUtils.mapIdToMatrixEntry(declared.getId(), id(RECEIVER_DEPENDANT_MUTABLE), lattice),
                 MathUtils.mapIdToMatrixEntry(result.getId(), id(target.getValue()), lattice)));
         return resultClauses.toArray(new VecInt[resultClauses.size()]);
     }

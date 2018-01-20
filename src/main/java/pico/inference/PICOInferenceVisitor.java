@@ -42,6 +42,12 @@ import javax.lang.model.type.TypeKind;
 import java.util.Iterator;
 import java.util.List;
 
+import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
+
 /**
  * Generate constraints based on the PICO constraint-based type rules in infer mode. Has typecheck
  * and infer mode. In typecheck mode, has the exact same behaviour as PICOVisitor.
@@ -155,19 +161,19 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (TreeUtils.isConstructor(node)) {
             AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
             if (infer) {
-                mainIsNot(constructorReturnType, realChecker.READONLY, "constructor.return.invalid", node);
+                mainIsNot(constructorReturnType, READONLY, "constructor.return.invalid", node);
             } else {
-                if (constructorReturnType.hasAnnotation(realChecker.READONLY)) {
+                if (constructorReturnType.hasAnnotation(READONLY)) {
                     checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
                 }
             }
 
             if (hasImmutableBoundAnnotation) {
                 if(infer) {
-                    mainIsSubtype(constructorReturnType, realChecker.IMMUTABLE, "immutable.class.constructor.invalid", node);
+                    mainIsSubtype(constructorReturnType, IMMUTABLE, "immutable.class.constructor.invalid", node);
                 } else {
-                    AnnotationMirror constructorReturnAnnotation = constructorReturnType.getAnnotationInHierarchy(realChecker.READONLY);
-                    if(!atypeFactory.getQualifierHierarchy().isSubtype(constructorReturnAnnotation, realChecker.IMMUTABLE)) {
+                    AnnotationMirror constructorReturnAnnotation = constructorReturnType.getAnnotationInHierarchy(READONLY);
+                    if(!atypeFactory.getQualifierHierarchy().isSubtype(constructorReturnAnnotation, IMMUTABLE)) {
                         checker.report(Result.failure("immutable.class.constructor.invalid"), node);
                     }
                 }
@@ -178,11 +184,11 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             if (hasImmutableBoundAnnotation && declareReceiverType != null) {
                 if (infer) {
                     mainIsNoneOf(declareReceiverType,
-                            new AnnotationMirror[]{realChecker.MUTABLE, realChecker.RECEIVERDEPENDANTMUTABLE, realChecker.BOTTOM},
+                            new AnnotationMirror[]{MUTABLE, RECEIVER_DEPENDANT_MUTABLE, BOTTOM},
                             "immutable.class.method.receiver.invalid", node.getReceiverParameter());
                 } else {
-                    if(!(declareReceiverType.hasAnnotation(realChecker.READONLY) ||
-                            declareReceiverType.hasAnnotation(realChecker.IMMUTABLE)))
+                    if(!(declareReceiverType.hasAnnotation(READONLY) ||
+                            declareReceiverType.hasAnnotation(IMMUTABLE)))
                         checker.report(Result.failure("immutable.class.method.receiver.invalid"), node.getReceiverParameter());
                 }
             }
@@ -216,7 +222,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // class only has @Mutable constructor
         if (typeElement.toString().contains("anonymous")) return false;
         AnnotatedTypeMirror bound = atypeFactory.fromElement(typeElement);
-        AnnotationMirror boundAnnotation = bound.getAnnotationInHierarchy(realChecker.READONLY);
+        AnnotationMirror boundAnnotation = bound.getAnnotationInHierarchy(READONLY);
         return boundAnnotation != null
                 && AnnotationUtils.areSameByClass(boundAnnotation, Immutable.class);
 
@@ -256,12 +262,12 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (infer) {
             // TODO PICOINF We just selected one way to break the combination of readonly receiver, assignable and rdm field
             // Does this make sense?
-            mainIsNot(receiverType, realChecker.READONLY, "illegal.field.write", node);
+            mainIsNot(receiverType, READONLY, "illegal.field.write", node);
         } else {
             Element fieldElement = TreeUtils.elementFromUse(node);
             if (fieldElement != null) {//TODO Can this bu null?
                 AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
-                if (receiverType.hasAnnotation(realChecker.READONLY) && fieldType.hasAnnotation(realChecker.RECEIVERDEPENDANTMUTABLE)) {
+                if (receiverType.hasAnnotation(READONLY) && fieldType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
                     reportFieldOrArrayWriteError(node, variable, receiverType);
                 }
             }
@@ -271,9 +277,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     private void checkInitializingObject(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (infer) {
             // Can be anything from mutable, immutable or receiverdependantmutable
-            mainIsNot(receiverType, realChecker.READONLY, "illegal.field.write", node);
+            mainIsNot(receiverType, READONLY, "illegal.field.write", node);
         } else {
-            if (receiverType.hasAnnotation(realChecker.READONLY)) {
+            if (receiverType.hasAnnotation(READONLY)) {
                 reportFieldOrArrayWriteError(node, variable, receiverType);
             }
         }
@@ -281,9 +287,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     private void checkOtherAssignmentCase(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (infer) {
-            mainIs(receiverType, realChecker.MUTABLE, "illegal.field.write", node);
+            mainIs(receiverType, MUTABLE, "illegal.field.write", node);
         } else {
-            if (!receiverType.hasAnnotation(realChecker.MUTABLE)) {
+            if (!receiverType.hasAnnotation(MUTABLE)) {
                 reportFieldOrArrayWriteError(node, variable, receiverType);
             }
         }
@@ -406,9 +412,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
         if (infer) {
             // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable are inferred on new instance creation
-            mainIsNoneOf(type, new AnnotationMirror[]{realChecker.READONLY}, "pico.new.invalid", node);
+            mainIsNoneOf(type, new AnnotationMirror[]{READONLY}, "pico.new.invalid", node);
         } else {
-            if (type.hasAnnotation(realChecker.READONLY)) {
+            if (type.hasAnnotation(READONLY)) {
                 checker.report(Result.failure("pico.new.invalid", type), node);
             }
         }

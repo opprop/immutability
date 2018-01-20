@@ -18,6 +18,12 @@ public class PICOChecker extends InitializationChecker {
     }
 
     @Override
+    public void initChecker() {
+        super.initChecker();
+        PICOAnnotationMirrorHolder.init(this);
+    }
+
+    @Override
     protected BaseTypeVisitor<?> createSourceVisitor() {
         return new PICOVisitor(this);
     }

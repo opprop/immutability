@@ -14,17 +14,18 @@ import com.sun.source.tree.TypeCastTree;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.framework.type.typeannotator.ImplicitsTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 
 /**
  * Propagates correct constraints on trees and types using TreeAnnotators and TypeAnnotators.
@@ -56,7 +57,10 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
 
     @Override
     protected TypeAnnotator createTypeAnnotator() {
-        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICOInferenceImplicitsTypeAnnotator(this));
+        // Reuse PICOImplicitsTypeAnnotator even in inference mode. Because the type annotator's implementation
+        // are the same. The only drawback is that naming is not good(doesn't include "Inference"), thus may be
+        // hard to debug
+        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICOImplicitsTypeAnnotator(this));
     }
 
     // TODO This will be implemented in higher level, as lots of type systems actually don't need the declaration constraint
@@ -109,27 +113,8 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
          to always have immutable annotation. If this happens, we manually add immutable to type. */
         private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
             if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
-                applyConstant(type, PICOInferenceChecker.IMMUTABLE);
+                applyConstant(type, IMMUTABLE);
             }
-        }
-    }
-
-    class PICOInferenceImplicitsTypeAnnotator extends ImplicitsTypeAnnotator {
-
-        public PICOInferenceImplicitsTypeAnnotator(AnnotatedTypeFactory typeFactory) {
-            super(typeFactory);
-        }
-
-        /**Also applies implicits to method receiver*/
-        @Override
-        public Void visitExecutable(AnnotatedExecutableType t, Void p) {
-            // There is a TODO in the PICOAnnotatedTypeFactory to investigate. This is just a copy
-            super.visitExecutable(t, p);
-            // Also scan the receiver to apply implicit annotation
-            if (t.getReceiverType() != null) {
-                return scanAndReduce(t.getReceiverType(), p, null);
-            }
-            return null;
         }
     }
 }

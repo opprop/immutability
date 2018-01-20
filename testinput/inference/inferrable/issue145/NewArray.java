@@ -7,10 +7,8 @@ public class NewArray {
         // :: fixable-error: (assignment.type.incompatible)
         @Immutable Object a = new Integer[0];
         // TODO why does annotation on Object(component) propagates to Integer is done on purpose?
-        // TODO Right now, we get "assignment.type.incompatible" error instead of expected "type.invalid".
-        // This is becasue PICOInferenceVisitor and PICOInferenceValidator are not implemented to enforce
-        // type rules in typechecking mode. I need to implement this.
-        // :: fixable-error: (type.invalid)
+        // I overrode this in commit: https://github.com/topnessman/immutability/commit/897d10942a33ee9c7f6384b91f41ece2f3fc20e9
+        // :: fixable-error: (assignment.type.incompatible)
         Object @Immutable [] b = new Integer[0];
     }
 }

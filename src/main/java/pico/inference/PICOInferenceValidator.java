@@ -25,6 +25,12 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 
+import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
+
 /**
  * Generates constraints based on PICO constraint-based well-formedness rules in infer mode.
  * In typecheck mode, it behaves exactly like PICOValidator
@@ -47,9 +53,9 @@ public class PICOInferenceValidator extends InferenceValidator{
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree, PICOInferenceVisitor picoInferenceVisitor, PICOInferenceChecker picoInferenceChecker) {
         if (TreeUtils.isTreeInStaticScope(visitor.getCurrentPath())) {
             if (picoInferenceVisitor.infer) {
-                picoInferenceVisitor.mainIsNot(type, picoInferenceChecker.RECEIVERDEPENDANTMUTABLE, "static.receiverdependantmutable.forbidden", tree);
+                picoInferenceVisitor.mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
             } else {
-                if (type.hasAnnotation(picoInferenceChecker.RECEIVERDEPENDANTMUTABLE)) {
+                if (type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
                     reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
                 }
             }
@@ -62,11 +68,10 @@ public class PICOInferenceValidator extends InferenceValidator{
         if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
             if (picoInferenceVisitor.infer) {
                 picoInferenceVisitor.mainIsNoneOf(type,
-                        new AnnotationMirror[]{picoInferenceChecker.READONLY, picoInferenceChecker.MUTABLE,
-                                picoInferenceChecker.RECEIVERDEPENDANTMUTABLE, picoInferenceChecker.BOTTOM},
+                        new AnnotationMirror[]{READONLY, MUTABLE, RECEIVER_DEPENDANT_MUTABLE, BOTTOM},
                         "type.invalid", tree);
             } else {
-                if (!type.hasAnnotation(picoInferenceChecker.IMMUTABLE)) {
+                if (!type.hasAnnotation(IMMUTABLE)) {
                     reportError(type, tree);
                 }
             }
@@ -84,9 +89,9 @@ public class PICOInferenceValidator extends InferenceValidator{
         }
 
         if (picoInferenceVisitor.infer) {
-            picoInferenceVisitor.mainIsNot(type, picoInferenceChecker.BOTTOM, "type.invalid", tree);
+            picoInferenceVisitor.mainIsNot(type, BOTTOM, "type.invalid", tree);
         } else {
-            if (type.hasAnnotation(picoInferenceChecker.BOTTOM)) {
+            if (type.hasAnnotation(BOTTOM)) {
                 reportError(type, tree);
             }
         }

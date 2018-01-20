@@ -8,8 +8,14 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 
 import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.type.TypeKind;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.SUBSTITUTABLE_POLY_MUTABLE;
 
 /**
  * Created by mier on 20/06/17.
@@ -17,18 +23,17 @@ import javax.lang.model.type.TypeKind;
 public class PICOViewpointAdapter extends FrameworkViewpointAdapter {
     @Override
     protected AnnotationMirror combineModifierWithModifier(AnnotationMirror recvModifier, AnnotationMirror declModifier, AnnotatedTypeFactory f) {
-        PICOAnnotatedTypeFactory picoAnnotatedTypeFactory = (PICOAnnotatedTypeFactory)f;
-        if (AnnotationUtils.areSame(declModifier, picoAnnotatedTypeFactory.READONLY)) {
-            return picoAnnotatedTypeFactory.READONLY;
-        } else if (AnnotationUtils.areSame(declModifier, picoAnnotatedTypeFactory.MUTABLE)) {
-            return picoAnnotatedTypeFactory.MUTABLE;
-        } else if (AnnotationUtils.areSame(declModifier, picoAnnotatedTypeFactory.IMMUTABLE)) {
-            return picoAnnotatedTypeFactory.IMMUTABLE;
-        } else if (AnnotationUtils.areSame(declModifier, picoAnnotatedTypeFactory.BOTTOM)) {
-            return picoAnnotatedTypeFactory.BOTTOM;
-        } else if (AnnotationUtils.areSame(declModifier, picoAnnotatedTypeFactory.POLYMUTABLE)) {
-            return picoAnnotatedTypeFactory.SUBSTITUTABLEPOLYMUTABLE;
-        } else if (AnnotationUtils.areSame(declModifier, picoAnnotatedTypeFactory.RECEIVERDEPENDANTMUTABLE)) {
+        if (AnnotationUtils.areSame(declModifier, READONLY)) {
+            return READONLY;
+        } else if (AnnotationUtils.areSame(declModifier, MUTABLE)) {
+            return MUTABLE;
+        } else if (AnnotationUtils.areSame(declModifier, IMMUTABLE)) {
+            return IMMUTABLE;
+        } else if (AnnotationUtils.areSame(declModifier, BOTTOM)) {
+            return BOTTOM;
+        } else if (AnnotationUtils.areSame(declModifier, POLY_MUTABLE)) {
+            return SUBSTITUTABLE_POLY_MUTABLE;
+        } else if (AnnotationUtils.areSame(declModifier, RECEIVER_DEPENDANT_MUTABLE)) {
             return recvModifier;
         } else {
             ErrorReporter.errorAbort("Unkown declared modifier: " + declModifier, new UnkownImmutabilityQualifierException());
@@ -38,6 +43,6 @@ public class PICOViewpointAdapter extends FrameworkViewpointAdapter {
 
     @Override
     protected AnnotationMirror getModifier(AnnotatedTypeMirror atm, AnnotatedTypeFactory f) {
-        return atm.getAnnotationInHierarchy(((PICOAnnotatedTypeFactory)f).READONLY);
+        return atm.getAnnotationInHierarchy(READONLY);
     }
 }

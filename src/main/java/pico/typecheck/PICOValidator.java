@@ -28,6 +28,10 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.VariableElement;
 
+import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
+
 /**
  * Created by mier on 29/09/17.
  * Enforce correct usage of immutability and assignability qualifiers.
@@ -50,7 +54,7 @@ public class PICOValidator extends BaseTypeValidator {
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
         if (TreeUtils.isTreeInStaticScope(visitor.getCurrentPath())
                 && !"".contentEquals(TreeUtils.enclosingClass(visitor.getCurrentPath()).getSimpleName())// Exclude @RDM usages in anonymous classes
-                && type.hasAnnotation(ReceiverDependantMutable.class)) {
+                && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
             reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
         }
     }
@@ -58,7 +62,7 @@ public class PICOValidator extends BaseTypeValidator {
     /**Check that implicitly immutable type has immutable or bottom type. Dataflow might refine immtable type to @Bottom,
      * so we accept @Bottom as a valid qualifier for implicitly immutable types*/
     private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
-        if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(Immutable.class) && !type.hasAnnotation(Bottom.class)) {
+        if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(IMMUTABLE) && !type.hasAnnotation(BOTTOM)) {
             reportInvalidAnnotationsOnUse(type, tree);
         }
     }
@@ -114,7 +118,7 @@ public class PICOValidator extends BaseTypeValidator {
                 return;
             }
         }
-        if (type.hasAnnotation(Bottom.class)) {
+        if (type.hasAnnotation(BOTTOM)) {
             reportInvalidAnnotationsOnUse(type, tree);
         }
     }
@@ -128,7 +132,7 @@ public class PICOValidator extends BaseTypeValidator {
     // "null" literal should always be @Bottom
     @Override
     public Void visitNull(AnnotatedNullType type, Tree tree) {
-        if (!type.hasAnnotation(Bottom.class)) {
+        if (!type.hasAnnotation(BOTTOM)) {
             reportInvalidType(type, tree);
         }
         return super.visitNull(type, tree);

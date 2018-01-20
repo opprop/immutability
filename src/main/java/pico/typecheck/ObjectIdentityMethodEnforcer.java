@@ -18,6 +18,9 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+
 public class ObjectIdentityMethodEnforcer extends TreePathScanner<Void, Void> {
 
     private PICOAnnotatedTypeFactory typeFactory;
@@ -98,9 +101,9 @@ public class ObjectIdentityMethodEnforcer extends TreePathScanner<Void, Void> {
         boolean in = true;
         if (typeFactory.getDeclAnnotation(elt, Assignable.class) != null) {
             in = false;
-        } else if (typeFactory.getAnnotatedType(elt).hasAnnotation(Mutable.class)) {
+        } else if (typeFactory.getAnnotatedType(elt).hasAnnotation(MUTABLE)) {
             in = false;
-        } else if (typeFactory.getAnnotatedType(elt).hasAnnotation(Readonly.class)) {
+        } else if (typeFactory.getAnnotatedType(elt).hasAnnotation(READONLY)) {
             in = false;
         }
 

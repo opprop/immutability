@@ -15,6 +15,8 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 
 import javax.lang.model.element.Element;
 
+import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
+
 public class PICOVariableAnnotator extends VariableAnnotator {
 
     public PICOVariableAnnotator(InferenceAnnotatedTypeFactory typeFactory, AnnotatedTypeFactory realTypeFactory,
@@ -41,7 +43,7 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         VariableSlot varSlot = super.createVariable(location);
         // Forbid any explicit use of @Bottom to be inserted back to source code(no VariableSlot instance is inferred
         // @Bottom)
-        constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(PICOInferenceChecker.BOTTOM));
+        constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(BOTTOM));
         return varSlot;
     }
 

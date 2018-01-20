@@ -9,6 +9,7 @@ import checkers.inference.SlotManager;
 import checkers.inference.model.ConstraintManager;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.javacutil.AnnotationBuilder;
+import pico.typecheck.PICOAnnotationMirrorHolder;
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
@@ -23,17 +24,10 @@ import javax.lang.model.util.Elements;
  */
 public class PICOInferenceChecker extends BaseInferrableChecker {
 
-    public static AnnotationMirror READONLY, MUTABLE, RECEIVERDEPENDANTMUTABLE, IMMUTABLE, BOTTOM;
-
     @Override
     public void initChecker() {
-        final Elements elements = processingEnv.getElementUtils();
-        READONLY = AnnotationBuilder.fromClass(elements, Readonly.class);
-        MUTABLE = AnnotationBuilder.fromClass(elements, Mutable.class);
-        RECEIVERDEPENDANTMUTABLE = AnnotationBuilder.fromClass(elements, ReceiverDependantMutable.class);
-        IMMUTABLE = AnnotationBuilder.fromClass(elements, Immutable.class);
-        BOTTOM = AnnotationBuilder.fromClass(elements, Bottom.class);
         super.initChecker();
+        PICOAnnotationMirrorHolder.init(this);
     }
 
     @Override
