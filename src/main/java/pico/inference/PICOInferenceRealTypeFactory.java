@@ -29,6 +29,7 @@ import qual.ReceiverDependantMutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -137,10 +138,10 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         return;// Don't add annotations from class element
     }
 
-    /**This covers the case when static fields are used*/
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
         PICOTypeUtil.addDefaultForStaticField(this, type, elt);
+        PICOTypeUtil.applyImmutableToConstructorReturnOfImmutableClass(this, elt, type);
         super.addComputedTypeAnnotations(elt, type);
     }
 

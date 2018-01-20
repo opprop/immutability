@@ -29,7 +29,6 @@ class A {
     }
 }
 
-// :: error: (super.constructor.invocation.incompatible) :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
 @Immutable class AIMS extends A {}
 
 // :: error: (subclass.bound.incompatible)
@@ -67,7 +66,6 @@ class B {
     }
 }
 
-// :: error: (super.constructor.invocation.incompatible) :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
 @Immutable class BIMS extends B {}
 
 // :: error: (super.constructor.invocation.incompatible)
@@ -130,7 +128,6 @@ interface E {
     void foo(@Immutable E this);
 }
 
-// :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
 @Immutable public class ReceiverTypeOutsideConstructor implements E{
     @Override
     public void foo(@Immutable ReceiverTypeOutsideConstructor this) {

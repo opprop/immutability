@@ -2,6 +2,7 @@ package pico.typecheck;
 
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
@@ -181,10 +182,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         return false;
     }
 
-    /**This covers the case when static fields are used*/
+    /**This covers the case when static fields are used and constructor is accessed as an element(regarding to
+     * applying @Immutable on type declaration to constructor return type).*/
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
         PICOTypeUtil.addDefaultForStaticField(this, type, elt);
+        PICOTypeUtil.applyImmutableToConstructorReturnOfImmutableClass(this, elt, type);
         super.addComputedTypeAnnotations(elt, type);
     }
 
@@ -414,6 +417,15 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     public static class PICOTreeAnnotator extends TreeAnnotator {
         public PICOTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
             super(atypeFactory);
+        }
+
+        // This adds @Immutable annotation to constructor return type if type declaration has @Immutable when the
+        // constructor is accessed as a tree.
+        @Override
+        public Void visitMethod(MethodTree node, AnnotatedTypeMirror p) {
+            Element element = TreeUtils.elementFromDeclaration(node);
+            PICOTypeUtil.applyImmutableToConstructorReturnOfImmutableClass(atypeFactory, element, p);
+            return super.visitMethod(node, p);
         }
 
         /**This covers the declaration of static fields*/

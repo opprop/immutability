@@ -9,6 +9,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
@@ -101,6 +102,14 @@ public class PICOTypeUtil {
             return getBoundAnnotationOnTypeDeclaration(typeElement, atypeFactory);
         }
 
+        return null;
+    }
+
+    public static AnnotationMirror getBoundAnnotationOnEnclosingTypeDeclaration(Element element, AnnotatedTypeFactory atypeFactory) {
+        TypeElement typeElement = ElementUtils.enclosingClass(element);
+        if (typeElement != null) {
+            return getBoundAnnotationOnTypeDeclaration(typeElement, atypeFactory);
+        }
         return null;
     }
 
@@ -209,6 +218,18 @@ public class PICOTypeUtil {
                 if (!PICOTypeUtil.isImplicitlyImmutableType(explicitATM)) {
                     annotatedTypeMirror.replaceAnnotation(MUTABLE);
                 }
+            }
+        }
+    }
+
+    // Apply @Immutable annotation on type declaration to constructor return type if elt is constructor and doesn't have
+    // explicit annotation(type is actually AnnotatedExecutableType of executable element - elt constructor)
+    public static void applyImmutableToConstructorReturnOfImmutableClass(AnnotatedTypeFactory annotatedTypeFactory,
+                                                                         Element elt, AnnotatedTypeMirror type) {
+        if (elt.getKind() == ElementKind.CONSTRUCTOR && type instanceof AnnotatedExecutableType) {
+            AnnotationMirror bound = PICOTypeUtil.getBoundAnnotationOnEnclosingTypeDeclaration(elt, annotatedTypeFactory);
+            if (AnnotationUtils.areSame(bound, IMMUTABLE)) {
+                ((AnnotatedExecutableType) type).getReturnType().addMissingAnnotations(Arrays.asList(IMMUTABLE));
             }
         }
     }
