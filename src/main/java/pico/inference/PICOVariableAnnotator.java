@@ -24,17 +24,11 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         super(typeFactory, realTypeFactory, realChecker, slotManager, constraintManager);
     }
 
-//    // Don't generate class declaration bound
-//    @Override
-//    protected void handleClassDeclarationBound(AnnotatedTypeMirror.AnnotatedDeclaredType classType) {
-//        return;
-//    }
-//
-//    // Don't generate subtype constraint between use type and bound type
-//    @Override
-//    protected void handleInstantiationConstraint(AnnotatedTypeMirror.AnnotatedDeclaredType adt, VariableSlot instantiationSlot, Tree tree) {
-//        return;
-//    }
+    // Don't generate subtype constraint between use type and bound type
+    @Override
+    protected void handleInstantiationConstraint(AnnotatedTypeMirror.AnnotatedDeclaredType adt, VariableSlot instantiationSlot, Tree tree) {
+        return;
+    }
 
     // Generates inequality constraint between every strict VariableSlot and @Bottom so that @Bottom is not inserted
     // back to source code, but can be within the internal state because of dataflow refinement
