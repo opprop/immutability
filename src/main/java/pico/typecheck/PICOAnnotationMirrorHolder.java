@@ -15,7 +15,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.util.Elements;
 
 /**
- * A hold class that hold AnnotationMirror that are shared by PICO and PICOInfer.
+ * A holder class that holds AnnotationMirrors that are shared by PICO and PICOInfer.
  */
 public class PICOAnnotationMirrorHolder {
 

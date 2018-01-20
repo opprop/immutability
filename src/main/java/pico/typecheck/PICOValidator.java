@@ -1,8 +1,5 @@
 package pico.typecheck;
 
-import com.sun.source.tree.BlockTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.VariableTree;
@@ -20,12 +17,6 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiv
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
-import qual.Bottom;
-import qual.Immutable;
-import qual.ReceiverDependantMutable;
-
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
 import javax.lang.model.element.VariableElement;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;

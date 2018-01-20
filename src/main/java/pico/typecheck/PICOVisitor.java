@@ -27,11 +27,6 @@ import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import qual.Assignable;
-import qual.Immutable;
-import qual.Mutable;
-import qual.PolyMutable;
-import qual.Readonly;
-import qual.ReceiverDependantMutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;

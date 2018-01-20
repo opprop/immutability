@@ -29,7 +29,6 @@ import qual.ReceiverDependantMutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;

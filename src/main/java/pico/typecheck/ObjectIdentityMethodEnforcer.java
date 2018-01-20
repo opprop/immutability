@@ -11,8 +11,6 @@ import org.checkerframework.framework.source.Result;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import qual.Assignable;
-import qual.Mutable;
-import qual.Readonly;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;

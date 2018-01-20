@@ -8,16 +8,7 @@ import checkers.inference.InferrableChecker;
 import checkers.inference.SlotManager;
 import checkers.inference.model.ConstraintManager;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
-import org.checkerframework.javacutil.AnnotationBuilder;
 import pico.typecheck.PICOAnnotationMirrorHolder;
-import qual.Bottom;
-import qual.Immutable;
-import qual.Mutable;
-import qual.Readonly;
-import qual.ReceiverDependantMutable;
-
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.util.Elements;
 
 /**
  * Main entry class
