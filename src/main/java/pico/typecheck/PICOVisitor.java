@@ -64,39 +64,6 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     }
 
     @Override
-    public void processClassTree(ClassTree node) {
-        TypeElement typeElement = TreeUtils.elementFromDeclaration(node);
-        AnnotationMirror bound = PICOTypeUtil.getBoundAnnotationOnTypeDeclaration(typeElement, atypeFactory);
-        // Skip bound validation for anonymous classes(whose bound is null)
-        if (bound != null) {
-            // Has to be either @Mutable, @ReceiverDependantMutable or @Immutable, nothing else
-            if (!AnnotationUtils.areSame(bound, MUTABLE)
-                    && !AnnotationUtils.areSame(bound, RECEIVER_DEPENDANT_MUTABLE)
-                    && !AnnotationUtils.areSame(bound, IMMUTABLE)) {
-                checker.report(Result.failure(
-                        "class.bound.invalid", bound), node);
-                return;// Doesn't process the class tree anymore
-            }
-            // Must have compatible bound annotation as the direct super types
-            List<AnnotationMirror> superBounds = PICOTypeUtil.getBoundAnnotationOnDirectSuperTypeDeclarations(typeElement, atypeFactory);
-            for (AnnotationMirror superBound : superBounds) {
-                // If annotation on super bound is @ReceiverDependantMutable, then any valid bound is permitted.
-                if (AnnotationUtils.areSame(superBound, RECEIVER_DEPENDANT_MUTABLE)) continue;
-                // super bound is either @Mutable or @Immutable. Must be the subtype of the corresponding super bound
-                if (!atypeFactory.getQualifierHierarchy().isSubtype(bound, superBound)) {
-                    checker.report(Result.failure(
-                            "subclass.bound.incompatible", bound, superBound), node);
-                    return;
-                }
-            }
-        }
-        // Reach this point iff bound annotation is one of mutable, rdm or immutable;
-        // and bound is compatible with bounds on super types or the current class is
-        // anonymous class
-        super.processClassTree(node);
-    }
-
-    @Override
     protected TypeValidator createTypeValidator() {
         return new PICOValidator(checker, this, atypeFactory);
     }
@@ -503,5 +470,38 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         result.add(atypeFactory.getQualifierHierarchy().getTopAnnotation(READONLY));
         result.add(COMMITED);
         return result;
+    }
+
+    @Override
+    public void processClassTree(ClassTree node) {
+        TypeElement typeElement = TreeUtils.elementFromDeclaration(node);
+        AnnotationMirror bound = PICOTypeUtil.getBoundAnnotationOnTypeDeclaration(typeElement, atypeFactory);
+        // Skip bound validation for anonymous classes(whose bound is null)
+        if (bound != null) {
+            // Has to be either @Mutable, @ReceiverDependantMutable or @Immutable, nothing else
+            if (!AnnotationUtils.areSame(bound, MUTABLE)
+                    && !AnnotationUtils.areSame(bound, RECEIVER_DEPENDANT_MUTABLE)
+                    && !AnnotationUtils.areSame(bound, IMMUTABLE)) {
+                checker.report(Result.failure(
+                        "class.bound.invalid", bound), node);
+                return;// Doesn't process the class tree anymore
+            }
+            // Must have compatible bound annotation as the direct super types
+            List<AnnotationMirror> superBounds = PICOTypeUtil.getBoundAnnotationOnDirectSuperTypeDeclarations(typeElement, atypeFactory);
+            for (AnnotationMirror superBound : superBounds) {
+                // If annotation on super bound is @ReceiverDependantMutable, then any valid bound is permitted.
+                if (AnnotationUtils.areSame(superBound, RECEIVER_DEPENDANT_MUTABLE)) continue;
+                // super bound is either @Mutable or @Immutable. Must be the subtype of the corresponding super bound
+                if (!atypeFactory.getQualifierHierarchy().isSubtype(bound, superBound)) {
+                    checker.report(Result.failure(
+                            "subclass.bound.incompatible", bound, superBound), node);
+                    return;
+                }
+            }
+        }
+        // Reach this point iff bound annotation is one of mutable, rdm or immutable;
+        // and bound is compatible with bounds on super types or the current class is
+        // anonymous class
+        super.processClassTree(node);
     }
 }
