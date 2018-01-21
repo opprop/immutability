@@ -22,7 +22,7 @@ public class PICOFormatTranslator extends MaxSatFormatTranslator{
 
     @Override
     protected ConstraintEncoderFactory<VecInt[]> createConstraintEncoderFactory(ConstraintVerifier verifier) {
-        return new MaxSATConstraintEncoderFactory(lattice, verifier, typeToInt){
+        return new MaxSATConstraintEncoderFactory(lattice, verifier, typeToInt, this){
             @Override
             public CombineConstraintEncoder<VecInt[]> createCombineConstraintEncoder() {
                 return new PICOCombineConstraintEncoder(lattice, verifier, typeToInt);
