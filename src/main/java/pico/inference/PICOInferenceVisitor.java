@@ -55,12 +55,10 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTAB
 public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker, BaseAnnotatedTypeFactory> {
 
     protected final boolean infer;
-    protected final PICOInferenceChecker realChecker;
 
     public PICOInferenceVisitor(PICOInferenceChecker checker, InferenceChecker ichecker, BaseAnnotatedTypeFactory factory, boolean infer) {
         super(checker, ichecker, factory, infer);
         this.infer = infer;
-        realChecker = checker;
     }
 
     @Override

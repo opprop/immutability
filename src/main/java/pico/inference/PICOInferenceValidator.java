@@ -3,14 +3,12 @@ package pico.inference;
 import checkers.inference.InferenceValidator;
 import checkers.inference.InferenceVisitor;
 import com.sun.source.tree.Tree;
-import com.sun.source.tree.WildcardTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 import org.checkerframework.javacutil.TreeUtils;
 import pico.typecheck.PICOTypeUtil;
 
@@ -34,14 +32,27 @@ public class PICOInferenceValidator extends InferenceValidator{
     @Override
     public Void visitDeclared(AnnotatedDeclaredType type, Tree tree) {
         PICOInferenceVisitor picoInferenceVisitor = (PICOInferenceVisitor) visitor;
-        PICOInferenceChecker picoInferenceChecker = picoInferenceVisitor.realChecker;
-        checkStaticReceiverDependantMutableError(type, tree, picoInferenceVisitor, picoInferenceChecker);
-        checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor, picoInferenceChecker);
-        //checkInvalidBottom(type, tree, picoInferenceVisitor, picoInferenceChecker);
+        checkStaticReceiverDependantMutableError(type, tree, picoInferenceVisitor);
+        checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor);
         return super.visitDeclared(type, tree);
     }
 
-    private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree, PICOInferenceVisitor picoInferenceVisitor, PICOInferenceChecker picoInferenceChecker) {
+
+    @Override
+    public Void visitArray(AnnotatedArrayType type, Tree tree) {
+        PICOInferenceVisitor picoInferenceVisitor = (PICOInferenceVisitor) visitor;
+        checkStaticReceiverDependantMutableError(type, tree, picoInferenceVisitor);
+        return super.visitArray(type, tree);
+    }
+
+    @Override
+    public Void visitPrimitive(AnnotatedPrimitiveType type, Tree tree) {
+        PICOInferenceVisitor picoInferenceVisitor = (PICOInferenceVisitor) visitor;
+        checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor);
+        return super.visitPrimitive(type, tree);
+    }
+
+    private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree, PICOInferenceVisitor picoInferenceVisitor) {
         if (TreeUtils.isTreeInStaticScope(visitor.getCurrentPath())) {
             if (picoInferenceVisitor.infer) {
                 picoInferenceVisitor.mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
@@ -55,7 +66,7 @@ public class PICOInferenceValidator extends InferenceValidator{
 
     /**Check that implicitly immutable type has immutable annotation. Note that bottom will be handled uniformly on all
      the other remaining types(reference or primitive), so we don't handle it again here*/
-    private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree, PICOInferenceVisitor picoInferenceVisitor, PICOInferenceChecker picoInferenceChecker) {
+    private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree, PICOInferenceVisitor picoInferenceVisitor) {
         if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
             if (picoInferenceVisitor.infer) {
                 picoInferenceVisitor.mainIsNoneOf(type,
@@ -67,42 +78,5 @@ public class PICOInferenceValidator extends InferenceValidator{
                 }
             }
         }
-    }
-
-    private void checkInvalidBottom(AnnotatedTypeMirror type, Tree tree, PICOInferenceVisitor picoInferenceVisitor, PICOInferenceChecker picoInferenceChecker) {
-        if (tree instanceof WildcardTree) {
-            AnnotatedWildcardType awt = (AnnotatedWildcardType) atypeFactory.getAnnotatedTypeFromTypeTree(tree);
-            if (awt.getSuperBound().equals(type)) {
-                // Means that we're checking the usage of @Bottom on the super(of wildcard).
-                // But @Bottom can be used on lower bounds, so skip the check
-                return;
-            }
-        }
-
-        if (picoInferenceVisitor.infer) {
-            picoInferenceVisitor.mainIsNot(type, BOTTOM, "type.invalid", tree);
-        } else {
-            if (type.hasAnnotation(BOTTOM)) {
-                reportError(type, tree);
-            }
-        }
-    }
-
-    @Override
-    public Void visitArray(AnnotatedArrayType type, Tree tree) {
-        PICOInferenceVisitor picoInferenceVisitor = (PICOInferenceVisitor) visitor;
-        PICOInferenceChecker picoInferenceChecker = picoInferenceVisitor.realChecker;
-        checkStaticReceiverDependantMutableError(type, tree, picoInferenceVisitor, picoInferenceChecker);
-        checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor, picoInferenceChecker);
-        //checkInvalidBottom(type, tree, picoInferenceVisitor, picoInferenceChecker);
-        return super.visitArray(type, tree);
-    }
-
-    @Override
-    public Void visitPrimitive(AnnotatedPrimitiveType type, Tree tree) {
-        PICOInferenceVisitor picoInferenceVisitor = (PICOInferenceVisitor) visitor;
-        PICOInferenceChecker picoInferenceChecker = picoInferenceVisitor.realChecker;
-        checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor, picoInferenceChecker);
-        return super.visitPrimitive(type, tree);
     }
 }

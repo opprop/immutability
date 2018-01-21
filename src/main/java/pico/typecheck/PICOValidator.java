@@ -3,7 +3,6 @@ package pico.typecheck;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.VariableTree;
-import com.sun.source.tree.WildcardTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
@@ -12,9 +11,7 @@ import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedNullType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import javax.lang.model.element.VariableElement;
@@ -38,8 +35,20 @@ public class PICOValidator extends BaseTypeValidator {
         checkStaticReceiverDependantMutableError(type, tree);
         checkImplicitlyImmutableTypeError(type, tree);
         checkOnlyOneAssignabilityModifierOnField(tree);
-        //checkInvalidBottom(type, tree);
         return super.visitDeclared(type, tree);
+    }
+
+    @Override
+    public Void visitArray(AnnotatedArrayType type, Tree tree) {
+        checkStaticReceiverDependantMutableError(type, tree);
+        // Array can not be implicitly immutable
+        return super.visitArray(type, tree);
+    }
+
+    @Override
+    public Void visitPrimitive(AnnotatedPrimitiveType type, Tree tree) {
+        checkImplicitlyImmutableTypeError(type, tree);
+        return super.visitPrimitive(type, tree);
     }
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
@@ -87,45 +96,5 @@ public class PICOValidator extends BaseTypeValidator {
     private void reportFieldMultipleAssignabilityModifiersError(VariableElement field) {
         checker.report(Result.failure("one.assignability.invalid", field), field);
         isValid = false;
-    }
-
-    @Override
-    public Void visitArray(AnnotatedArrayType type, Tree tree) {
-        checkStaticReceiverDependantMutableError(type, tree);
-        checkImplicitlyImmutableTypeError(type, tree);
-        //checkInvalidBottom(type, tree);
-        return super.visitArray(type, tree);
-    }
-
-    private void checkInvalidBottom(AnnotatedTypeMirror type, Tree tree) {
-        // Only wildcard tree with explicit lower bound can reach this point, because otherwise lower
-        // bounds are implicitly null and the lower bound would have already go to visitNull(). And
-        // type variables can't have explicit lower bound
-        if (tree instanceof WildcardTree) {
-            AnnotatedWildcardType awt = (AnnotatedWildcardType) atypeFactory.getAnnotatedTypeFromTypeTree(tree);
-            if (awt.getSuperBound().equals(type)) {
-                // Means that we're checking the usage of @Bottom on the super(of wildcard).
-                // But @Bottom can be used on lower bounds, so skip the check
-                return;
-            }
-        }
-        if (type.hasAnnotation(BOTTOM)) {
-            reportInvalidAnnotationsOnUse(type, tree);
-        }
-    }
-
-    @Override
-    public Void visitPrimitive(AnnotatedPrimitiveType type, Tree tree) {
-        checkImplicitlyImmutableTypeError(type, tree);
-        return super.visitPrimitive(type, tree);
-    }
-
-    // "null" literal should always be @Bottom
-    @Override
-    public Void visitNull(AnnotatedNullType type, Tree tree) {
-        if (!type.hasAnnotation(BOTTOM)) {
-            reportInvalidType(type, tree);
-        }
-        return super.visitNull(type, tree);
     }
 }
