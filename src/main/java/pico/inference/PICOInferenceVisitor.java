@@ -5,6 +5,11 @@ import checkers.inference.InferenceMain;
 import checkers.inference.InferenceValidator;
 import checkers.inference.InferenceVisitor;
 import checkers.inference.SlotManager;
+import checkers.inference.model.ConstantSlot;
+import checkers.inference.model.ConstraintManager;
+import checkers.inference.model.EqualityConstraint;
+import checkers.inference.model.InequalityConstraint;
+import checkers.inference.model.Slot;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
@@ -39,6 +44,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -68,8 +74,42 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
-        // Doesn't generate subtype constraints between usedType and declarationType
-        return true;
+        if (infer) {
+            ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+            SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+            mainIsNot(declarationType, READONLY, "type.invalid", tree);
+            Slot declSlot = slotManager.getVariableSlot(declarationType);
+            Slot useSlot = slotManager.getVariableSlot(useType);
+            Slot mutable = slotManager.getSlot(MUTABLE);
+            Slot immutable = slotManager.getSlot(IMMUTABLE);
+            // declType == @Mutable -> useType != @Immutable
+            EqualityConstraint equalityConstraint = constraintManager.createEqualityConstraint(declSlot, mutable);
+            InequalityConstraint inequalityConstraint = constraintManager.createInequalityConstraint(useSlot, immutable);
+            constraintManager.addImplicationConstraint(Arrays.asList(equalityConstraint), inequalityConstraint);
+            // declType == @Immutable -> useType != @Mutable
+            equalityConstraint = constraintManager.createEqualityConstraint(declSlot, immutable);
+            inequalityConstraint = constraintManager.createInequalityConstraint(useSlot, mutable);
+            constraintManager.addImplicationConstraint(Arrays.asList(equalityConstraint), inequalityConstraint);
+            return true;
+        } else {
+            AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
+            if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE)) {
+                return true;
+            }
+            assert AnnotationUtils.areSame(declared, MUTABLE) ||
+                    AnnotationUtils.areSame(declared, IMMUTABLE);
+
+            AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
+            if (AnnotationUtils.areSame(declared, MUTABLE) && !AnnotationUtils.areSame(used, IMMUTABLE)) {
+                return true;
+            }
+
+            if (AnnotationUtils.areSame(declared, IMMUTABLE) && !AnnotationUtils.areSame(used, MUTABLE)) {
+                return true;
+            }
+
+            return false;
+        }
     }
 
     @Override
