@@ -16,7 +16,7 @@ class A {
 
 public class RDMConstructor {
     void test1() {
-        // :: fixable-error: (assignment.type.incompatible)
+        // :: fixable-error: (type.invalid)
         @Immutable A la = new A();
         la.toString();
     }

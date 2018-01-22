@@ -4,11 +4,12 @@ import qual.ReceiverDependantMutable;
 
 public class ConstructorInvocationUsingNew {
 
+    // :: fixable-error: (constructor.return.incompatible)
     @ReceiverDependantMutable ConstructorInvocationUsingNew() {}
 
     public static void main(String[] args) {
         // Handled by PICOInferenceVisito#checkConstructorInvocability
-        // :: fixable-error: (assignment.type.incompatible)
+        // :: fixable-error: (type.invalid)
         @Immutable ConstructorInvocationUsingNew c = new ConstructorInvocationUsingNew();
     }
 }
