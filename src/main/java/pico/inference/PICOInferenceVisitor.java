@@ -540,4 +540,33 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
         super.checkMethodInvocability(method, node);
     }
+
+    @Override
+    protected Set<? extends AnnotationMirror> getExceptionParameterLowerBoundAnnotations() {
+        Set<AnnotationMirror> result = new HashSet<>();
+        if (infer) {
+            result.add(createEquivalentVarAnnotOfRealQualifier(BOTTOM));
+        } else {
+            result.add(atypeFactory.getQualifierHierarchy().getBottomAnnotation(BOTTOM));
+        }
+        return result;
+    }
+
+    @Override
+    protected Set<? extends AnnotationMirror> getThrowUpperBoundAnnotations() {
+        Set<AnnotationMirror> result = new HashSet<>();
+        if (infer) {
+            result.add(createEquivalentVarAnnotOfRealQualifier(READONLY));
+        } else {
+            result.add(atypeFactory.getQualifierHierarchy().getTopAnnotation(READONLY));
+        }
+        return result;
+    }
+
+    private AnnotationMirror createEquivalentVarAnnotOfRealQualifier(final AnnotationMirror am) {
+        assert infer;
+        final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+        ConstantSlot constantSlot = slotManager.createConstantSlot(am);
+        return slotManager.getAnnotation(constantSlot);
+    }
 }
