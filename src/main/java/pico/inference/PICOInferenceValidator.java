@@ -3,7 +3,9 @@ package pico.inference;
 import checkers.inference.InferenceValidator;
 import checkers.inference.InferenceVisitor;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.VariableTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
@@ -13,6 +15,7 @@ import org.checkerframework.javacutil.TreeUtils;
 import pico.typecheck.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.VariableElement;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
@@ -34,6 +37,7 @@ public class PICOInferenceValidator extends InferenceValidator{
         PICOInferenceVisitor picoInferenceVisitor = (PICOInferenceVisitor) visitor;
         checkStaticReceiverDependantMutableError(type, tree, picoInferenceVisitor);
         checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor);
+        checkOnlyOneAssignabilityModifierOnField(tree, picoInferenceVisitor);
         return super.visitDeclared(type, tree);
     }
 
@@ -78,5 +82,26 @@ public class PICOInferenceValidator extends InferenceValidator{
                 }
             }
         }
+    }
+
+    /**Ensures the well-formdness in terms of assignability on a field. This covers both instance fields and static fields.*/
+    private void checkOnlyOneAssignabilityModifierOnField(Tree tree, PICOInferenceVisitor picoInferenceVisitor) {
+        if (tree.getKind() == Tree.Kind.VARIABLE) {
+            VariableTree variableTree = (VariableTree) tree;
+            VariableElement variableElement = TreeUtils.elementFromDeclaration(variableTree);
+            if (picoInferenceVisitor.infer) {
+                // Do nothing in terms of assignability quaifier(no constraints generated), as we don't
+                // support inferring assignability qualifier right now.
+            } else {
+                if (!PICOTypeUtil.hasOneAndOnlyOneAssignabilityQualifier(variableElement, atypeFactory)) {
+                    reportFieldMultipleAssignabilityModifiersError(variableElement);
+                }
+            }
+        }
+    }
+
+    private void reportFieldMultipleAssignabilityModifiersError(VariableElement field) {
+        checker.report(Result.failure("one.assignability.invalid", field), field);
+        isValid = false;
     }
 }

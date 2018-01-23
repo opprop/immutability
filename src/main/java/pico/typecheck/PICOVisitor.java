@@ -249,37 +249,32 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (receiverType == null) {
             return super.visitAssignment(node, p);
         }
-        // If receiver != null, it's field assignment
         if (!allowWrite(receiverType, node)) {
             reportFieldOrArrayWriteError(node, variable, receiverType);
         }
         return super.visitAssignment(node, p);
     }
 
-    private void reportFieldOrArrayWriteError(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
-        if (variable.getKind() == Kind.MEMBER_SELECT) {
-            checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
-        } else if (variable.getKind() == Kind.IDENTIFIER) {
-            checker.report(Result.failure("illegal.field.write", receiverType), node);
-        } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
-            checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
-        } else {
-            ErrorReporter.errorAbort("Unknown assignment variable at: ", node);
-        }
-    }
-
     private boolean allowWrite(AnnotatedTypeMirror receiverType, AssignmentTree node) {
         // One pico side, if only receiver is mutable, we allow assigning/reassigning. Because if the field
         // is declared as final, Java compiler will catch that, and we couldn't have reached this point
-        if (receiverType.hasAnnotation(MUTABLE)) {
-            return true;
+        if (PICOTypeUtil.isAssigningAssignableField(node, atypeFactory)) {
+            return isAllowedAssignableField(receiverType, node);
         } else if (isInitializingReceiverDependantMutableOrImmutableObject(receiverType)) {
             return true;
-        } else if (isAssigningAssignableField(receiverType, node)) {
+        } else if (receiverType.hasAnnotation(MUTABLE)) {
             return true;
-        } else {
-            return false;
         }
+
+        return false;
+    }
+
+    private boolean isAllowedAssignableField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
+        Element fieldElement = TreeUtils.elementFromUse(node);
+        AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
+        if (fieldElement == null) return false;
+        // Forbid the case that might break type soundness
+        return !(receiverType.hasAnnotation(READONLY) && fieldType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE));
     }
 
     private boolean isInitializingReceiverDependantMutableOrImmutableObject(AnnotatedTypeMirror receiverType) {
@@ -292,49 +287,16 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         }
     }
 
-    private boolean isAssigningAssignableField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
-        Element fieldElement = TreeUtils.elementFromUse(node);
-        if (fieldElement == null) return false;
-        AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
-        // Forbid the case that might break type soundness
-        if (isAssignableField(fieldElement) && receiverType.hasAnnotation(READONLY)
-                && fieldType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
-            return false;
-        } else if (isAssignableField(fieldElement)) {
-            return true;
-        }
-        return false;
-    }
-
-    /**Util methods to determine fields' assignability*/
-    /**Check if a field is assignable or not.*/
-    protected boolean isAssignableField(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        boolean hasExplicitAssignableAnnotation = atypeFactory.getDeclAnnotation(variableElement, Assignable.class) != null;
-        if (!ElementUtils.isStatic(variableElement)) {
-            // Instance fields must have explicit @Assignable annotation to be assignable
-            return hasExplicitAssignableAnnotation;
+    private void reportFieldOrArrayWriteError(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+        if (variable.getKind() == Kind.MEMBER_SELECT) {
+            checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
+        } else if (variable.getKind() == Kind.IDENTIFIER) {
+            checker.report(Result.failure("illegal.field.write", receiverType), node);
+        } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
+            checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
         } else {
-            // If there is explicit @Assignable annotation on static fields, then it's assignable; If there isn't,
-            // and the static field is not final, we treat it as if it's assignable field.
-            return hasExplicitAssignableAnnotation || !isFinalField(variableElement);
+            ErrorReporter.errorAbort("Unknown assignment variable at: ", node);
         }
-    }
-
-    /**Check if a field is final or not.*/
-    protected boolean isFinalField(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        return ElementUtils.isFinal(variableElement);
-    }
-
-    /**Check if a field is @ReceiverDependantAssignable. Static fields always returns false.*/
-    protected boolean isReceiverDependantAssignable(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        if (ElementUtils.isStatic(variableElement)) {
-            // Static fields can never be @ReceiverDependantAssignable!
-            return false;
-        }
-        return !isAssignableField(variableElement) && !isFinalField(variableElement);
     }
 
     @Override

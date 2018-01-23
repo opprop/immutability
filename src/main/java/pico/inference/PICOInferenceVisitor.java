@@ -28,6 +28,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.AnnotationProvider;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.ErrorReporter;
@@ -325,18 +326,16 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (receiverType == null) {
             return super.visitAssignment(node, p);
         }
-        // TODO INF-FR Constructor return type can correct constraints and solutions now, but we don't insert the result
-        // back into constructor return type.
         // TODO INF-FR Right now, "this" parameter in initialization block doesn't have VarAnnot. No matter 2nd or 3rd
         // branch is executed, mainIsNot silently ignore the constraint and mainIs throws NPE in DefaultSlotManager#
         // getAnnotation() (the method I added)
         // Must be a field assignment or array write
-        if (isAssigningAssignableField(node)) {
+        if (PICOTypeUtil.isAssigningAssignableField(node, atypeFactory)) {
             checkAssignableField(node, variable, receiverType);
         } else if (isInitializingObject(node)) {
             checkInitializingObject(node, variable, receiverType);
         } else {
-            checkOtherAssignmentCase(node, variable, receiverType);
+            checkMutableReceiverCase(node, variable, receiverType);
         }
         return super.visitAssignment(node, p);
     }
@@ -368,7 +367,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
     }
 
-    private void checkOtherAssignmentCase(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+    private void checkMutableReceiverCase(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (infer) {
             mainIs(receiverType, MUTABLE, "illegal.field.write", node);
         } else {
@@ -389,34 +388,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         } else {
             ErrorReporter.errorAbort("Unknown assignment variable at: ", node);
         }
-    }
-
-    private boolean isAssigningAssignableField(AssignmentTree node) {
-        Element field = TreeUtils.elementFromUse(node);
-        if (field == null) return false;
-        return isAssignableField(field);
-
-    }
-
-    /**Util methods to determine fields' assignability*/
-    /**Check if a field is assignable or not.*/
-    protected boolean isAssignableField(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        boolean hasExplicitAssignableAnnotation = atypeFactory.getDeclAnnotation(variableElement, Assignable.class) != null;
-        if (!ElementUtils.isStatic(variableElement)) {
-            // Instance fields must have explicit @Assignable annotation to be assignable
-            return hasExplicitAssignableAnnotation;
-        } else {
-            // If there is explicit @Assignable annotation on static fields, then it's assignable; If there isn't,
-            // and the static field is not final, we treat it as if it's assignable field.
-            return hasExplicitAssignableAnnotation || !isFinalField(variableElement);
-        }
-    }
-
-    /**Check if a field is final or not.*/
-    protected boolean isFinalField(Element variableElement) {
-        assert variableElement instanceof VariableElement;
-        return ElementUtils.isFinal(variableElement);
     }
 
     /**

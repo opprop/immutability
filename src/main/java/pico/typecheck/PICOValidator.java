@@ -72,22 +72,7 @@ public class PICOValidator extends BaseTypeValidator {
         if (tree.getKind() == Kind.VARIABLE) {
             VariableTree variableTree = (VariableTree) tree;
             VariableElement variableElement = TreeUtils.elementFromDeclaration(variableTree);
-            boolean isValid = false;
-            PICOAnnotatedTypeFactory picoAnnotatedTypeFactory = (PICOAnnotatedTypeFactory) atypeFactory;
-            PICOVisitor picoVisitor = (PICOVisitor) visitor;
-            if (picoVisitor.isAssignableField(variableElement) && !picoVisitor.isFinalField(variableElement) &&
-                    !picoVisitor.isReceiverDependantAssignable(variableElement)) {
-                isValid = true;
-            } else if (!picoVisitor.isAssignableField(variableElement) && picoVisitor.isFinalField(variableElement) &&
-                    !picoVisitor.isReceiverDependantAssignable(variableElement)) {
-                isValid = true;
-            } else if (!picoVisitor.isAssignableField(variableElement) && !picoVisitor.isFinalField(variableElement) &&
-                    picoVisitor.isReceiverDependantAssignable(variableElement)) {
-                assert !ElementUtils.isStatic(variableElement);
-                isValid = true;
-            }
-
-            if (!isValid) {
+            if (!PICOTypeUtil.hasOneAndOnlyOneAssignabilityQualifier(variableElement, atypeFactory)) {
                 reportFieldMultipleAssignabilityModifiersError(variableElement);
             }
         }

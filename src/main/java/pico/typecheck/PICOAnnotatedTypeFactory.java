@@ -173,7 +173,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         Set<AnnotationMirror> lowerBounds =
                 AnnotatedTypes.findEffectiveLowerBoundAnnotations(qualHierarchy, type);
         return (AnnotationUtils.containsSame(lowerBounds, IMMUTABLE) || AnnotationUtils.containsSame(lowerBounds, RECEIVER_DEPENDANT_MUTABLE))
-                && !((PICOVisitor)checker.getVisitor()).isAssignableField(fieldElement);
+                && !PICOTypeUtil.isAssignableField(fieldElement, this);
     }
 
     /**Forbid applying top annotations to type variables if they are used on local variables*/

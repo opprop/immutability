@@ -1,5 +1,6 @@
 package pico.typecheck;
 
+import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
@@ -9,10 +10,12 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.AnnotationProvider;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import qual.Assignable;
 import qual.Immutable;
 import qual.ObjectIdentityMethod;
 
@@ -230,5 +233,54 @@ public class PICOTypeUtil {
                 ((AnnotatedExecutableType) type).getReturnType().addMissingAnnotations(Arrays.asList(IMMUTABLE));
             }
         }
+    }
+
+    /**Check if a field is final or not.*/
+    public static boolean isFinalField(Element variableElement) {
+        assert variableElement instanceof VariableElement;
+        return ElementUtils.isFinal(variableElement);
+    }
+
+    /**Check if a field is assignable or not.*/
+    public static boolean isAssignableField(Element variableElement, AnnotationProvider provider) {
+        assert variableElement instanceof VariableElement;
+        boolean hasExplicitAssignableAnnotation = provider.getDeclAnnotation(variableElement, Assignable.class) != null;
+        if (!ElementUtils.isStatic(variableElement)) {
+            // Instance fields must have explicit @Assignable annotation to be assignable
+            return hasExplicitAssignableAnnotation;
+        } else {
+            // If there is explicit @Assignable annotation on static fields, then it's assignable; If there isn't,
+            // and the static field is not final, we treat it as if it's assignable field.
+            return hasExplicitAssignableAnnotation || !isFinalField(variableElement);
+        }
+    }
+
+    /**Check if a field is @ReceiverDependantAssignable. Static fields always returns false.*/
+    public static boolean isReceiverDependantAssignable(Element variableElement, AnnotationProvider provider) {
+        assert variableElement instanceof VariableElement;
+        if (ElementUtils.isStatic(variableElement)) {
+            // Static fields can never be @ReceiverDependantAssignable!
+            return false;
+        }
+        return !isAssignableField(variableElement, provider) && !isFinalField(variableElement);
+    }
+
+    public static boolean hasOneAndOnlyOneAssignabilityQualifier(VariableElement field, AnnotationProvider provider) {
+        boolean valid = false;
+        if (isAssignableField(field, provider) && !isFinalField(field) && !isReceiverDependantAssignable(field, provider)) {
+            valid = true;
+        } else if (!isAssignableField(field, provider) && isFinalField(field) && !isReceiverDependantAssignable(field, provider)) {
+            valid = true;
+        } else if (!isAssignableField(field, provider) && !isFinalField(field) && isReceiverDependantAssignable(field, provider)) {
+            assert !ElementUtils.isStatic(field);
+            valid = true;
+        }
+        return valid;
+    }
+
+    public static boolean isAssigningAssignableField(AssignmentTree node, AnnotationProvider provider) {
+        Element fieldElement = TreeUtils.elementFromUse(node);
+        if (fieldElement == null) return false;
+        return isAssignableField(fieldElement, provider);
     }
 }
