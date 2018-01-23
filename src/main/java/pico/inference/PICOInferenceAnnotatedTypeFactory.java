@@ -24,6 +24,7 @@ import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 
@@ -67,6 +68,11 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     @Override
     public VariableAnnotator createVariableAnnotator() {
         return new PICOVariableAnnotator(this, realTypeFactory, realChecker, slotManager, constraintManager);
+    }
+
+    @Override
+    protected void viewpointAdaptMethod(ExecutableElement methodElt, AnnotatedTypeMirror receiverType, AnnotatedTypeMirror.AnnotatedExecutableType methodType) {
+        super.viewpointAdaptMethod(methodElt, receiverType, methodType);
     }
 
     private void applyConstant(AnnotatedTypeMirror type, AnnotationMirror am) {

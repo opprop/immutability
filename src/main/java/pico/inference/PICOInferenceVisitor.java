@@ -14,7 +14,6 @@ import checkers.inference.model.SubtypeConstraint;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
-import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
@@ -22,7 +21,6 @@ import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
-import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.source.Result;
@@ -37,7 +35,6 @@ import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import pico.typecheck.PICOTypeUtil;
 import qual.Assignable;
-import qual.Immutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -47,13 +44,15 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
@@ -260,7 +259,55 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 }
             }
         }
+
+        flexibleOverrideChecker(node);
+
+        // TODO Object identity check
         return super.visitMethod(node, p);
+    }
+
+    // TODO Completely copied from PICOVisitor
+    private void flexibleOverrideChecker(MethodTree node) {
+        // Method overriding checks
+        // TODO Copied from super, hence has lots of duplicate code with super. We need to
+        // change the signature of checkOverride() method to also pass ExecutableElement for
+        // viewpoint adaptation.
+        ExecutableElement methodElement = TreeUtils.elementFromDeclaration(node);
+        AnnotatedDeclaredType enclosingType =
+                (AnnotatedDeclaredType)
+                        atypeFactory.getAnnotatedType(methodElement.getEnclosingElement());
+
+        Map<AnnotatedDeclaredType, ExecutableElement> overriddenMethods =
+                AnnotatedTypes.overriddenMethods(elements, atypeFactory, methodElement);
+        for (Map.Entry<AnnotatedDeclaredType, ExecutableElement> pair :
+                overriddenMethods.entrySet()) {
+            AnnotatedDeclaredType overriddenType = pair.getKey();
+            AnnotatedExecutableType overriddenMethod =
+                    AnnotatedTypes.asMemberOf(
+                            types, atypeFactory, enclosingType, pair.getValue(), node);
+            // Viewpoint adapt super method executable type to current class bound(is this always class bound?)
+            // to allow flexible overriding
+            if (infer) {
+                ((PICOInferenceAnnotatedTypeFactory)atypeFactory).viewpointAdaptMethod(pair.getValue(), enclosingType, overriddenMethod);
+            } else {
+                ((PICOInferenceRealTypeFactory)atypeFactory).viewpointAdaptMethod(pair.getValue(), enclosingType, overriddenMethod);
+            }
+            AnnotatedExecutableType overrider = atypeFactory.getAnnotatedType(node);
+            if (!checkOverride(node, overrider, enclosingType, overriddenMethod, overriddenType)) {
+                // Stop at the first mismatch; this makes a difference only if
+                // -Awarns is passed, in which case multiple warnings might be raised on
+                // the same method, not adding any value. See Issue 373.
+                break;
+            }
+        }
+    }
+
+    // Disables method overriding checks in BaseTypeVisitor
+    @Override
+    protected boolean checkOverride(
+            MethodTree overriderTree, AnnotatedDeclaredType overridingType,
+            AnnotatedExecutableType overridden, AnnotatedDeclaredType overriddenType) {
+        return true;
     }
 
     @Override

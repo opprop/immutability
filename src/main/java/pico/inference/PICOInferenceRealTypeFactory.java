@@ -29,6 +29,7 @@ import qual.ReceiverDependantMutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -176,5 +177,10 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         shouldCache = oldShouldCache;
 
         return result;
+    }
+
+    @Override
+    protected void viewpointAdaptMethod(ExecutableElement methodElt, AnnotatedTypeMirror receiverType, AnnotatedTypeMirror.AnnotatedExecutableType methodType) {
+        super.viewpointAdaptMethod(methodElt, receiverType, methodType);
     }
 }

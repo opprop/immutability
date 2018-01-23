@@ -187,6 +187,16 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             }
         }
 
+        flexibleOverrideChecker(node);
+
+        // ObjectIdentityMethod check
+        if (PICOTypeUtil.isObjectIdentityMethod(node, atypeFactory)) {
+            ObjectIdentityMethodEnforcer.check(atypeFactory.getPath(node.getBody()), atypeFactory, checker);
+        }
+        return super.visitMethod(node, p);
+    }
+
+    private void flexibleOverrideChecker(MethodTree node) {
         // Method overriding checks
         // TODO Copied from super, hence has lots of duplicate code with super. We need to
         // change the signature of checkOverride() method to also pass ExecutableElement for
@@ -215,12 +225,6 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                 break;
             }
         }
-
-        // ObjectIdentityMethod check
-        if (PICOTypeUtil.isObjectIdentityMethod(node, atypeFactory)) {
-            ObjectIdentityMethodEnforcer.check(atypeFactory.getPath(node.getBody()), atypeFactory, checker);
-        }
-        return super.visitMethod(node, p);
     }
 
     // Disables method overriding checks in BaseTypeVisitor
