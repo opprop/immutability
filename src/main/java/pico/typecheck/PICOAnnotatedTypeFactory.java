@@ -187,7 +187,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
         PICOTypeUtil.addDefaultForStaticField(this, type, elt);
-        PICOTypeUtil.applyImmutableToConstructorReturnOfImmutableClass(this, elt, type);
+        PICOTypeUtil.defaultConstructorReturnToClassBound(this, elt, type);
         super.addComputedTypeAnnotations(elt, type);
     }
 
@@ -426,7 +426,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             Element element = TreeUtils.elementFromDeclaration(node);
             // See: https://github.com/opprop/checker-framework/blob/master/framework/src/org/checkerframework/framework/type/AnnotatedTypeFactory.java#L1593
             // for why constructor return is not applied class bound annotation
-            PICOTypeUtil.applyImmutableToConstructorReturnOfImmutableClass(atypeFactory, element, p);
+            PICOTypeUtil.defaultConstructorReturnToClassBound(atypeFactory, element, p);
             return super.visitMethod(node, p);
         }
 

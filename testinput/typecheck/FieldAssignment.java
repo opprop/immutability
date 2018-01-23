@@ -16,7 +16,9 @@ public class FieldAssignment {
 
     // TODO This is not specific to PICO type system. InitializationVisitor currently has this issue of false positively
     // wanrning uninitialized fields when we use instance method to initialiaze fields
+    // :: error: (initialization.fields.uninitialized)
     public FieldAssignment() {
+        // :: error: (method.invocation.invalid)
         setFWithMutableReceiver(new @Mutable Object());
     }
 

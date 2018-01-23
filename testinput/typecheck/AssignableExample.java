@@ -28,8 +28,8 @@ public class AssignableExample {
     }
 }
 
-@ReceiverDependantMutable
-class Subclass extends AssignableExample {
+// :: error: (super.constructor.invocation.incompatible)
+@ReceiverDependantMutable class Subclass extends AssignableExample {
     void bar(@Immutable Subclass this) {
         // :: error: (illegal.field.write)
         this.date = new @Immutable Date();

@@ -7,8 +7,8 @@ import qual.ReceiverDependantMutable;
 
 import java.util.Date;
 
-@ReceiverDependantMutable
-public class DateCell2 {
+// :: error: (initialization.fields.uninitialized)
+@ReceiverDependantMutable public class DateCell2 {
     @Immutable Date imdate;
 
     @Immutable Date getImmutableDate(@PolyMutable DateCell2 this) {
@@ -21,7 +21,6 @@ public class DateCell2 {
     }
 
     void test2(@Immutable DateCell2 this) {
-        // :: error: (constructor.invocation.invalid)
         @Immutable DateCell2 waht = new @Immutable DateCell2();
         @Immutable Date imd = this.getImmutableDate();
     }

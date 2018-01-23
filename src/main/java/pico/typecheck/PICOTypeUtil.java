@@ -212,15 +212,13 @@ public class PICOTypeUtil {
         }
     }
 
-    // Apply @Immutable annotation on type declaration to constructor return type if elt is constructor and doesn't have
+    // Default annotation on type declaration to constructor return type if elt is constructor and doesn't have
     // explicit annotation(type is actually AnnotatedExecutableType of executable element - elt constructor)
-    public static void applyImmutableToConstructorReturnOfImmutableClass(AnnotatedTypeFactory annotatedTypeFactory,
-                                                                         Element elt, AnnotatedTypeMirror type) {
+    public static void defaultConstructorReturnToClassBound(AnnotatedTypeFactory annotatedTypeFactory,
+                                                            Element elt, AnnotatedTypeMirror type) {
         if (elt.getKind() == ElementKind.CONSTRUCTOR && type instanceof AnnotatedExecutableType) {
             AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(elt, annotatedTypeFactory);
-            if (bound.hasAnnotation(IMMUTABLE)) {
-                ((AnnotatedExecutableType) type).getReturnType().addMissingAnnotations(Arrays.asList(IMMUTABLE));
-            }
+            ((AnnotatedExecutableType) type).getReturnType().addMissingAnnotations(Arrays.asList(bound.getAnnotationInHierarchy(READONLY)));
         }
     }
 

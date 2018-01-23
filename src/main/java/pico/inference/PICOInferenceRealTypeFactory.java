@@ -141,7 +141,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
         PICOTypeUtil.addDefaultForStaticField(this, type, elt);
-        PICOTypeUtil.applyImmutableToConstructorReturnOfImmutableClass(this, elt, type);
+        PICOTypeUtil.defaultConstructorReturnToClassBound(this, elt, type);
         super.addComputedTypeAnnotations(elt, type);
     }
 

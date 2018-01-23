@@ -559,7 +559,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
         for (AnnotatedDeclaredType superBound : superBounds) {
             if (infer) {
-                addMutableImmutableIncompatibleConstraints(superBound, bound);
+                addSameToMutableImmutableConstraints(superBound, bound);
             } else {
                 // If annotation on super bound is @ReceiverDependantMutable, then any valid bound is permitted.
                 if (superBound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) continue;
@@ -575,5 +575,22 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // 2) bound is compatible with bounds on super types. Only then continue processing
         // the class tree
         super.processClassTree(node);
+    }
+
+    private void addSameToMutableImmutableConstraints(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType) {
+        ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+        SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+        Slot declSlot = slotManager.getVariableSlot(declarationType);
+        Slot useSlot = slotManager.getVariableSlot(useType);
+        Slot mutable = slotManager.getSlot(MUTABLE);
+        Slot immutable = slotManager.getSlot(IMMUTABLE);
+        // declType == @Mutable -> useType == @Mutable
+        EqualityConstraint equalityConstraintLHS = constraintManager.createEqualityConstraint(declSlot, mutable);
+        EqualityConstraint equalityConstraintRHS = constraintManager.createEqualityConstraint(useSlot, mutable);
+        constraintManager.addImplicationConstraint(Arrays.asList(equalityConstraintLHS), equalityConstraintRHS);
+        // declType == @Immutable -> useType == @Immutable
+        equalityConstraintLHS = constraintManager.createEqualityConstraint(declSlot, immutable);
+        equalityConstraintRHS = constraintManager.createEqualityConstraint(useSlot, immutable);
+        constraintManager.addImplicationConstraint(Arrays.asList(equalityConstraintLHS), equalityConstraintRHS);
     }
 }
