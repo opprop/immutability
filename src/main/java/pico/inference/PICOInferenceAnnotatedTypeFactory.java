@@ -11,6 +11,7 @@ import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.Slot;
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.TypeCastTree;
+import com.sun.source.tree.VariableTree;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -20,11 +21,17 @@ import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotato
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TreeUtils;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.util.Types;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 
@@ -53,7 +60,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     public TreeAnnotator createTreeAnnotator() {
         return new ListTreeAnnotator(new ImplicitsTreeAnnotator(this),
                 new PICOInferencePropagationTreeAnnotator(this),
-                new InferenceTreeAnnotator(this, realChecker, realTypeFactory, variableAnnotator, slotManager));
+                new PICOInferenceTreeAnnotator(this, realChecker, realTypeFactory, variableAnnotator, slotManager));
     }
 
     @Override
@@ -120,6 +127,40 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
             if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
                 applyConstant(type, IMMUTABLE);
+            }
+        }
+    }
+
+    static class PICOInferenceTreeAnnotator extends InferenceTreeAnnotator {
+
+
+        public PICOInferenceTreeAnnotator(InferenceAnnotatedTypeFactory atypeFactory, InferrableChecker realChecker,
+                                          AnnotatedTypeFactory realAnnotatedTypeFactory, VariableAnnotator variableAnnotator, SlotManager slotManager) {
+            super(atypeFactory, realChecker, realAnnotatedTypeFactory, variableAnnotator, slotManager);
+        }
+
+        // Viewpoint adapt field declaration type to class bound, and replace main modifier with
+        // the adaptation result
+        @Override
+        public Void visitVariable(VariableTree node, AnnotatedTypeMirror annotatedTypeMirror) {
+            // In inference side, must call super first to store corresponding element of node into
+            // VariableAnntator to avoid infinite loop
+            super.visitVariable(node, annotatedTypeMirror);
+            VariableElement element = TreeUtils.elementFromDeclaration(node);
+            Types types = atypeFactory.getProcessingEnv().getTypeUtils();
+            viewpointAdaptInstanceFieldToClassBound(types, annotatedTypeMirror, element, node);
+            return null;
+        }
+
+        private void viewpointAdaptInstanceFieldToClassBound(
+                Types types, AnnotatedTypeMirror annotatedTypeMirror, VariableElement element, VariableTree tree) {
+            if (element != null && element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
+                AnnotatedTypeMirror.AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(tree, atypeFactory);
+                AnnotatedTypeMirror adaptedFieldType = AnnotatedTypes.asMemberOf(types, atypeFactory, bound, element, tree);
+                // Type variable use with no annotation on its main modifier hits null case
+                // The replaced annotation only affects solutions for other slots, but doesn't change the solution
+                // for the variable tree itself, which is expected behaviour.
+                annotatedTypeMirror.replaceAnnotations(adaptedFieldType.getAnnotations());
             }
         }
     }
