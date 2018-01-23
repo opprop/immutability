@@ -315,21 +315,10 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
         ExpressionTree variable = node.getVariable();
-        // TODO Question Here, receiver type uses flow refinement. But in commonAssignmentCheck to compute lhs type
-        // , it doesn't. This causes inconsistencies when enforcing immutability and doing subtype check. I overrode
-        // getAnnotatedTypeLhs() to also use flow sensitive refinement, but came across with "private access" problem
-        // on field "computingAnnotatedTypeMirrorOfLHS"
         AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
-        // Cannot use receiverTree = TreeUtils.getReceiverTree(variable) to determine if it's
-        // field assignment or not. Because for field assignment with implicit "this", receiverTree
-        // is null but receiverType is non-null. We still need to check this case.
         if (receiverType == null) {
             return super.visitAssignment(node, p);
         }
-        // TODO INF-FR Right now, "this" parameter in initialization block doesn't have VarAnnot. No matter 2nd or 3rd
-        // branch is executed, mainIsNot silently ignore the constraint and mainIs throws NPE in DefaultSlotManager#
-        // getAnnotation() (the method I added)
-        // Must be a field assignment or array write
         if (PICOTypeUtil.isAssigningAssignableField(node, atypeFactory)) {
             checkAssignableField(node, variable, receiverType);
         } else if (isInitializingObject(node)) {
