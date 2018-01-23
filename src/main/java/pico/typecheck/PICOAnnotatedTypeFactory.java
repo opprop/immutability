@@ -457,14 +457,8 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         private void viewpointAdaptInstanceFieldToClassBound(
                 Types types, AnnotatedTypeMirror annotatedTypeMirror, VariableElement element, VariableTree tree) {
             if (element != null && element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
-                AnnotationMirror boundAnnotation = PICOTypeUtil.getBoundAnnotationOnEnclosingTypeDeclaration(tree, atypeFactory);
-                if (boundAnnotation == null) return;
-                AnnotatedDeclaredType typeDeclaration = atypeFactory.fromElement(ElementUtils.enclosingClass(element));
-                // Because boundAnnotation is the result of applying all different cases to determine bound annotation of
-                // a type element, so we forcely replace the bound with boundAnnotation. They might be the same sometimes,
-                // but we still replace it anyway.
-                typeDeclaration.replaceAnnotation(boundAnnotation);
-                AnnotatedTypeMirror adaptedFieldType = AnnotatedTypes.asMemberOf(types, atypeFactory, typeDeclaration, element, tree);
+                AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(tree, atypeFactory);
+                AnnotatedTypeMirror adaptedFieldType = AnnotatedTypes.asMemberOf(types, atypeFactory, bound, element, tree);
                 // Type variable use with no annotation on its main modifier hits null case
                 if (adaptedFieldType.getAnnotationInHierarchy(READONLY) != null) {
                     // Possible cases: AnnotatedDeclaredType, AnnotatedArrayType or AnnotatedTypeVariable with annotation on it

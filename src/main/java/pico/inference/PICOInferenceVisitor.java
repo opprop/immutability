@@ -14,6 +14,7 @@ import checkers.inference.model.SubtypeConstraint;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
@@ -28,21 +29,18 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.javacutil.AnnotationProvider;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import pico.typecheck.PICOTypeUtil;
-import qual.Assignable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -204,20 +202,21 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     @Override
     public Void visitMethod(MethodTree node, Void p) {
         AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(node);
-
-        MethodTree methodTree = (MethodTree) node;
-        ExecutableElement element = TreeUtils.elementFromDeclaration(methodTree);
-        TypeElement enclosingTypeElement = ElementUtils.enclosingClass(element);
-        AnnotatedDeclaredType boundATM = atypeFactory.getAnnotatedType(enclosingTypeElement);
+        AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(node, atypeFactory);
 
         if (TreeUtils.isConstructor(node)) {
+            // Doesn't check anonymous constructor case
+            if (TreeUtils.isAnonymousConstructor(node)) {
+                return super.visitMethod(node, p);
+            }
+
             AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
             if (infer) {
                 // Constructor return cannot be @Readonly
                 mainIsNot(constructorReturnType, READONLY, "constructor.return.invalid", node);
                 ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
                 SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
-                Slot boundSlot = slotManager.getVariableSlot(boundATM);
+                Slot boundSlot = slotManager.getVariableSlot(bound);
                 Slot consRetSlot = slotManager.getVariableSlot(constructorReturnType);
                 Slot rdmSlot = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
                 InequalityConstraint inequalityConstraint = constraintManager.createInequalityConstraint(boundSlot, rdmSlot);
@@ -225,20 +224,17 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 // bound != @ReceiverDependantMutable -> consRet <: bound
                 constraintManager.addImplicationConstraint(Arrays.asList(inequalityConstraint), subtypeConstraint);
             } else {
-                // Doesn't check anonymous constructor case
-                if (TreeUtils.isAnonymousConstructor(node)) {
-                    return super.visitMethod(node, p);
-                }
                 if (constructorReturnType.hasAnnotation(READONLY)) {
                     checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
                     return super.visitMethod(node, p);
                 }
-                if (boundATM.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+                if (bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
                     // Any one of @Mutable, @ReceiverDependantMutable and @Immutable are allowed to be constructor
                     // return type if the class bound is @ReceiverDependantMutable.
                     return super.visitMethod(node, p);
                 }
-                if (!atypeFactory.getTypeHierarchy().isSubtype(constructorReturnType, boundATM)) {
+                if (!atypeFactory.getQualifierHierarchy().isSubtype(
+                        constructorReturnType.getAnnotationInHierarchy(READONLY), bound.getAnnotationInHierarchy(READONLY))) {
                     checker.report(Result.failure("constructor.return.incompatible"), node);
                 }
             }
@@ -246,16 +242,15 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             AnnotatedDeclaredType declaredReceiverType = executableType.getReceiverType();
             if (declaredReceiverType != null) {
                 if (infer) {
-                    addMutableImmutableIncompatibleConstraints(boundATM, declaredReceiverType);
+                    addMutableImmutableIncompatibleConstraints(bound, declaredReceiverType);
                 } else {
-                    AnnotationMirror boundAnnotation = PICOTypeUtil.getBoundAnnotationOnTypeDeclaration(enclosingTypeElement, atypeFactory);
-                    AnnotationMirror declaredReceiverAnnotation = declaredReceiverType.getAnnotationInHierarchy(READONLY);
-                    if (boundAnnotation != null
-                            && !AnnotationUtils.areSame(boundAnnotation, RECEIVER_DEPENDANT_MUTABLE)// clone() method doesn't warn
-                            && !atypeFactory.getQualifierHierarchy().isSubtype(declaredReceiverAnnotation, boundAnnotation)
+                    if (!bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)// clone() method doesn't warn
+                            && !atypeFactory.getQualifierHierarchy().isSubtype(
+                                    declaredReceiverType.getAnnotationInHierarchy(READONLY),
+                                        bound.getAnnotationInHierarchy(READONLY))
                             // Below three are allowed on declared receiver types of instance methods in either @Mutable class or @Immutable class
-                            && !AnnotationUtils.areSame(declaredReceiverAnnotation, READONLY)
-                            && !AnnotationUtils.areSame(declaredReceiverAnnotation, RECEIVER_DEPENDANT_MUTABLE)) {
+                            && !declaredReceiverType.hasAnnotation(READONLY)
+                            && !declaredReceiverType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
                         checker.report(Result.failure("method.receiver.incompatible", declaredReceiverType), node);
                     }
                 }
@@ -471,7 +466,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
     }
 
-    /**This is really copied from PICOVisitor#visitMethodInvocation(MethodInvocationTree).*/
+    // Completely copied from PICOVisitor
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         super.visitMethodInvocation(node, p);
@@ -494,17 +489,16 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             AnnotatedTypeMirror subClassConstructorReturnType = atypeFactory.getReceiverType(node);
             AnnotatedTypeMirror superClassConstructorReturnType = method.getReturnType();
             // In infer mode, InferenceQualifierHierarchy that is internally used should generate subtype constraint between the
-            // below two types
+            // below two types GENERALLY(not always)
             if (!atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType)) {
-                if (infer) {
-                    // Usually the subtyping check returns true. If not, that means subtype constraint doesn't hold between two
-                    // ConstantSlots. Then this unsatisfiable constraint should be captured by ConstraintManager. So we don't report
-                    // duplicate error message here.
-                } else {
-                    checker.report(
-                            Result.failure(
-                                    "subclass.constructor.invalid", subClassConstructorReturnType, superClassConstructorReturnType), node);
-                }
+                // Usually the subtyping check returns true. If not, that means subtype constraint doesn't hold between two
+                // ConstantSlots. Previously, InferenceQualifierHierarchy also generates subtype constraint in this case,
+                // then this unsatisfiable constraint is captured by ConstraintManager and ConstraintManager early exits. But
+                // now for two ConstantSlot case, no subtype constraint is generated any more. So we have to report the error
+                // , otherwise it will cause inference result not typecheck
+                checker.report(
+                        Result.failure(
+                                "super.constructor.invocation.incompatible", subClassConstructorReturnType, superClassConstructorReturnType), node);
             }
         }
         super.checkMethodInvocability(method, node);
@@ -537,5 +531,49 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
         ConstantSlot constantSlot = slotManager.createConstantSlot(am);
         return slotManager.getAnnotation(constantSlot);
+    }
+
+    @Override
+    public void processClassTree(ClassTree node) {
+        TypeElement typeElement = TreeUtils.elementFromDeclaration(node);
+        // TODO Don't process anonymous class. I'm not even sure if whether processClassTree(ClassTree) is
+        // called on anonymous class tree
+        if (typeElement.toString().contains("anonymous")) {
+            super.processClassTree(node);
+            return;
+        }
+
+        AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
+
+        if (infer) {
+            mainIsNot(bound, READONLY, "class.bound.invalid", node);
+        } else {
+            // Has to be either @Mutable, @ReceiverDependantMutable or @Immutable, nothing else
+            if (!bound.hasAnnotation(MUTABLE) && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) && !bound.hasAnnotation(IMMUTABLE)) {
+                checker.report(Result.failure("class.bound.invalid", bound), node);
+                return;// Doesn't process the class tree anymore
+            }
+        }
+
+        // Must have compatible bound annotation as the direct super types
+        List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
+        for (AnnotatedDeclaredType superBound : superBounds) {
+            if (infer) {
+                addMutableImmutableIncompatibleConstraints(superBound, bound);
+            } else {
+                // If annotation on super bound is @ReceiverDependantMutable, then any valid bound is permitted.
+                if (superBound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) continue;
+                // super bound is either @Mutable or @Immutable. Must be the subtype of the corresponding super bound
+                if (!atypeFactory.getQualifierHierarchy().isSubtype(
+                        bound.getAnnotationInHierarchy(READONLY), superBound.getAnnotationInHierarchy(READONLY))) {
+                    checker.report(Result.failure("subclass.bound.incompatible", bound, superBound), node);
+                    return;
+                }
+            }
+        }
+        // Reach this point iff 1) bound annotation is one of mutable, rdm or immutable;
+        // 2) bound is compatible with bounds on super types. Only then continue processing
+        // the class tree
+        super.processClassTree(node);
     }
 }

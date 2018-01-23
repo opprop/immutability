@@ -1,6 +1,7 @@
 package pico.typecheck;
 
 import com.sun.source.tree.AssignmentTree;
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
@@ -74,19 +75,17 @@ public class PICOTypeUtil {
     /**
      * Returns the bound of type declaration enclosing the node.
      *
-     * If no annotation exists on type declaration, defaults to @Mutable instead of returning null.
-     * Returning null represents intended cases that bound annotation should not be considered.
-     * For example, anonymous classes has null bound annotation(TODO Is this really true??);
+     * If no annotation exists on type declaration, bound is defaulted to @Mutable instead of having empty annotations.
      *
      * This method simply gets/defaults annotation on bounds of classes, but
-     * doesn't validate the correctness of the annotation. They are validated in PICOVisitor#processClassTree()
+     * doesn't validate the correctness of the annotation. They are validated in {@link PICOVisitor#processClassTree(ClassTree)}
      * method.
      *
      * @param node tree whose enclosing type declaration's bound annotation is to be extracted
      * @param atypeFactory pico type factory
      * @return annotation on the bound of enclosing type declaration
      */
-    public static AnnotationMirror getBoundAnnotationOnEnclosingTypeDeclaration(Tree node, AnnotatedTypeFactory atypeFactory) {
+    public static AnnotatedDeclaredType getBoundTypeOfEnclosingTypeDeclaration(Tree node, AnnotatedTypeFactory atypeFactory) {
         TypeElement typeElement = null;
         if (node instanceof MethodTree) {
             MethodTree methodTree = (MethodTree) node;
@@ -100,50 +99,22 @@ public class PICOTypeUtil {
         }
 
         if (typeElement != null) {
-            return getBoundAnnotationOnTypeDeclaration(typeElement, atypeFactory);
+            return getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
         }
 
         return null;
     }
 
-    public static AnnotationMirror getBoundAnnotationOnEnclosingTypeDeclaration(Element element, AnnotatedTypeFactory atypeFactory) {
+    public static AnnotatedDeclaredType getBoundTypeOfEnclosingTypeDeclaration(Element element, AnnotatedTypeFactory atypeFactory) {
         TypeElement typeElement = ElementUtils.enclosingClass(element);
         if (typeElement != null) {
-            return getBoundAnnotationOnTypeDeclaration(typeElement, atypeFactory);
+            return getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
         }
         return null;
     }
 
-    // TODO This method does very similar job with AnnotatedTypeFactory#getAnnotatedType(Element). Maybe should call
-    // that method inside this method and add additional logic here
-    public static AnnotationMirror getBoundAnnotationOnTypeDeclaration(TypeElement typeElement, AnnotatedTypeFactory atypeFactory) {
-        // Ignore anonymous classes. It doesn't have bound annotation. The annotation on new instance
-        // creation is wrongly passed here as bound annotation. As a result, if anonymous class is instantiated
-        // with @Immutable instance, it gets warned "constructor.return.incompatible" because anonymous
-        // class only has default @Mutable constructor
-        if (typeElement.toString().contains("anonymous")) return null;// TODO Return bound annotation on super class maybe
-
-        // If there is bound annotation on type element, then addMissingAnnotations() won't affect it and it falls through and is returned
-        AnnotatedDeclaredType bound = atypeFactory.fromElement(typeElement); // Reads bound annotation from source code or stub files
-
-        // TODO It's a bit strange that bound annotations on implicilty immutable types
-        // are not specified in the stub file. For implicitly immutable types, having bounds in stub
-        // file suppresses type cast warnings, because in base implementation, it checks cast type is whether
-        // from element itself. If yes, no matter what the casted type is, the warning is suppressed, which is
-        // also not wanted. So we have the logic of determining bounds for different type elements here.
-        if (isImplicitlyImmutableType(bound)) {
-            bound.addMissingAnnotations(Arrays.asList(IMMUTABLE));
-        } else {
-            // defaults to all other elements that are: not implicitly immutable types
-            // specified in definition of @Immutable qualifier; has no bound annotation on its type element
-            // declaration either in source tree or stub file(jdk.astub)
-            bound.addMissingAnnotations(Arrays.asList(MUTABLE));
-        }
-        return bound.getAnnotationInHierarchy(READONLY);
-    }
-
-    public static List<AnnotationMirror> getBoundAnnotationOnDirectSuperTypeDeclarations(TypeElement current, AnnotatedTypeFactory atypeFactory) {
-        List<AnnotationMirror> boundAnnotsOnSupers = new ArrayList<>();
+    public static List<AnnotatedDeclaredType> getBoundTypesOfDirectSuperTypes(TypeElement current, AnnotatedTypeFactory atypeFactory) {
+        List<AnnotatedDeclaredType> boundsOfSupers = new ArrayList<>();
         TypeMirror supertypecls;
         try {
             supertypecls = current.getSuperclass();
@@ -158,14 +129,32 @@ public class PICOTypeUtil {
 
         if (supertypecls != null && supertypecls.getKind() != TypeKind.NONE) {
             TypeElement supercls = (TypeElement) ((DeclaredType) supertypecls).asElement();
-            boundAnnotsOnSupers.add(getBoundAnnotationOnTypeDeclaration(supercls, atypeFactory));
+            boundsOfSupers.add(getBoundTypeOfTypeDeclaration(supercls, atypeFactory));
         }
 
         for (TypeMirror supertypeitf : current.getInterfaces()) {
             TypeElement superitf = (TypeElement) ((DeclaredType) supertypeitf).asElement();
-            boundAnnotsOnSupers.add(getBoundAnnotationOnTypeDeclaration(superitf, atypeFactory));
+            boundsOfSupers.add(getBoundTypeOfTypeDeclaration(superitf, atypeFactory));
         }
-        return boundAnnotsOnSupers;
+        return boundsOfSupers;
+    }
+
+    public static AnnotatedDeclaredType getBoundTypeOfTypeDeclaration(TypeElement typeElement, AnnotatedTypeFactory atypeFactory) {
+        // Reads bound annotation from source code or stub files
+        // Implicitly immutable types have @Immutable in its bound
+        // All other elements that are: not implicitly immutable types specified in definition of @Immutable qualifier;
+        // Or has no bound annotation on its type element declaration either in source tree or stub file(jdk.astub) have
+        // @Mutable in its bound
+        return atypeFactory.getAnnotatedType(typeElement);
+
+        // It's a bit strange that bound annotations on implicilty immutable types
+        // are not specified in the stub file. For implicitly immutable types, having bounds in stub
+        // file suppresses type cast warnings, because in base implementation, it checks cast type is whether
+        // from element itself. If yes, no matter what the casted type is, the warning is suppressed, which is
+        // also not wanted. BUT, they are applied @Immutable as their bounds CORRECTLY, because we have TypeAnnotator!
+
+        // TODO This method doesn't have logic of handling anonymous class! We should implement it, maybe in different
+        // places, at some time.
     }
 
     public static boolean isObjectIdentityMethod(MethodTree node,
@@ -228,8 +217,8 @@ public class PICOTypeUtil {
     public static void applyImmutableToConstructorReturnOfImmutableClass(AnnotatedTypeFactory annotatedTypeFactory,
                                                                          Element elt, AnnotatedTypeMirror type) {
         if (elt.getKind() == ElementKind.CONSTRUCTOR && type instanceof AnnotatedExecutableType) {
-            AnnotationMirror bound = PICOTypeUtil.getBoundAnnotationOnEnclosingTypeDeclaration(elt, annotatedTypeFactory);
-            if (AnnotationUtils.areSame(bound, IMMUTABLE)) {
+            AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(elt, annotatedTypeFactory);
+            if (bound.hasAnnotation(IMMUTABLE)) {
                 ((AnnotatedExecutableType) type).getReturnType().addMissingAnnotations(Arrays.asList(IMMUTABLE));
             }
         }
