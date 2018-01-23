@@ -282,6 +282,8 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return true;
         } else if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(IMMUTABLE)) {
             return true;
+        } else if (receiverType.hasAnnotation(UnderInitialization.class) && receiverType.hasAnnotation(MUTABLE)) {
+            return true;
         } else {
             return false;
         }

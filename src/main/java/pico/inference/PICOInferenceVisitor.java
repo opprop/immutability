@@ -330,14 +330,22 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     private void checkAssignableField(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
-        if (infer) {
-            // TODO PICOINF We just selected one way to break the combination of readonly receiver, assignable and rdm field
-            // Does this make sense?
-            mainIsNot(receiverType, READONLY, "illegal.field.write", node);
-        } else {
-            Element fieldElement = TreeUtils.elementFromUse(node);
-            if (fieldElement != null) {//TODO Can this bu null?
-                AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
+        Element fieldElement = TreeUtils.elementFromUse(node);
+        if (fieldElement != null) {//TODO Can this bu null?
+            AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
+            assert  fieldType != null;
+            if (infer) {
+                // Break the combination of readonly receiver + rdm assignable field
+                ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+                SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+                Slot receiverSlot = slotManager.getVariableSlot(receiverType);
+                Slot fieldSlot = slotManager.getVariableSlot(fieldType);
+                Slot readonly = slotManager.getSlot(READONLY);
+                Slot receiver_dependant_mutable = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
+                EqualityConstraint receiverReadOnly = constraintManager.createEqualityConstraint(receiverSlot, readonly);
+                InequalityConstraint fieldNotRDM = constraintManager.createInequalityConstraint(fieldSlot, receiver_dependant_mutable);
+                constraintManager.addImplicationConstraint(Arrays.asList(receiverReadOnly), fieldNotRDM);
+            } else {
                 if (receiverType.hasAnnotation(READONLY) && fieldType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
                     reportFieldOrArrayWriteError(node, variable, receiverType);
                 }
