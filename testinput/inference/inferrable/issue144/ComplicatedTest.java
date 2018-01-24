@@ -38,7 +38,7 @@ public class ComplicatedTest {
         String name = "tamier";
         int age = 24;
         ArrayList<String> friends = new ArrayList<String>();
-        // :: fixable-error: (type.invalid)
+        // :: fixable-error: (type.invalid.annotations.on.use)
         Person p = new @Immutable Person(name, age, friends);
         // :: fixable-error: (method.invocation.invalid)
         p.getName();

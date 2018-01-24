@@ -78,7 +78,7 @@ public class PICOInferenceValidator extends InferenceValidator{
                         "type.invalid", tree);
             } else {
                 if (!type.hasAnnotation(IMMUTABLE)) {
-                    reportError(type, tree);
+                    reportInvalidType(type, tree);
                 }
             }
         }

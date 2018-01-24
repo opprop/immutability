@@ -5,7 +5,7 @@ import qual.Immutable;
 public class ConstructorInvocationInSubclassConstructor {
     Object f;
 
-    // :: fixable-error: (type.invalid) :: fixable-error: (constructor.return.incompatible)
+    // :: fixable-error: (type.invalid.annotations.on.use) :: fixable-error: (constructor.return.incompatible)
     @Immutable ConstructorInvocationInSubclassConstructor(Object f) {
         // :: fixable-error: (assignment.type.incompatible)
         this.f = f;
