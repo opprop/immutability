@@ -61,11 +61,8 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTAB
  */
 public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker, BaseAnnotatedTypeFactory> {
 
-    protected final boolean infer;
-
     public PICOInferenceVisitor(PICOInferenceChecker checker, InferenceChecker ichecker, BaseAnnotatedTypeFactory factory, boolean infer) {
         super(checker, ichecker, factory, infer);
-        this.infer = infer;
     }
 
     @Override
@@ -76,7 +73,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
         if (infer) {
-            mainIsNot(declarationType, READONLY, "type.invalid", tree);
+            mainIsNot(declarationType, READONLY, "type.invalid.annotations.on.use", tree);
             addMutableImmutableIncompatibleConstraints(declarationType, useType);
             return true;
         } else {

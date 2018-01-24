@@ -34,32 +34,28 @@ public class PICOInferenceValidator extends InferenceValidator{
 
     @Override
     public Void visitDeclared(AnnotatedDeclaredType type, Tree tree) {
-        PICOInferenceVisitor picoInferenceVisitor = (PICOInferenceVisitor) visitor;
-        checkStaticReceiverDependantMutableError(type, tree, picoInferenceVisitor);
-        checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor);
-        checkOnlyOneAssignabilityModifierOnField(tree, picoInferenceVisitor);
+        checkStaticReceiverDependantMutableError(type, tree);
+        checkImplicitlyImmutableTypeError(type, tree);
+        checkOnlyOneAssignabilityModifierOnField(tree);
         return super.visitDeclared(type, tree);
     }
 
-
     @Override
     public Void visitArray(AnnotatedArrayType type, Tree tree) {
-        PICOInferenceVisitor picoInferenceVisitor = (PICOInferenceVisitor) visitor;
-        checkStaticReceiverDependantMutableError(type, tree, picoInferenceVisitor);
+        checkStaticReceiverDependantMutableError(type, tree);
         return super.visitArray(type, tree);
     }
 
     @Override
     public Void visitPrimitive(AnnotatedPrimitiveType type, Tree tree) {
-        PICOInferenceVisitor picoInferenceVisitor = (PICOInferenceVisitor) visitor;
-        checkImplicitlyImmutableTypeError(type, tree, picoInferenceVisitor);
+        checkImplicitlyImmutableTypeError(type, tree);
         return super.visitPrimitive(type, tree);
     }
 
-    private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree, PICOInferenceVisitor picoInferenceVisitor) {
+    private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
         if (TreeUtils.isTreeInStaticScope(visitor.getCurrentPath())) {
-            if (picoInferenceVisitor.infer) {
-                picoInferenceVisitor.mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
+            if (infer) {
+                ((PICOInferenceVisitor)visitor).mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
             } else {
                 if (type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
                     reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
@@ -70,26 +66,26 @@ public class PICOInferenceValidator extends InferenceValidator{
 
     /**Check that implicitly immutable type has immutable annotation. Note that bottom will be handled uniformly on all
      the other remaining types(reference or primitive), so we don't handle it again here*/
-    private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree, PICOInferenceVisitor picoInferenceVisitor) {
+    private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
         if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
-            if (picoInferenceVisitor.infer) {
-                picoInferenceVisitor.mainIsNoneOf(type,
+            if (infer) {
+                ((PICOInferenceVisitor)visitor).mainIsNoneOf(type,
                         new AnnotationMirror[]{READONLY, MUTABLE, RECEIVER_DEPENDANT_MUTABLE, BOTTOM},
-                        "type.invalid", tree);
+                        "type.invalid.annotations.on.use", tree);
             } else {
                 if (!type.hasAnnotation(IMMUTABLE)) {
-                    reportInvalidType(type, tree);
+                    reportInvalidAnnotationsOnUse(type, tree);
                 }
             }
         }
     }
 
     /**Ensures the well-formdness in terms of assignability on a field. This covers both instance fields and static fields.*/
-    private void checkOnlyOneAssignabilityModifierOnField(Tree tree, PICOInferenceVisitor picoInferenceVisitor) {
+    private void checkOnlyOneAssignabilityModifierOnField(Tree tree) {
         if (tree.getKind() == Tree.Kind.VARIABLE) {
             VariableTree variableTree = (VariableTree) tree;
             VariableElement variableElement = TreeUtils.elementFromDeclaration(variableTree);
-            if (picoInferenceVisitor.infer) {
+            if (infer) {
                 // Do nothing in terms of assignability quaifier(no constraints generated), as we don't
                 // support inferring assignability qualifier right now.
             } else {
