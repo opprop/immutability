@@ -132,7 +132,7 @@ ImpliesConstraint: it's time to introduce this. We don't have a declarative way 
 e.g. If bound is @Mutable(not known), please infer method declared receiver not to be @Immutable
 Difference between existing Constraint and Constraints in ImpliesConstraints: use createXXXConstraint to get the reference, and cal
 addImpliesConstraint to add the composite constraint into ConstraintManager.
-TODO: Adding ImpliesConstraint seems helpful. Will add that.
+Adding ImpliesConstraint seems helpful. Will add that.
 Update: pushed to PR: https://github.com/opprop/checker-framework-inference/pull/135
 
 Discuss Constraint hierarchy
@@ -147,7 +147,7 @@ NewAnnonymousClass
 2018-01-05
 TODO: StackOverflowException on PICOStore(run PICO on PICO source file)
 
-TODO: explain unsatisfiable
+Explain unsatisfiable
 Update: code reviewing: https://github.com/opprop/checker-framework-inference/pull/128
 
 Inference Result:
@@ -161,7 +161,6 @@ ojAlgo: too many errors. Given up.
 jblas: inference failed and triggerred explanation
 
 AFHbackdoor:
-TODO
 For projects like this, if this project uses third party APIs, we must have some stub files for those APIs, because
 @Immutable primitives could cause inference fail because by default @Mutable is the default for every bytecode. At least
 we should have a bare minimum stub file for classes&methods that are referenced from this project. Otherwise, the project
@@ -194,7 +193,7 @@ Update2: there is no problem in generating the constraints when invoking super c
 in annotation-tools: it doesn't insert annotations back to source code. CFI generates VariableSlots correctly, generates
 Constraints correctly and the inferred result is also correct. Issue link is here:
 https://github.com/opprop/checker-framework-inference/issues/131
-TODO Constructor return type fix is also in local. Need to push to remote.
+Constructor return type fix is also in local. Need to push to remote.
 Update: pushed to remote already. PR: https://github.com/opprop/checker-framework-inference/pull/129
 
 Six projects in corpus folder are really good benchmark projects that are not too big but still big enough to discover
@@ -202,14 +201,17 @@ problems in inference. Should make these six project pass with no errors first. 
 right now.
 Update: Ran old version of PICOInference on six project, got good results on two projects - ECC-RSA-Backdoor and JBS.
 Inferred results look good.
-TODO Update PICOInfer to reflect class bound annotation
+Update PICOInfer to reflect class bound annotation
+Update: Done.
 
 InfrenceFailureReason:
 dataflow calls isSubtype() between two ConstantSlots that are not subtype, and it generates SubtypeConstraint and since
 we early fail inference, we get error and abort the inference process. Changed this by checking the subtype relation
 really holds or not and simply return true/false without generating SubtypeConstraint.
-TODO Might still have other places that have similar errors. For example, always generate EqualityConstraint without
+Might still have other places that have similar errors. For example, always generate EqualityConstraint without
 verifying if two ConstantSlot really satisfy relationship, i.e. EqualityConstraint
+Update: no other places found, according to my investigation. There are no places like isSubtype() to know the specific
+(subtype/equality/inequality) relation to hold or not.
 
 http://errorprone.info/bugpattern/Immutable
 Restul: ALB cannot be immutable class just because it extends from ArrayList and there is elementData field which is not
@@ -239,6 +241,20 @@ public class Test {
 
     void mutate(@Readonly Test this) {
         f[0] = 2;
+    }
+}
+
+TODO Doesn't insert class bound solution back to source code.
+Add "package test;" to the top of testcase(any one in testinput), class bound will not be inserted. This seems like a
+bug for me. Need to investigate a little bit.
+
+TODO This fix caused failure that wasn't failure before it: https://github.com/opprop/checker-framework-inference/pull/144
+For example, Infer.java:
+public class Infer<T extends Object> {
+    T o;
+
+    Infer(T o) {
+        this.o = o;
     }
 }
 
