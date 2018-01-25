@@ -22,6 +22,7 @@ import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
+import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.source.Result;
@@ -41,6 +42,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -260,7 +262,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         return super.visitMethod(node, p);
     }
 
-    // TODO Completely copied from PICOVisitor
     private void flexibleOverrideChecker(MethodTree node) {
         // Method overriding checks
         // TODO Copied from super, hence has lots of duplicate code with super. We need to
@@ -589,5 +590,51 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         equalityConstraintLHS = constraintManager.createEqualityConstraint(declSlot, immutable);
         equalityConstraintRHS = constraintManager.createEqualityConstraint(useSlot, immutable);
         constraintManager.addImplicationConstraint(Arrays.asList(equalityConstraintLHS), equalityConstraintRHS);
+    }
+
+    /**
+     * commonAssignmentCheck() method that adapts to PICOInfer.
+     *
+     * In inference mode, pass viewpoint adapted field type to enclosing class to lhs type. To avoid side effect,
+     * instead of directly adapting field's type, copy that, and viewpoint adapt it as the type of field, so that
+     * original field type still have the same VarAnnot, yet the lhs type is now a different combined VarAnnot.
+     * @param varTree the AST node for the variable
+     * @param valueExp the AST node for the value
+     * @param errorKey the error message to use if the check fails (must be a
+     */
+    @Override
+    protected void commonAssignmentCheck(
+            Tree varTree, ExpressionTree valueExp, String errorKey) {
+        AnnotatedTypeMirror var = atypeFactory.getAnnotatedTypeLhs(varTree);
+        assert var != null : "no variable found for tree: " + varTree;
+
+        if (!validateType(varTree, var)) {
+            return;
+        }
+
+        checkAssignability(var, varTree);
+
+        // In typechecking mode, viewpoint adaptation is already correctly handled by PICOTreeAnnotator#visitVariable()
+        if (infer && varTree instanceof VariableTree) {
+            // Only in inference mode, and tree is VariableTree
+            VariableElement element = TreeUtils.elementFromDeclaration((VariableTree) varTree);
+            if (element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
+                AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(varTree, atypeFactory);
+                // var is singleton, so shouldn't modify var directly. Otherwise, the variable tree's type will be
+                // altered permanently, and other clients who access this type will see the change, too.
+                AnnotatedTypeMirror varAdapted = var.shallowCopy(true);
+                // Viewpoint adapt varAdapted to the bound. PICOInferenceAnnotatedTypeFactory#viewpointAdaptMember()
+                // mutates varAdapted, so after the below method is called, varAdapted is the result adapted to bound
+                ((PICOInferenceAnnotatedTypeFactory) atypeFactory).viewpointAdaptMember(varAdapted, bound, element);
+                // Pass varAdapted here as lhs type.
+                // Caution: cannot pass var directly. Modifying type in PICOInferenceTreeAnnotator#
+                // visitVariable() will cause wrong type to be gotton here, as on inference side,
+                // atm is uniquely determined by each element.
+                commonAssignmentCheck(varAdapted, valueExp, errorKey);
+                return;
+            }
+        }
+
+        commonAssignmentCheck(var, valueExp, errorKey);
     }
 }

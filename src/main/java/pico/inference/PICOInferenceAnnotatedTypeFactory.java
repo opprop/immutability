@@ -10,28 +10,28 @@ import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.Slot;
 import com.sun.source.tree.BinaryTree;
+import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
-import com.sun.source.tree.VariableTree;
+import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.util.Types;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 
@@ -60,7 +60,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     public TreeAnnotator createTreeAnnotator() {
         return new ListTreeAnnotator(new ImplicitsTreeAnnotator(this),
                 new PICOInferencePropagationTreeAnnotator(this),
-                new PICOInferenceTreeAnnotator(this, realChecker, realTypeFactory, variableAnnotator, slotManager));
+                new InferenceTreeAnnotator(this, realChecker, realTypeFactory, variableAnnotator, slotManager));
     }
 
     @Override
@@ -71,10 +71,14 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         return new ListTypeAnnotator(super.createTypeAnnotator(), new PICOImplicitsTypeAnnotator(this));
     }
 
-    // TODO This will be implemented in higher level, as lots of type systems actually don't need the declaration constraint
     @Override
     public VariableAnnotator createVariableAnnotator() {
         return new PICOVariableAnnotator(this, realTypeFactory, realChecker, slotManager, constraintManager);
+    }
+
+    @Override
+    protected void viewpointAdaptMember(AnnotatedTypeMirror type, AnnotatedTypeMirror owner, Element element) {
+        super.viewpointAdaptMember(type, owner, element);
     }
 
     @Override
@@ -103,6 +107,46 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         }
     }
 
+    /**
+     * Gets self type from a tree.
+     *
+     * This method doesn't flush and modify "type" if "methodReceiver" is non-null, compared to
+     * its super implementation. In inferene mode, modifying type directly is dangerous, because
+     * type is singleton, so it mappes to one unique element. If the type associated is mutated,
+     * other clients later on will all see this change, which is not expected behaviour.
+     *
+     * @param tree tree from which self type is being extracted
+     * @return self type of tree
+     */
+    public AnnotatedDeclaredType getSelfType(Tree tree) {
+        TreePath path = getPath(tree);
+        ClassTree enclosingClass = TreeUtils.enclosingClass(path);
+        if (enclosingClass == null) {
+            // I hope this only happens when tree is a fake tree that
+            // we created, e.g. when desugaring enhanced-for-loops.
+            enclosingClass = getCurrentClassTree(tree);
+        }
+        // "type" is right now VarAnnot inserted to the bound of "enclosingClass"
+        AnnotatedDeclaredType type = getAnnotatedType(enclosingClass);
+
+        MethodTree enclosingMethod = TreeUtils.enclosingMethod(path);
+        if (enclosingClass.getSimpleName().length() != 0 && enclosingMethod != null) {
+            AnnotatedTypeMirror.AnnotatedDeclaredType methodReceiver;
+            if (TreeUtils.isConstructor(enclosingMethod)) {
+                methodReceiver =
+                        (AnnotatedTypeMirror.AnnotatedDeclaredType) getAnnotatedType(enclosingMethod).getReturnType();
+            } else {
+                methodReceiver = getAnnotatedType(enclosingMethod).getReceiverType();
+            }
+            // Directly return "methodReceiver" instead of clearing "type" and copying its annotations to "type"
+            if (methodReceiver != null) {
+                return methodReceiver;
+            }
+        }
+        // Only by this, bound VarAnnot isn't side-effectively altered to be replaced with annotations from "methodReceiver"
+        return type;
+    }
+
     class PICOInferencePropagationTreeAnnotator extends PropagationTreeAnnotator {
         public PICOInferencePropagationTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
             super(atypeFactory);
@@ -127,40 +171,6 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
             if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
                 applyConstant(type, IMMUTABLE);
-            }
-        }
-    }
-
-    static class PICOInferenceTreeAnnotator extends InferenceTreeAnnotator {
-
-
-        public PICOInferenceTreeAnnotator(InferenceAnnotatedTypeFactory atypeFactory, InferrableChecker realChecker,
-                                          AnnotatedTypeFactory realAnnotatedTypeFactory, VariableAnnotator variableAnnotator, SlotManager slotManager) {
-            super(atypeFactory, realChecker, realAnnotatedTypeFactory, variableAnnotator, slotManager);
-        }
-
-        // Viewpoint adapt field declaration type to class bound, and replace main modifier with
-        // the adaptation result
-        @Override
-        public Void visitVariable(VariableTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            // In inference side, must call super first to store corresponding element of node into
-            // VariableAnntator to avoid infinite loop
-            super.visitVariable(node, annotatedTypeMirror);
-            VariableElement element = TreeUtils.elementFromDeclaration(node);
-            Types types = atypeFactory.getProcessingEnv().getTypeUtils();
-            viewpointAdaptInstanceFieldToClassBound(types, annotatedTypeMirror, element, node);
-            return null;
-        }
-
-        private void viewpointAdaptInstanceFieldToClassBound(
-                Types types, AnnotatedTypeMirror annotatedTypeMirror, VariableElement element, VariableTree tree) {
-            if (element != null && element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
-                AnnotatedTypeMirror.AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(tree, atypeFactory);
-                AnnotatedTypeMirror adaptedFieldType = AnnotatedTypes.asMemberOf(types, atypeFactory, bound, element, tree);
-                // Type variable use with no annotation on its main modifier hits null case
-                // The replaced annotation only affects solutions for other slots, but doesn't change the solution
-                // for the variable tree itself, which is expected behaviour.
-                annotatedTypeMirror.replaceAnnotations(adaptedFieldType.getAnnotations());
             }
         }
     }
