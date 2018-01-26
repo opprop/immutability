@@ -25,6 +25,9 @@ if [[ "$1" = "-t" ]] ; then
     running_cmd="python $DLJC/dljc -t checker --checker "${CHECKER}" --cfArgs=\"-AprintErrorStack,-AprintFbcErrors\" --log_to_stderr -- $build_cmd"
 elif [[ "$1" = "-i" ]] ; then
     echo "Running inference"
+    echo "Cleaning logs and annotated directory from previous result"
+    rm -rf logs annotated
+    echo "Cleaning Done."
     CHECKER="pico.inference.PICOInferenceChecker"
     SOLVER="pico.inference.solver.PICOSolverEngine"
     running_cmd="python $DLJC/dljc -t inference --checker "${CHECKER}" --cfArgs=\"-AprintErrorStack\" --solver "${SOLVER}" --solverArgs=\"collectStatistic=true,useGraph=false\" --mode ROUNDTRIP -afud $WORKING_DIR/annotated -o logs -- $build_cmd "
