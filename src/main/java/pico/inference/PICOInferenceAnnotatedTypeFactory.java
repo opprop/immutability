@@ -9,6 +9,7 @@ import checkers.inference.VariableAnnotator;
 import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.Slot;
+import checkers.inference.util.InferenceViewpointAdapter;
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
@@ -74,6 +75,11 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     @Override
     public VariableAnnotator createVariableAnnotator() {
         return new PICOVariableAnnotator(this, realTypeFactory, realChecker, slotManager, constraintManager);
+    }
+
+    @Override
+    protected InferenceViewpointAdapter createViewpointAdapter() {
+        return new PICOInferenceViewpointAdapter();
     }
 
     @Override
