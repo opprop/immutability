@@ -35,6 +35,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 
 /**
  * Propagates correct constraints on trees and types using TreeAnnotators and TypeAnnotators.
@@ -169,6 +170,11 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         @Override
         public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
             applyImmutableIfImplicitlyImmutable(type);// Must run before calling super method to respect existing annotation
+            if (type.isAnnotatedInHierarchy(READONLY)) {
+                // VarAnnot is guarenteed to not exist on type, because PropagationTreeAnnotator has the highest previledge
+                // So VarAnnot hasn't been inserted to cast type yet.
+                applyConstant(type, type.getAnnotationInHierarchy(READONLY));
+            }
             return super.visitTypeCast(node, type);
         }
 

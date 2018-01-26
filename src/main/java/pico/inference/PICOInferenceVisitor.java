@@ -22,6 +22,7 @@ import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
+import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
@@ -303,6 +304,43 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             MethodTree overriderTree, AnnotatedDeclaredType overridingType,
             AnnotatedExecutableType overridden, AnnotatedDeclaredType overriddenType) {
         return true;
+    }
+
+    protected void checkTypecastSafety(TypeCastTree node, Void p) {
+        if (!checker.getLintOption("cast:unsafe", true)) {
+            return;
+        }
+        AnnotatedTypeMirror castType = atypeFactory.getAnnotatedType(node);
+        AnnotatedTypeMirror exprType = atypeFactory.getAnnotatedType(node.getExpression());
+
+        // We cannot do a simple test of casting, as isSubtypeOf requires
+        // the input types to be subtypes according to Java
+        if (!isTypeCastSafe(castType, exprType, node)) {
+            checker.report(
+                    Result.warning("cast.unsafe", exprType.toString(true), castType.toString(true)),
+                    node);
+        }
+    }
+
+    /**
+     * PICO adapted method of checking typecast safety.
+     *
+     * In inference mode, to allow more program to be inferred with results, allow flexible type casting -
+     * if the cast type is compatible with expression type, then it's ok. In typechecking mode, PICO still
+     * warns if there is downcasting, just to make programmer notice that possible unsafe downcasting exists.
+     *
+     * @param castType type of cast/target
+     * @param exprType type of original expression being casted
+     * @param node {@link TypeCastTree} on which typecasting safety check happens
+     * @return true if type casting is safe. Inference mode generate comparable constraints and always returns true
+     */
+    private boolean isTypeCastSafe(AnnotatedTypeMirror castType, AnnotatedTypeMirror exprType, TypeCastTree node) {
+        if (infer) {
+            areComparable(castType, exprType, "flexible.cast.unsafe", node);
+            return true;
+        } else {
+            return super.isTypeCastSafe(castType, exprType);
+        }
     }
 
     @Override
