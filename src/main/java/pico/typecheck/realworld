@@ -158,7 +158,19 @@ dyn4j: SEVERE: Non-OK return code from javac! Quitting. Result code is: ERROR
          type: @VarAnnot(145) @Readonly ClosestEdgeToVertexSearchCriteria
          superType: @VarAnnot(144) @Readonly SweepLineEdge
 ojAlgo: too many errors. Given up.
-jblas: inference failed and triggerred explanation
+
+jblas(11841 lines): inference failed and triggerred explanation
+Update: successfully inferred results for jblas, but annotation-tools wasn't successful to insert solutions back to source.
+Has fbc errors.
+
+bdoorProto(1299 lines): gets inferred solutions, but wasn't able to insert back. Doesn't have fbc errors.
+
+ECC-RSA-Backdoor(2822 lines): Gets inferred solutions, and solutions were inserted back to source code(class bounds were not
+inserted). This project has
+fbc errors(instance methods called inside constructors), but still gets solutions. But those who assign field gets inferred
+to have @Mutable declared receiver. If those instance methods are properly annotated with @UnderInitialization manually,
+the results may contain more @Immutable and @Readonly, I believe.
+
 
 AFHbackdoor:
 For projects like this, if this project uses third party APIs, we must have some stub files for those APIs, because
@@ -244,17 +256,7 @@ public class Test {
     }
 }
 
-TODO Doesn't insert class bound solution back to source code.
+TODO Doesn't insert class bound solution back to source code. File an issue
 Add "package test;" to the top of testcase(any one in testinput), class bound will not be inserted. This seems like a
 bug for me. Need to investigate a little bit.
-
-TODO This fix caused failure that wasn't failure before it: https://github.com/opprop/checker-framework-inference/pull/144
-For example, Infer.java:
-public class Infer<T extends Object> {
-    T o;
-
-    Infer(T o) {
-        this.o = o;
-    }
-}
 
