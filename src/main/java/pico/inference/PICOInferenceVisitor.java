@@ -11,6 +11,7 @@ import checkers.inference.model.EqualityConstraint;
 import checkers.inference.model.InequalityConstraint;
 import checkers.inference.model.Slot;
 import checkers.inference.model.SubtypeConstraint;
+import checkers.inference.util.InferenceUtil;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
@@ -272,6 +273,11 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         AnnotatedDeclaredType enclosingType =
                 (AnnotatedDeclaredType)
                         atypeFactory.getAnnotatedType(methodElement.getEnclosingElement());
+        if (infer && PICOTypeUtil.isEnclosedByAnonymousClass(node, atypeFactory)) {
+            // Specially handle bound of anonymous type element in inference mode, as Inference-
+            // TreeAnnotator doesn't support getting bound of anonymous class bound type
+            enclosingType = PICOTypeUtil.getBoundOfEnclosingAnonymousClass(node, atypeFactory);
+        }
 
         Map<AnnotatedDeclaredType, ExecutableElement> overriddenMethods =
                 AnnotatedTypes.overriddenMethods(elements, atypeFactory, methodElement);

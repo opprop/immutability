@@ -1,10 +1,12 @@
 package pico.typecheck;
 
+import checkers.inference.util.InferenceUtil;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.util.TreePath;
 import org.checkerframework.framework.qual.ImplicitFor;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -269,5 +271,27 @@ public class PICOTypeUtil {
         Element fieldElement = TreeUtils.elementFromUse(node);
         if (fieldElement == null) return false;
         return isAssignableField(fieldElement, provider);
+    }
+
+    public static boolean isEnclosedByAnonymousClass(Tree tree, AnnotatedTypeFactory atypeFactory) {
+        TreePath path = atypeFactory.getPath(tree);
+        if (path != null) {
+            ClassTree classTree = TreeUtils.enclosingClass(path);
+            return classTree != null && InferenceUtil.isAnonymousClass(classTree);
+        }
+        return false;
+    }
+
+    public static AnnotatedDeclaredType getBoundOfEnclosingAnonymousClass(Tree tree, AnnotatedTypeFactory atypeFactory) {
+        TreePath path = atypeFactory.getPath(tree);
+        if (path == null) {
+            return null;
+        }
+        AnnotatedDeclaredType enclosingType = null;
+        Tree newclassTree = TreeUtils.enclosingOfKind(path, Tree.Kind.NEW_CLASS);
+        if (newclassTree != null) {
+            enclosingType = (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(newclassTree);
+        }
+        return enclosingType;
     }
 }
