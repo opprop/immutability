@@ -79,7 +79,7 @@ class AbstractList<E> {
 
 @ReceiverDependantMutable
 interface Set<E> {
-  boolean contains(@Readonly Object var1);
+  boolean contains(@Readonly Set<E> this, @Readonly Object var1);
 }
 
 @ReceiverDependantMutable
