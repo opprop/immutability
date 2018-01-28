@@ -17,6 +17,10 @@ import pico.typecheck.PICOTypeUtil;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
@@ -118,5 +122,45 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         Element classElement = classType.getUnderlyingType().asElement();
         storeElementType(classElement, classType);
         // Above is copied
+    }
+
+    // Copied from super implementation
+    @Override
+    protected boolean handleWasRawDeclaredTypes(AnnotatedDeclaredType adt) {
+        if (adt.wasRaw() && adt.getTypeArguments().size() != 0) {
+            // the type arguments should be wildcards AND if I get the real type of "tree"
+            // it corresponds to the declaration of adt.getUnderlyingType
+            Element declarationEle = adt.getUnderlyingType().asElement();
+            final AnnotatedDeclaredType declaration =
+                    (AnnotatedDeclaredType) inferenceTypeFactory.getAnnotatedType(declarationEle);
+
+            final List<AnnotatedTypeMirror> declarationTypeArgs = declaration.getTypeArguments();
+            final List<AnnotatedTypeMirror> rawTypeArgs = adt.getTypeArguments();
+
+            for (int i = 0; i < declarationTypeArgs.size(); i++) {
+
+                if (InferenceMain.isHackMode(rawTypeArgs.get(i).getKind() != TypeKind.WILDCARD)) {
+                    return false;
+                }
+
+                final AnnotatedTypeMirror.AnnotatedWildcardType rawArg = (AnnotatedTypeMirror.AnnotatedWildcardType) rawTypeArgs.get(i);
+
+                // The only difference starts: instead of copying bounds of declared type variable to
+                // type argument wildcard bound, apply default @Mutable(of course equivalent VarAnnot)
+                // just like the behaviour in typechecking side.
+                // Previsouly, the behaviour is: "E extends @Readonly Object super @Bottom null".
+                // Type argument is "? extends Object", so it became "? extends @Readonly Object".
+                // This type argument then flows to local variable, and passed as actual method receiver.
+                // Since declared receiver is defaulted to @Mutable, it caused inference to give no solution.
+                rawArg.getExtendsBound().addMissingAnnotations(
+                        Arrays.asList(PICOTypeUtil.createEquivalentVarAnnotOfRealQualifier(MUTABLE)));
+                rawArg.getSuperBound().addMissingAnnotations(
+                        Arrays.asList(PICOTypeUtil.createEquivalentVarAnnotOfRealQualifier(BOTTOM)));
+                // The only different ends
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 }
