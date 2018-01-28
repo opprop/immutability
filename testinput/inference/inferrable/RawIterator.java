@@ -19,6 +19,13 @@ public class RawIterator {
         // bound.
         Iterator iterator = classes.iterator();
 
+        // If PICOInfer detects already-incompatible cast, should it exit? I think no. Incompatible
+        // typecast is a warning, it may or may not be an error. If we treat it as error, then
+        // programs that have the below line wouldn't be inferred. One legal use case we discussed
+        // is to cast @Mutable datastructure to @Immutable if we guarantee that @Mutable reference
+        // doesn't leak. So we should continue if incompatible cast happens(@Mutable to @Immutable).
+        // :: warning: (cast.unsafe)
+        String s = (String)iterator.next();
 
         // But for cast that involves at least one VariableSlot, PICOInfer tends to give solutions
         // which are comparable. But in the future, we may not even restrict this. Inferring

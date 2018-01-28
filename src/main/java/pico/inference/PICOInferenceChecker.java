@@ -8,11 +8,13 @@ import checkers.inference.InferrableChecker;
 import checkers.inference.SlotManager;
 import checkers.inference.model.ConstraintManager;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
+import org.checkerframework.framework.source.SupportedOptions;
 import pico.typecheck.PICOAnnotationMirrorHolder;
 
 /**
  * Main entry class
  */
+@SupportedOptions({"upcast", "anycast", "comparablecast"})
 public class PICOInferenceChecker extends BaseInferrableChecker {
 
     @Override

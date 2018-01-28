@@ -11,7 +11,6 @@ import checkers.inference.model.EqualityConstraint;
 import checkers.inference.model.InequalityConstraint;
 import checkers.inference.model.Slot;
 import checkers.inference.model.SubtypeConstraint;
-import checkers.inference.util.InferenceUtil;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
@@ -102,8 +101,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     private void addMutableImmutableIncompatibleConstraints(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType) {
-        ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
-        SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+        final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+        final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
         Slot declSlot = slotManager.getVariableSlot(declarationType);
         Slot useSlot = slotManager.getVariableSlot(useType);
         Slot mutable = slotManager.getSlot(MUTABLE);
@@ -322,6 +321,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // We cannot do a simple test of casting, as isSubtypeOf requires
         // the input types to be subtypes according to Java
         if (!isTypeCastSafe(castType, exprType, node)) {
+            // This is only warning message, so even though enterred this line, it doesn't cause PICOInfer to exit.
             checker.report(
                     Result.warning("cast.unsafe", exprType.toString(true), castType.toString(true)),
                     node);
@@ -331,21 +331,85 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     /**
      * PICO adapted method of checking typecast safety.
      *
-     * In inference mode, to allow more program to be inferred with results, allow flexible type casting -
-     * if the cast type is compatible with expression type, then it's ok. In typechecking mode, PICO still
-     * warns if there is downcasting, just to make programmer notice that possible unsafe downcasting exists.
+     * In inference mode, to allow more programs to be inferred with results, let users to select type casting
+     * strategy. Default is "comparablecast" - if the cast type is compatible with expression type, then it's ok.
+     * In typechecking mode, PICO still warns if there is any potential unsafe casts, just to make programmer
+     * notice them.
      *
      * @param castType type of cast/target
      * @param exprType type of original expression being casted
      * @param node {@link TypeCastTree} on which typecasting safety check happens
-     * @return true if type casting is safe. Inference mode generate comparable constraints and always returns true
+     * @return true if type casting is safe.
+     *
+     * @see {@link #isCompatibleCastInInfer(AnnotatedTypeMirror, AnnotatedTypeMirror, TypeCastTree)}
      */
     private boolean isTypeCastSafe(AnnotatedTypeMirror castType, AnnotatedTypeMirror exprType, TypeCastTree node) {
         if (infer) {
-            areComparable(castType, exprType, "flexible.cast.unsafe", node);
+            return isCompatibleCastInInfer(castType, exprType, node);
+        } else {
+            // Typechecking side standard implementation - warns about downcasting
+            return super.isTypeCastSafe(castType, exprType);
+        }
+    }
+
+    /**
+     * Method to determine if typecasting is safe in inference and generate constraints if necessary according to selected
+     * strategy.
+     *
+     * In order to deal with different real world cases regarding to type cast, PICOInfer has three type casting strategies:
+     * <p>
+     * <ol>
+     *  <li>upcast</li> Inferred result must satisfy {@code exprType <: castType}
+     *  <li>anycast</li> In inferred result, {@code exprType} and {@code castType} can be any relation, e.g. subtype, incomparable.
+     *  <li>comparablecast</li> Default strategy. In inferred result, {@code exprType <-> castType}, meaning they are comparable
+     * </ol>
+     *
+     * <p>
+     * For cases where there is at least one VariableSlot(to be inferred solution) between {@code castType} and {@code exprType},
+     * this method always returns true, and generate corresponding {@link checkers.inference.model.Constraint} of the selected
+     * strategy. For cases where two of the types are both Constants, there is no need of generating {@code Constraint}, so
+     * no Constraints are generated for this case.
+     * <p>
+     * But one thing to note is that: the above three strategies only apply to solutions that PICOInfer will give. If there
+     * are already existing annotations on both {@code castType} and {@code exprType}, even though relation between them may
+     * not hold under the selected strategy, PICOInfer will issue a warning about it and continue execution, instead of giving
+     * unsatisfiable error and exit the inference. This is primarily because casting is always a loophole in static type system,
+     * and we can't say that all casts are errors.
+     *
+     * @param castType type to be casted into
+     * @param exprType type of original expression that's going to be casted
+     * @param node tree where type cast happens
+     * @return true if type casting is safe
+     */
+    private boolean isCompatibleCastInInfer(AnnotatedTypeMirror castType, AnnotatedTypeMirror exprType, TypeCastTree node) {
+        assert infer;
+
+        if (checker.hasOption("upcast")) {
+            // Upcast strategy - generate standard subtype constraint: exprType <: castType most often.
+            return super.isTypeCastSafe(castType, exprType);
+        } else if (checker.hasOption("anycast")) {
+            // Anycast strategy - don't generate any constraint and any existing cast is seen as valid.
             return true;
         } else {
-            return super.isTypeCastSafe(castType, exprType);
+            // Default strategy - comparablecast
+            final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+            final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+            final Slot castSlot = slotManager.getVariableSlot(castType);
+            final Slot exprSlot = slotManager.getVariableSlot(exprType);
+
+            if (castSlot instanceof ConstantSlot && exprSlot instanceof ConstantSlot) {
+                ConstantSlot castCSSlot = (ConstantSlot) castSlot;
+                ConstantSlot exprCSSlot = (ConstantSlot) exprSlot;
+                // Special handling for case with two ConstantSlots: even though they may not be comparable,
+                // but to infer more program, let this case fall back to "anycast" silently and continue
+                // inference.
+                return constraintManager.getConstraintVerifier().areComparable(castCSSlot, exprCSSlot);
+            } else {
+                // But if there is at least on VariableSlot, PICOInfer guarantees that solutions don't include
+                // incomparable casts.
+                areComparable(castType, exprType, "flexible.cast.unsafe", node);
+                return true;
+            }
         }
     }
 
