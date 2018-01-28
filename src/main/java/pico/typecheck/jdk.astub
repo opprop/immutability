@@ -62,6 +62,11 @@ class Date {
 }
 
 @ReceiverDependantMutable
+interface Collection<E> {
+  boolean contains(@Readonly Collection<E> this, @Readonly Object o);
+}
+
+@ReceiverDependantMutable
 class ArrayList<E> {
   @ReceiverDependantMutable ArrayList();
   @ReceiverDependantMutable ArrayList(@Readonly Collection<? extends E> var1);
@@ -69,7 +74,11 @@ class ArrayList<E> {
 }
 
 @ReceiverDependantMutable
-interface List<E> {}
+interface List<E> {
+  E get(@Readonly List<E> this, int index);
+  boolean contains(@Readonly List<E> this, @Readonly Object o);
+  boolean remove(@Readonly Object o);
+}
 
 @ReceiverDependantMutable
 class AbstractList<E> {
@@ -86,7 +95,7 @@ interface Set<E> {
 class HashSet<E> {
   @ReceiverDependantMutable HashSet();
   @ReceiverDependantMutable HashSet(@Readonly Collection<? extends E> var1);
-  boolean contains(@Readonly Object var1);
+  boolean contains(@Readonly HashSet<E> this, @Readonly Object var1);
   boolean remove(@Readonly Object var1);
 }
 
@@ -101,6 +110,9 @@ interface Map<K, V> {
 class HashMap<K, V> {
   @ReceiverDependantMutable HashMap();
   @ReceiverDependantMutable HashMap(@Readonly Map<? extends K, ? extends V> var1);
+  V get(@Readonly HashMap<K, V> this, @Readonly Object key);
+  boolean containsKey(@Readonly HashMap<K, V> this, @Readonly Object key);
+  boolean containsValue(@Readonly HashMap<K, V> this, @Readonly Object value);
 }
 
 class Arrays {
@@ -121,6 +133,12 @@ class Vector<E> {
   boolean isEmpty(@ReceiverDependantMutable Vector<E> this);
 }
 
+@ReceiverDependantMutable
+class Hashtable<K,V> {
+  V get(@Readonly Hashtable<K,V> this, @Readonly Object key);
+  boolean containsKey(@Readonly Hashtable<K,V> this, @Readonly Object key);
+}
+
 package java.io;
 
 @ReceiverDependantMutable
@@ -135,7 +153,27 @@ class PrintWriter {
   PrintWriter printf(@ReceiverDependantMutable PrintWriter this, String var1, @Readonly Object... var2);
 }
 
+@ReceiverDependantMutable
+class File {
+  @ReceiverDependantMutable File(@Readonly File parent, String child);
+  boolean isFile(@Readonly File this);
+  String[] list(@Readonly File this);
+  String getPath(@Readonly File this);
+}
+
+@ReceiverDependantMutable
+class FileInputStream {
+  @ReceiverDependantMutable FileInputStream(@Readonly File file);
+}
+
 package org.hibernate;
 class Session {
   Object get(@Readonly Class clazz, @Readonly Serializable id);
+}
+
+package java.awt;
+
+@ReceiverDependantMutable
+class Container {
+  void add(@Readonly Component comp, @Readonly Object constraints);
 }

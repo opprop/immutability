@@ -1,4 +1,5 @@
 import org.checkerframework.checker.nullness.qual.NonNull;
+import qual.Readonly;
 
 import java.util.AbstractList;
 
@@ -25,7 +26,7 @@ public abstract class RawList extends AbstractList {
 abstract class MyList<E> extends AbstractList<E> {
 
     @Override
-    public E get(int i) {
+    public E get(@Readonly MyList<E> this, int i) {
         return null;
     }
 
