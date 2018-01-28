@@ -151,28 +151,7 @@ Explain unsatisfiable
 Update: code reviewing: https://github.com/opprop/checker-framework-inference/pull/128
 
 Inference Result:
-exp4j: successfully inferred results
-dyn4j: SEVERE: Non-OK return code from javac! Quitting. Result code is: ERROR
-       Jan 07, 2018 7:19:17 PM checkers.inference.InferenceMain$DefaultResultHandler handleCompilerResult
-       SEVERE: error: AsSuperVisitor: type is not an erased subtype of supertype.
-         type: @VarAnnot(145) @Readonly ClosestEdgeToVertexSearchCriteria
-         superType: @VarAnnot(144) @Readonly SweepLineEdge
-ojAlgo: too many errors. Given up.
-
-jblas(11841 lines): inference failed and triggerred explanation
-Update: successfully inferred results for jblas, but annotation-tools wasn't successful to insert solutions back to source.
-Has fbc errors.
-
-bdoorProto(1299 lines): gets inferred solutions, but wasn't able to insert back. Doesn't have fbc errors.
-
-ECC-RSA-Backdoor(2822 lines): Gets inferred solutions, and solutions were inserted back to source code(class bounds were not
-inserted). This project has
-fbc errors(instance methods called inside constructors), but still gets solutions. But those who assign field gets inferred
-to have @Mutable declared receiver. If those instance methods are properly annotated with @UnderInitialization manually,
-the results may contain more @Immutable and @Readonly, I believe.
-
-
-AFHbackdoor:
+AFHbackdoor(317 lines):
 For projects like this, if this project uses third party APIs, we must have some stub files for those APIs, because
 @Immutable primitives could cause inference fail because by default @Mutable is the default for every bytecode. At least
 we should have a bare minimum stub file for classes&methods that are referenced from this project. Otherwise, the project
@@ -184,6 +163,76 @@ Example: package org.hibernate;
 If we don't have this stub, then everything is by default @Mutable, thus 2 can't be passed into Session#get() method and
 caused inference to give no solution and triggers explanation.
 
+dyn4j: SEVERE: Non-OK return code from javac! Quitting. Result code is: ERROR
+       Jan 07, 2018 7:19:17 PM checkers.inference.InferenceMain$DefaultResultHandler handleCompilerResult
+       SEVERE: error: AsSuperVisitor: type is not an erased subtype of supertype.
+         type: @VarAnnot(145) @Readonly ClosestEdgeToVertexSearchCriteria
+         superType: @VarAnnot(144) @Readonly SweepLineEdge
+
+ojAlgo: too many errors. Given up.
+
+bdoorProto(1299 lines): gets inferred solutions, but wasn't able to insert back. Doesn't have fbc errors.
+
+ECC-RSA-Backdoor(2822 lines): Gets inferred solutions, and solutions were inserted back to source code(class bounds were not
+inserted). This project has
+fbc errors(instance methods called inside constructors), but still gets solutions. But those who assign field gets inferred
+to have @Mutable declared receiver. If those instance methods are properly annotated with @UnderInitialization manually,
+the results may contain more @Immutable and @Readonly, I believe.
+
+jdepend(6936 lines): found non-compliance code that modifies abstract state of receiver object in toString() method.
+class AfferentNode extends PackageNode {
+  ...
+  public String toString() {
+          if (getParent() == null) {
+              return "Used By - Afferent Dependencies" + " ("
+                      + getChildren().size() + " Packages)";
+          }
+
+          return super.toString();
+  }
+  ...
+}
+
+class PackageNode {
+  ...
+  public ArrayList getChildren() {
+
+          if (children == null) {
+
+              children = new ArrayList();
+              ArrayList packages = new ArrayList(getCoupledPackages());
+              Collections.sort(packages, new PackageComparator(PackageComparator
+                      .byName()));
+              Iterator i = packages.iterator();
+              while (i.hasNext()) {
+                  JavaPackage jPackage = (JavaPackage) i.next();
+                  if (isChild(jPackage)) {
+                      PackageNode childNode = makeNode(this, jPackage);
+                      children.add(childNode);
+                  }
+              }
+          }
+
+          return children;
+  }
+  ...
+}
+1) After making "children" field @Assignable, the program was successfully inferred and inserted results. But before that,
+there is no solution, but explanation gives unsatisfiable constraints.
+2) One interesting fact about jdepend is that: it doesn't use generics. PICOInfer overrides VariableAnnotator's behaviour to
+not copy original type variables bounds annotations to wildcard(type argument for raw types) bounds; Instead, apply default
+@Mutable like the typechecking side behaviour. This solved problem of passing @Readonly to default @Mutable method receiver or
+parameters which is from bytecode.
+3) Another interesting thing is: in order to successfully infer jdepnd, we should allow anycast, i.e. don't generate any
+constraint on type casting, including even ComparableConstraint. Otherwise, if you cast raw iterator's result(? extends @Mutable)
+to String, inference will exit saying "comparable.constraint.unsatisfiable". This type of cast exists in jdpend.
+
+
+jblas(11841 lines): inference failed and triggerred explanation
+Update: successfully inferred results for jblas, but annotation-tools wasn't successful to insert solutions back to source.
+Has fbc errors.
+
+exp4j(31327 lines): successfully inferred results, but wasn't fully inserted solutions.
 
 bdoorClient:
 if generate inequality constraint from @Bottom in validator, some instance method receiver were still inferred
@@ -260,3 +309,7 @@ TODO Doesn't insert class bound solution back to source code. File an issue
 Add "package test;" to the top of testcase(any one in testinput), class bound will not be inserted. This seems like a
 bug for me. Need to investigate a little bit.
 
+TODO Viewpoint adapter adds support for adapting intersection and union type.
+ojALgo throws such exception.
+
+TODO File issue for mutating atm in inference. Reproduce in OsTrusted.
