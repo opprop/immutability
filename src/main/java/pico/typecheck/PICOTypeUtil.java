@@ -1,5 +1,8 @@
 package pico.typecheck;
 
+import checkers.inference.InferenceMain;
+import checkers.inference.SlotManager;
+import checkers.inference.model.ConstantSlot;
 import checkers.inference.util.InferenceUtil;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
@@ -293,5 +296,11 @@ public class PICOTypeUtil {
             enclosingType = (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(newclassTree);
         }
         return enclosingType;
+    }
+
+    public static AnnotationMirror createEquivalentVarAnnotOfRealQualifier(final AnnotationMirror am) {
+        final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+        ConstantSlot constantSlot = slotManager.createConstantSlot(am);
+        return slotManager.getAnnotation(constantSlot);
     }
 }
