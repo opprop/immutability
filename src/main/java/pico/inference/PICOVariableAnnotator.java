@@ -218,4 +218,13 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         return null;
     }
 
+    @Override
+    public void handleBinaryTree(AnnotatedTypeMirror atm, BinaryTree binaryTree) {
+        if (atm.isAnnotatedInHierarchy(varAnnot)) {
+            // Happens for binary trees whose atm is implicitly immutable and already handled by
+            // PICOInferencePropagationTreeAnnotator
+            return;
+        }
+        super.handleBinaryTree(atm, binaryTree);
+    }
 }
