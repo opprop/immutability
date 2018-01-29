@@ -227,6 +227,7 @@ parameters which is from bytecode.
 constraint on type casting, including even ComparableConstraint. Otherwise, if you cast raw iterator's result(? extends @Mutable)
 to String, inference will exit saying "comparable.constraint.unsatisfiable". This type of cast exists in jdpend.
 
+JLargeArrays(11337 lines):
 
 jblas(11841 lines): inference failed and triggerred explanation
 Update: successfully inferred results for jblas, but annotation-tools wasn't successful to insert solutions back to source.
@@ -273,6 +274,19 @@ Might still have other places that have similar errors. For example, always gene
 verifying if two ConstantSlot really satisfy relationship, i.e. EqualityConstraint
 Update: no other places found, according to my investigation. There are no places like isSubtype() to know the specific
 (subtype/equality/inequality) relation to hold or not.
+
+bytecode type uses default @Mutable, but @Immutable types such as string and integer is also passed in.
+
+Wildcard lower bound can have explicit @Bottom inferred. Otherwise, also caused inference fail in JLargeArrays.
+
+Wildcard upper bound wasn't defaulted to @Mutable, instead copied from @Readonly.
+
+type cast not comparable/not subtype between two constant slots.
+
+real program bug. One encountered is in toString() method, reassigns field. This is in project jdpend. See above for details.
+
+subtype constraint between lub and two ingredient slots when lub type is implicitly immutable(also genereated new LubVariableSLot
+). Plus enum constant was always @Mutable. These two errors revealed the problem.
 
 http://errorprone.info/bugpattern/Immutable
 Restul: ALB cannot be immutable class just because it extends from ArrayList and there is elementData field which is not
