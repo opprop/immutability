@@ -8,8 +8,13 @@ import checkers.inference.VariableAnnotator;
 import checkers.inference.model.AnnotationLocation;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.VariableSlot;
+import checkers.inference.model.tree.ArtificialExtendsBoundTree;
+import checkers.inference.qual.VarAnnot;
+import com.sun.source.tree.AnnotatedTypeTree;
+import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.WildcardTree;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -28,6 +33,8 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 
 public class PICOVariableAnnotator extends VariableAnnotator {
+
+    private boolean generateBottomInequality = true;
 
     public PICOVariableAnnotator(InferenceAnnotatedTypeFactory typeFactory, AnnotatedTypeFactory realTypeFactory,
                                  InferrableChecker realChecker, SlotManager slotManager, ConstraintManager constraintManager) {
@@ -89,7 +96,9 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         VariableSlot varSlot = super.createVariable(location);
         // Forbid any explicit use of @Bottom to be inserted back to source code(no VariableSlot instance is inferred
         // @Bottom)
-        constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(BOTTOM));
+        if (generateBottomInequality) {
+            constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(BOTTOM));
+        }
         return varSlot;
     }
 
@@ -163,4 +172,50 @@ public class PICOVariableAnnotator extends VariableAnnotator {
             return false;
         }
     }
+
+    @Override
+    public Void visitWildcard(AnnotatedTypeMirror.AnnotatedWildcardType wildcardType, Tree tree) {
+        if (!(tree instanceof WildcardTree)) {
+            if (tree instanceof AnnotatedTypeTree) {
+                tree = ((AnnotatedTypeTree) tree).getUnderlyingType();
+            }
+            if (!(tree instanceof WildcardTree)) {
+                throw new IllegalArgumentException("Wildcard type ( " + wildcardType + " ) associated " +
+                        "with non-WildcardTree ( " + tree + " ) ");
+            }
+        }
+
+        final WildcardTree wildcardTree = (WildcardTree) tree;
+        final Tree.Kind wildcardKind = wildcardTree.getKind();
+        if (wildcardKind == Tree.Kind.UNBOUNDED_WILDCARD) {
+            boolean prev = generateBottomInequality;
+            generateBottomInequality = false;
+            // Visit super bound, use the wild card type tree to represents the superbound.
+            addPrimaryVariable(wildcardType.getSuperBound(), tree);
+            generateBottomInequality = prev;
+
+            // Visit extend bound, construct an artificial extends bound tree to represent the extendbound.
+            ArtificialExtendsBoundTree artificialExtendsBoundTree = new ArtificialExtendsBoundTree(wildcardTree);
+            addPrimaryVariable(wildcardType.getExtendsBound(), artificialExtendsBoundTree);
+
+        } else if (wildcardKind == Tree.Kind.EXTENDS_WILDCARD) {
+            boolean prev = generateBottomInequality;
+            generateBottomInequality = false;
+            addPrimaryVariable(wildcardType.getSuperBound(), tree);
+            generateBottomInequality = prev;
+
+            visit(wildcardType.getExtendsBound(), ((WildcardTree) tree).getBound());
+
+        } else if (wildcardKind == Tree.Kind.SUPER_WILDCARD) {
+            addPrimaryVariable(wildcardType.getExtendsBound(), tree);
+
+            boolean prev = generateBottomInequality;
+            generateBottomInequality = false;
+            visit(wildcardType.getSuperBound(), ((WildcardTree) tree).getBound());
+            generateBottomInequality = prev;
+        }
+
+        return null;
+    }
+
 }
