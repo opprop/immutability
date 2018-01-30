@@ -127,6 +127,10 @@ class Arrays {
   static boolean equals(double @Readonly [] var0, double @Readonly [] var1);
 }
 
+class Objects {
+  static int hashCode(@Readonly Object o);
+}
+
 @ReceiverDependantMutable
 class Stack<E> {
   E peek(@ReceiverDependantMutable Stack<E> this);

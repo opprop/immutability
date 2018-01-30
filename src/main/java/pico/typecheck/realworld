@@ -227,13 +227,17 @@ parameters which is from bytecode.
 constraint on type casting, including even ComparableConstraint. Otherwise, if you cast raw iterator's result(? extends @Mutable)
 to String, inference will exit saying "comparable.constraint.unsatisfiable". This type of cast exists in jdpend.
 
-JLargeArrays(11337 lines):
+jReactPhysics3D(10454 lines): inferred solutions but failed to insert solutions to source code.
+
+JLargeArrays(11337 lines): successfully inferred solutions and inserted results.
 
 jblas(11841 lines): inference failed and triggerred explanation
 Update: successfully inferred results for jblas, but annotation-tools wasn't successful to insert solutions back to source.
 Has fbc errors.
 
 exp4j(31327 lines): successfully inferred results, but wasn't fully inserted solutions.
+
+Right now, successfully inferred on 8 projects.
 
 bdoorClient:
 if generate inequality constraint from @Bottom in validator, some instance method receiver were still inferred
