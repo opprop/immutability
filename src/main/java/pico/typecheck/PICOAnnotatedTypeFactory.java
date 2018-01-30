@@ -1,6 +1,7 @@
 package pico.typecheck;
 
 import com.sun.source.tree.BinaryTree;
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
@@ -49,6 +50,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.Types;
@@ -188,6 +190,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
         PICOTypeUtil.addDefaultForStaticField(this, type, elt);
         PICOTypeUtil.defaultConstructorReturnToClassBound(this, elt, type);
+        PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
         super.addComputedTypeAnnotations(elt, type);
     }
 
@@ -419,6 +422,13 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             super(atypeFactory);
         }
 
+        @Override
+        public Void visitClass(ClassTree node, AnnotatedTypeMirror annotatedTypeMirror) {
+            // Apply @Immutable to enum element's bound
+            PICOTypeUtil.applyImmutableToEnumAndEnumConstant(annotatedTypeMirror);
+            return super.visitClass(node, annotatedTypeMirror);
+        }
+
         // This adds @Immutable annotation to constructor return type if type declaration has @Immutable when the
         // constructor is accessed as a tree.
         @Override
@@ -435,6 +445,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         public Void visitVariable(VariableTree node, AnnotatedTypeMirror annotatedTypeMirror) {
             VariableElement element = TreeUtils.elementFromDeclaration(node);
             PICOTypeUtil.addDefaultForStaticField(atypeFactory, annotatedTypeMirror, element);
+            PICOTypeUtil.applyImmutableToEnumAndEnumConstant(annotatedTypeMirror);
             Types types = atypeFactory.getProcessingEnv().getTypeUtils();
             viewpointAdaptInstanceFieldToClassBound(types, annotatedTypeMirror, element, node);
             return super.visitVariable(node, annotatedTypeMirror);

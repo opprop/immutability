@@ -52,6 +52,11 @@ class RuntimeException {
   RuntimeException(String var1, @Readonly Throwable var2, boolean var3, boolean var4);
 }
 
+@Immutable
+class Enum<E extends Enum<E>> {
+  @Immutable Enum(String name, int ordinal);
+}
+
 package java.util;
 
 @ReceiverDependantMutable

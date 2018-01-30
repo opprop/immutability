@@ -74,7 +74,9 @@ public class PICOTypeUtil {
     /**Method to determine if the underlying type is implicitly immutable. This method is consistent
      * with the types and typeNames that are in @ImplicitFor in the definition of @Immutable qualifier*/
     public static boolean isImplicitlyImmutableType(AnnotatedTypeMirror atm) {
-        return isInTypesOfImplicitForOfImmutable(atm) || isInTypeNamesOfImplicitForOfImmutable(atm);
+        return isInTypesOfImplicitForOfImmutable(atm)
+                || isInTypeNamesOfImplicitForOfImmutable(atm)
+                || isEnumOrEnumConstant(atm);
     }
 
     /**
@@ -214,6 +216,23 @@ public class PICOTypeUtil {
                     annotatedTypeMirror.replaceAnnotation(MUTABLE);
                 }
             }
+        }
+    }
+
+    public static boolean isEnumOrEnumConstant(AnnotatedTypeMirror annotatedTypeMirror) {
+        if (!(annotatedTypeMirror instanceof AnnotatedDeclaredType)) {
+            return false;
+        }
+        Element element = ((AnnotatedDeclaredType)annotatedTypeMirror).getUnderlyingType().asElement();
+        return element != null
+                && (element.getKind() == ElementKind.ENUM_CONSTANT || element.getKind() == ElementKind.ENUM);
+
+    }
+
+    public static void applyImmutableToEnumAndEnumConstant(AnnotatedTypeMirror annotatedTypeMirror) {
+        if (isEnumOrEnumConstant(annotatedTypeMirror)) {
+            // I guess enum constant can't have explicit annotation, am I right?
+            annotatedTypeMirror.addMissingAnnotations(Arrays.asList(IMMUTABLE));
         }
     }
 
