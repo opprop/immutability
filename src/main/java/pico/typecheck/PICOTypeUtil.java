@@ -3,6 +3,8 @@ package pico.typecheck;
 import checkers.inference.InferenceMain;
 import checkers.inference.SlotManager;
 import checkers.inference.model.ConstantSlot;
+import checkers.inference.model.ConstraintManager;
+import checkers.inference.model.Slot;
 import checkers.inference.util.InferenceUtil;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
@@ -21,6 +23,7 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import pico.inference.PICOInferenceAnnotatedTypeFactory;
 import qual.Assignable;
 import qual.Immutable;
 import qual.ObjectIdentityMethod;
@@ -243,6 +246,27 @@ public class PICOTypeUtil {
         if (elt.getKind() == ElementKind.CONSTRUCTOR && type instanceof AnnotatedExecutableType) {
             AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(elt, annotatedTypeFactory);
             ((AnnotatedExecutableType) type).getReturnType().addMissingAnnotations(Arrays.asList(bound.getAnnotationInHierarchy(READONLY)));
+        }
+    }
+
+    public static void applyConstant(AnnotatedTypeMirror type, AnnotationMirror am) {
+        SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+        ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+        // Might be null. It's normal. In typechecking side, we use addMissingAnnotations(). Only if
+        // there is existing annotation in code, then here is non-null. Otherwise, VariableAnnotator
+        // hasn't come into the picture yet, so no VarAnnot exists here, which is normal.
+        Slot shouldBeAppliedTo = slotManager.getVariableSlot(type);
+        ConstantSlot constant = slotManager.createConstantSlot(am);
+        if (shouldBeAppliedTo == null) {
+            // Here, we are adding VarAnnot that represents @Immutable. There won't be solution for this ConstantSlot for this type,
+            // so the inserted-back source code doesn't have explicit annotation @Immutable. But it is not wrong. It makes the code
+            // cleaner by omitting implicit annotations. General principle is that for ConstantSlot, there won't be annotation inserted
+            // back to the original source code, BUT this ConstantSlot(representing @Immutable) will be used for constraint generation
+            // that affects the solutions for other VariableSlots
+            type.addAnnotation(slotManager.getAnnotation(constant));// Insert Constant VarAnnot that represents @Immutable
+            type.addAnnotation(am);// Insert real @Immutable. This should be removed if INF-FR only uses VarAnnot
+        } else {
+            constraintManager.addEqualityConstraint(shouldBeAppliedTo, constant);
         }
     }
 

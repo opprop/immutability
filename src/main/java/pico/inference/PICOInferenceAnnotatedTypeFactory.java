@@ -93,27 +93,6 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         super.viewpointAdaptMethod(methodElt, receiverType, methodType);
     }
 
-    private void applyConstant(AnnotatedTypeMirror type, AnnotationMirror am) {
-        SlotManager slotManager = PICOInferenceAnnotatedTypeFactory.this.slotManager;
-        ConstraintManager constraintManager = PICOInferenceAnnotatedTypeFactory.this.constraintManager;
-        // Might be null. It's normal. In typechecking side, we use addMissingAnnotations(). Only if
-        // there is existing annotation in code, then here is non-null. Otherwise, VariableAnnotator
-        // hasn't come into the picture yet, so no VarAnnot exists here, which is normal.
-        Slot shouldBeAppliedTo = slotManager.getVariableSlot(type);
-        ConstantSlot constant = slotManager.createConstantSlot(am);
-        if (shouldBeAppliedTo == null) {
-            // Here, we are adding VarAnnot that represents @Immutable. There won't be solution for this ConstantSlot for this type,
-            // so the inserted-back source code doesn't have explicit annotation @Immutable. But it is not wrong. It makes the code
-            // cleaner by omitting implicit annotations. General principle is that for ConstantSlot, there won't be annotation inserted
-            // back to the original source code, BUT this ConstantSlot(representing @Immutable) will be used for constraint generation
-            // that affects the solutions for other VariableSlots
-            type.addAnnotation(slotManager.getAnnotation(constant));// Insert Constant VarAnnot that represents @Immutable
-            type.addAnnotation(am);// Insert real @Immutable. This should be removed if INF-FR only uses VarAnnot
-        } else {
-            constraintManager.addEqualityConstraint(shouldBeAppliedTo, constant);
-        }
-    }
-
     /**
      * Gets self type from a tree.
      *
@@ -173,7 +152,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
             if (type.isAnnotatedInHierarchy(READONLY)) {
                 // VarAnnot is guarenteed to not exist on type, because PropagationTreeAnnotator has the highest previledge
                 // So VarAnnot hasn't been inserted to cast type yet.
-                applyConstant(type, type.getAnnotationInHierarchy(READONLY));
+                PICOTypeUtil.applyConstant(type, type.getAnnotationInHierarchy(READONLY));
             }
             return super.visitTypeCast(node, type);
         }
@@ -182,7 +161,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
          to always have immutable annotation. If this happens, we manually add immutable to type. */
         private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
             if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
-                applyConstant(type, IMMUTABLE);
+                PICOTypeUtil.applyConstant(type, IMMUTABLE);
             }
         }
     }

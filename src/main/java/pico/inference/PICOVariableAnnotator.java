@@ -97,6 +97,15 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         return;
     }
 
+    @Override
+    protected VariableSlot addPrimaryVariable(AnnotatedTypeMirror atm, Tree tree) {
+        if (PICOTypeUtil.isEnumOrEnumConstant(atm)) {
+            // Don't add new VarAnnot to type use of enum type
+            PICOTypeUtil.applyConstant(atm, IMMUTABLE);
+        }
+        return super.addPrimaryVariable(atm, tree);
+    }
+
     // Generates inequality constraint between every strict VariableSlot and @Bottom so that @Bottom is not inserted
     // back to source code, but can be within the internal state because of dataflow refinement
     @Override
