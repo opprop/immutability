@@ -53,6 +53,14 @@ public class PICOVariableAnnotator extends VariableAnnotator {
 
         VariableSlot boundSlot;
 
+        // Insert @Immutable VarAnnot directly to enum bound
+        if (PICOTypeUtil.isEnumOrEnumConstant(bound)) {
+            boundSlot = createConstant(IMMUTABLE);
+            classType.addAnnotation(slotManager.getAnnotation(boundSlot));
+            classDeclAnnos.put(classElement, boundSlot);
+            return;
+        }
+
         Tree classTree = inferenceTypeFactory.declarationFromElement(classElement);
         if (classTree != null) {
             // Have source tree
