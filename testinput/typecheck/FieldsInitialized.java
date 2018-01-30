@@ -25,6 +25,8 @@ public class FieldsInitialized {
         f2 = new @Immutable Object();
         f3 = new @ReceiverDependantMutable Object();
         f4 = new @ReceiverDependantMutable Object();
+        f5 = new @Mutable Object();
+        f6 = new @Immutable Object();
     }
 
 }

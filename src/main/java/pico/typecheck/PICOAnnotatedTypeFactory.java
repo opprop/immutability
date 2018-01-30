@@ -171,11 +171,9 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     /**This affects what fields pico warns not initialized in constructors*/
     @Override
     protected boolean hasFieldInvariantAnnotation(AnnotatedTypeMirror type, VariableElement fieldElement) {
-        // This affects which fields should be guaranteed to be initialized
-        Set<AnnotationMirror> lowerBounds =
-                AnnotatedTypes.findEffectiveLowerBoundAnnotations(qualHierarchy, type);
-        return (AnnotationUtils.containsSame(lowerBounds, IMMUTABLE) || AnnotationUtils.containsSame(lowerBounds, RECEIVER_DEPENDANT_MUTABLE))
-                && !PICOTypeUtil.isAssignableField(fieldElement, this);
+        // This affects which fields should be guaranteed to be initialized:
+        // Fields of any immutability should be initialized.
+        return !PICOTypeUtil.isAssignableField(fieldElement, this);
     }
 
     /**Forbid applying top annotations to type variables if they are used on local variables*/

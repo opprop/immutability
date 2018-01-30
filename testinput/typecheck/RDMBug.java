@@ -5,6 +5,7 @@ import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
 
+// :: error: (initialization.fields.uninitialized)
 @Immutable class RDMBug {
     @Mutable Object o;
     @Readonly Object o2;
