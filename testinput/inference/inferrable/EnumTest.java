@@ -7,5 +7,8 @@ public class EnumTest {
 
     EnumTest() {
         kind = Kind.SOME;
+        foo(Kind.SOME);
     }
+
+    public static void foo(Kind kind) {}
 }
