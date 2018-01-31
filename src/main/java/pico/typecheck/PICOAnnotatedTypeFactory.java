@@ -526,10 +526,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             return null;
         }
 
+
         @Override
-        public Void visitDeclared(AnnotatedDeclaredType type, Void aVoid) {
+        protected Void scan(AnnotatedTypeMirror type, Void p) {
+            // If underlying type is enum or enum constant, appy @Immutable to type
             PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
-            return super.visitDeclared(type, aVoid);
+            return super.scan(type, p);
         }
     }
 
