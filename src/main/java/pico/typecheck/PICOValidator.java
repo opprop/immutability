@@ -52,7 +52,7 @@ public class PICOValidator extends BaseTypeValidator {
     }
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
-        if (TreeUtils.isTreeInStaticScope(visitor.getCurrentPath())
+        if (PICOTypeUtil.inStaticScope(visitor.getCurrentPath())
                 && !"".contentEquals(TreeUtils.enclosingClass(visitor.getCurrentPath()).getSimpleName())// Exclude @RDM usages in anonymous classes
                 && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
             reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);

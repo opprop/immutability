@@ -32,6 +32,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
@@ -345,5 +346,18 @@ public class PICOTypeUtil {
         final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
         ConstantSlot constantSlot = slotManager.createConstantSlot(am);
         return slotManager.getAnnotation(constantSlot);
+    }
+
+    public static boolean inStaticScope(TreePath treePath) {
+        boolean in = false;
+        if (TreeUtils.isTreeInStaticScope(treePath)) {
+            in = true;
+            // Exclude case in which enclosing class is static
+            ClassTree classTree = TreeUtils.enclosingClass(treePath);
+            if (classTree != null && classTree.getModifiers().getFlags().contains((Modifier.STATIC))) {
+                in = false;
+            }
+        }
+        return in;
     }
 }
