@@ -48,8 +48,8 @@ interface CharSequence {}
 
 @ReceiverDependantMutable
 class RuntimeException {
-  RuntimeException(@Readonly Throwable var1);
-  RuntimeException(String var1, @Readonly Throwable var2, boolean var3, boolean var4);
+  @ReceiverDependantMutable RuntimeException(@Readonly Throwable var1);
+  @ReceiverDependantMutable RuntimeException(String var1, @Readonly Throwable var2, boolean var3, boolean var4);
 }
 
 @Immutable
