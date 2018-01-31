@@ -53,8 +53,9 @@ class RuntimeException {
 }
 
 @Immutable
-class Enum<E extends Enum<E>> {
+class Enum<E extends @Immutable Enum<E>> {
   @Immutable Enum(String name, int ordinal);
+  int ordinal(@Immutable Enum<E> this);
 }
 
 package java.util;
