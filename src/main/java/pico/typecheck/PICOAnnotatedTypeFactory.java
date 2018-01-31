@@ -525,6 +525,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             }
             return null;
         }
+
+        @Override
+        public Void visitDeclared(AnnotatedDeclaredType type, Void aVoid) {
+            PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
+            return super.visitDeclared(type, aVoid);
+        }
     }
 
     // TODO Right now, instance method receiver cannot inherit bound annotation from class element, and
