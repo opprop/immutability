@@ -77,6 +77,7 @@ class ArrayList<E> {
   @ReceiverDependantMutable ArrayList();
   @ReceiverDependantMutable ArrayList(@Readonly Collection<? extends E> var1);
   boolean add(@Mutable ArrayList<E> this, E var1);
+  boolean addAll(@Mutable ArrayList<E> this, @Readonly Collection<? extends E> c);
 }
 
 @ReceiverDependantMutable
