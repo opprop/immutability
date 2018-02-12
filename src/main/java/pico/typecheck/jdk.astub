@@ -110,14 +110,14 @@ class HashSet<E> {
 }
 
 @ReceiverDependantMutable
-interface Map<K, V> {
+interface Map<K extends @Immutable Object, V> {
   boolean containsKey(@Readonly Object var1);
   V get(@Readonly Map<K, V> this, @Readonly Object var1);
   Set<Map.Entry<K, V>> entrySet(@Readonly Map<K, V> this);
 }
 
 @ReceiverDependantMutable
-class HashMap<K, V> {
+class HashMap<K extends @Immutable Object, V> {
   @ReceiverDependantMutable HashMap();
   @ReceiverDependantMutable HashMap(@Readonly Map<? extends K, ? extends V> var1);
   V get(@Readonly HashMap<K, V> this, @Readonly Object key);
@@ -148,7 +148,7 @@ class Vector<E> {
 }
 
 @ReceiverDependantMutable
-class Hashtable<K,V> {
+class Hashtable<K extends @Immutable Object,V> {
   V get(@Readonly Hashtable<K,V> this, @Readonly Object key);
   boolean containsKey(@Readonly Hashtable<K,V> this, @Readonly Object key);
 }
