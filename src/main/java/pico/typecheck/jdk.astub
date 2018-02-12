@@ -144,7 +144,7 @@ class Stack<E> {
 
 @ReceiverDependantMutable
 class Vector<E> {
-  boolean isEmpty(@ReceiverDependantMutable Vector<E> this);
+  boolean isEmpty(@Readonly Vector<E> this);
 }
 
 @ReceiverDependantMutable
