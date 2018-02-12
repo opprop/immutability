@@ -58,6 +58,9 @@ class Enum<E extends @Immutable Enum<E>> {
   int ordinal(@Immutable Enum<E> this);
 }
 
+@ReceiverDependantMutable
+interface Cloneable {}
+
 package java.util;
 
 @ReceiverDependantMutable

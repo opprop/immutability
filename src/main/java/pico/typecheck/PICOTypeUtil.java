@@ -19,11 +19,9 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclared
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationProvider;
-import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
-import pico.inference.PICOInferenceAnnotatedTypeFactory;
 import qual.Assignable;
 import qual.Immutable;
 import qual.ObjectIdentityMethod;
@@ -148,6 +146,11 @@ public class PICOTypeUtil {
             boundsOfSupers.add(getBoundTypeOfTypeDeclaration(superitf, atypeFactory));
         }
         return boundsOfSupers;
+    }
+
+    public static AnnotatedDeclaredType getBoundTypeOfTypeDeclaration(ClassTree classTree, AnnotatedTypeFactory atypeFactory) {
+        TypeElement typeElement = TreeUtils.elementFromDeclaration(classTree);
+        return getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
     }
 
     public static AnnotatedDeclaredType getBoundTypeOfTypeDeclaration(TypeElement typeElement, AnnotatedTypeFactory atypeFactory) {
@@ -359,5 +362,29 @@ public class PICOTypeUtil {
             }
         }
         return in;
+    }
+
+    public static void dragAnnotationFromBoundToExtendsAndImplements(Tree node,
+                                                                     AnnotatedTypeMirror annotatedTypeMirror,
+                                                                     AnnotatedTypeFactory atypeFactory) {
+        boolean onExtendsOrImplements = false;
+        ClassTree classTree = null;
+        TreePath path = atypeFactory.getPath(node);
+        if (path != null) {
+            final TreePath parentPath = path.getParentPath();
+            if (parentPath != null) {
+                final Tree parentNode = parentPath.getLeaf();
+                if (TreeUtils.isClassTree(parentNode)) {
+                    onExtendsOrImplements = true;
+                    classTree = (ClassTree) parentNode;
+                }
+            }
+        }
+
+        if (onExtendsOrImplements) {
+            // Respect exsiting annotation still
+            annotatedTypeMirror.addMissingAnnotations(
+                    Arrays.asList(getBoundTypeOfTypeDeclaration(classTree, atypeFactory).getAnnotationInHierarchy(READONLY)));
+        }
     }
 }

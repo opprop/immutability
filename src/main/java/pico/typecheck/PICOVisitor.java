@@ -451,6 +451,21 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             checker.report(Result.failure("class.bound.invalid", bound), node);
             return;// Doesn't process the class tree anymore
         }
+        if (!checkCompatabilityBetweenBoundAndSuperClassesBounds(node, typeElement, bound)) {
+            return;
+        }
+
+        if (!checkCompatabilityBetweenBoundAndExtendsImplements(node, bound)) {
+            return;
+        }
+
+        // Reach this point iff 1) bound annotation is one of mutable, rdm or immutable;
+        // 2) bound is compatible with bounds on super types. Only continue if bound check
+        // passed. Reaching here already means having passed bound check.
+        super.processClassTree(node);
+    }
+
+    private boolean checkCompatabilityBetweenBoundAndSuperClassesBounds(ClassTree node, TypeElement typeElement, AnnotatedDeclaredType bound) {
         // Must have compatible bound annotation as the direct super types
         List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
         for (AnnotatedDeclaredType superBound : superBounds) {
@@ -460,12 +475,39 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             if (!atypeFactory.getQualifierHierarchy().isSubtype(
                     bound.getAnnotationInHierarchy(READONLY), superBound.getAnnotationInHierarchy(READONLY))) {
                 checker.report(Result.failure("subclass.bound.incompatible", bound, superBound), node);
-                return;
+                return false;
             }
         }
-        // Reach this point iff 1) bound annotation is one of mutable, rdm or immutable;
-        // 2) bound is compatible with bounds on super types. Only continue if bound check
-        // passed. Reaching here already means having passed bound check.
-        super.processClassTree(node);
+        return true;
+    }
+
+    private boolean checkCompatabilityBetweenBoundAndExtendsImplements(ClassTree node, AnnotatedDeclaredType bound) {
+        boolean hasSame;
+        Tree ext = node.getExtendsClause();
+        if (ext != null) {
+            AnnotatedTypeMirror extendsType = atypeFactory.getAnnotatedType(ext);
+            hasSame = bound.getAnnotations().size() == extendsType.getAnnotations().size()
+                        && AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY),
+                                                    bound.getAnnotationInHierarchy(READONLY));
+            if (!hasSame) {
+                checker.report(Result.failure("bound.extends.incompatabile"), node);
+                return false;
+            }
+        }
+
+        List<? extends Tree> impls = node.getImplementsClause();
+        if (impls != null) {
+            for (Tree im : impls) {
+                AnnotatedTypeMirror implementsType = atypeFactory.getAnnotatedType(im);
+                hasSame = bound.getAnnotations().size() == implementsType.getAnnotations().size()
+                        && AnnotationUtils.areSame(implementsType.getAnnotationInHierarchy(READONLY),
+                                                    bound.getAnnotationInHierarchy(READONLY));
+                if (!hasSame) {
+                    checker.report(Result.failure("bound.implements.incompatabile"), node);
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

@@ -3,8 +3,10 @@ package pico.typecheck;
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
+import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
@@ -33,7 +35,6 @@ import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
 import org.checkerframework.framework.util.ViewpointAdapter;
-import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
@@ -50,7 +51,6 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.Types;
@@ -68,7 +68,6 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.SUBSTITUTABLE_POLY_MUTABLE;
 
 /**
@@ -418,6 +417,18 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     public static class PICOTreeAnnotator extends TreeAnnotator {
         public PICOTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
             super(atypeFactory);
+        }
+
+        @Override
+        public Void visitIdentifier(IdentifierTree node, AnnotatedTypeMirror annotatedTypeMirror) {
+            PICOTypeUtil.dragAnnotationFromBoundToExtendsAndImplements(node, annotatedTypeMirror, atypeFactory);
+            return super.visitIdentifier(node, annotatedTypeMirror);
+        }
+
+        @Override
+        public Void visitParameterizedType(ParameterizedTypeTree node, AnnotatedTypeMirror annotatedTypeMirror) {
+            PICOTypeUtil.dragAnnotationFromBoundToExtendsAndImplements(node, annotatedTypeMirror, atypeFactory);
+            return super.visitParameterizedType(node, annotatedTypeMirror);
         }
 
         @Override
