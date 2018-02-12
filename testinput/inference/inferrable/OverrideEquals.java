@@ -4,8 +4,8 @@ import qual.Readonly;
 // Copied from typechecking side testcase. AFU bug causes @Immutable is not inserted
 // back to class A's declaration position, but it is inferred as result - @Immutable.
 // This example typecheckes before and after inference otherwise, which is a good example
-// indicating flexible overriding as both @Mutable and @Immutable
-class A {// bound annotation is not inserted here
+// indicating flexible overriding as both @Mutable
+class A {
     void foo(@Readonly Object o) {}
 }
 public class OverrideEquals extends A{
