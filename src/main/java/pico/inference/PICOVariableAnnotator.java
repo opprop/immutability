@@ -42,6 +42,19 @@ public class PICOVariableAnnotator extends VariableAnnotator {
     }
 
     @Override
+    protected void handleClassDeclaration(AnnotatedDeclaredType classType, ClassTree classTree) {
+        super.handleClassDeclaration(classType, classTree);
+        int interfaceIndex = 1;
+        for(Tree implementsTree : classTree.getImplementsClause()) {
+            final AnnotatedTypeMirror implementsType = inferenceTypeFactory.getAnnotatedTypeFromTypeTree(implementsTree);
+            AnnotatedTypeMirror supertype = classType.directSuperTypes().get(interfaceIndex);
+            assert supertype.getUnderlyingType() == implementsType.getUnderlyingType();
+            visit(supertype, implementsTree);
+            interfaceIndex++;
+        }
+    }
+
+    @Override
     protected void handleClassDeclarationBound(AnnotatedDeclaredType classType) {
         TypeElement classElement = (TypeElement) classType.getUnderlyingType().asElement();
         if (classDeclAnnos.containsKey(classElement)) {
@@ -117,37 +130,6 @@ public class PICOVariableAnnotator extends VariableAnnotator {
             constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(BOTTOM));
         }
         return varSlot;
-    }
-
-    // Not annotate extends bound of class declaration
-    // TODO Infer.java still gets inserted VarAnnot on extends clause. Need to furthur investigate extend problem
-    @Override
-    protected void handleClassDeclaration(AnnotatedTypeMirror.AnnotatedDeclaredType classType, ClassTree classTree) {
-        // Below is copied
-        // TODO: NOT SURE THIS HANDLES MEMBER SELECT CORRECTLY
-        int interfaceIndex = 1;
-        for(Tree implementsTree : classTree.getImplementsClause()) {
-            final AnnotatedTypeMirror implementsType = inferenceTypeFactory.getAnnotatedTypeFromTypeTree(implementsTree);
-            AnnotatedTypeMirror supertype = classType.directSuperTypes().get(interfaceIndex);
-            assert supertype.getUnderlyingType() == implementsType.getUnderlyingType();
-            visit(supertype, implementsTree);
-            interfaceIndex++;
-        }
-
-        if (InferenceMain.isHackMode(
-                (classType.getTypeArguments().size() != classTree.getTypeParameters().size()))) {
-            return;
-        }
-
-        visitTogether(classType.getTypeArguments(), classTree.getTypeParameters());
-
-        handleClassDeclarationBound(classType);
-
-        // before we were relying on trees but the ClassTree has it's type args erased
-        // when the compiler moves on to the next class
-        Element classElement = classType.getUnderlyingType().asElement();
-        storeElementType(classElement, classType);
-        // Above is copied
     }
 
     // Copied from super implementation

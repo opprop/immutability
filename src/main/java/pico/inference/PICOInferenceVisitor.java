@@ -1,5 +1,6 @@
 package pico.inference;
 
+import checkers.inference.InferenceAnnotatedTypeFactory;
 import checkers.inference.InferenceChecker;
 import checkers.inference.InferenceMain;
 import checkers.inference.InferenceValidator;
@@ -654,6 +655,21 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             }
         }
 
+        if (!checkCompatabilityBetweenBoundAndSuperClassesBounds(node, typeElement, bound)) {
+            return;
+        }
+
+        if (!checkCompatabilityBetweenBoundAndExtendsImplements(node, bound)) {
+            return;
+        }
+
+        // Reach this point iff 1) bound annotation is one of mutable, rdm or immutable;
+        // 2) bound is compatible with bounds on super types. Only then continue processing
+        // the class tree
+        super.processClassTree(node);
+    }
+
+    private boolean checkCompatabilityBetweenBoundAndSuperClassesBounds(ClassTree node, TypeElement typeElement, AnnotatedDeclaredType bound) {
         // Must have compatible bound annotation as the direct super types
         List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
         for (AnnotatedDeclaredType superBound : superBounds) {
@@ -666,14 +682,55 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 if (!atypeFactory.getQualifierHierarchy().isSubtype(
                         bound.getAnnotationInHierarchy(READONLY), superBound.getAnnotationInHierarchy(READONLY))) {
                     checker.report(Result.failure("subclass.bound.incompatible", bound, superBound), node);
-                    return;
+                    return false;
                 }
             }
         }
-        // Reach this point iff 1) bound annotation is one of mutable, rdm or immutable;
-        // 2) bound is compatible with bounds on super types. Only then continue processing
-        // the class tree
-        super.processClassTree(node);
+        return true;
+    }
+
+    private boolean checkCompatabilityBetweenBoundAndExtendsImplements(ClassTree node, AnnotatedDeclaredType bound) {
+        if (infer) {
+            atypeFactory.getAnnotatedType(node);
+        }
+
+        boolean hasSame;
+        Tree ext = node.getExtendsClause();
+        if (ext != null) {
+            AnnotatedTypeMirror extendsType= atypeFactory.getAnnotatedType(ext);
+            if (infer) {
+                ((PICOInferenceAnnotatedTypeFactory) atypeFactory).getVariableAnnotator().visit(extendsType, ext);
+                areEqual(bound, extendsType, "bound.extends.incompatabile", node);
+            } else {
+                hasSame = bound.getAnnotations().size() == extendsType.getAnnotations().size()
+                        && AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY),
+                        bound.getAnnotationInHierarchy(READONLY));
+                if (!hasSame) {
+                    checker.report(Result.failure("bound.extends.incompatabile"), node);
+                    return false;
+                }
+            }
+        }
+
+        List<? extends Tree> impls = node.getImplementsClause();
+        if (impls != null) {
+            for (Tree im : impls) {
+                AnnotatedTypeMirror implementsType = atypeFactory.getAnnotatedType(im);
+                if (infer) {
+                    ((PICOInferenceAnnotatedTypeFactory) atypeFactory).getVariableAnnotator().visit(implementsType, im);
+                    areEqual(bound, implementsType, "bound.implements.incompatabile", node);
+                } else {
+                    hasSame = bound.getAnnotations().size() == implementsType.getAnnotations().size()
+                            && AnnotationUtils.areSame(implementsType.getAnnotationInHierarchy(READONLY),
+                            bound.getAnnotationInHierarchy(READONLY));
+                    if (!hasSame) {
+                        checker.report(Result.failure("bound.implements.incompatabile"), node);
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     private void addSameToMutableImmutableConstraints(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType) {

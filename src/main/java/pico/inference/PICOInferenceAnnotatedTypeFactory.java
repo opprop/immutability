@@ -93,6 +93,10 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         super.viewpointAdaptMethod(methodElt, receiverType, methodType);
     }
 
+    VariableAnnotator getVariableAnnotator() {
+        return variableAnnotator;
+    }
+
     /**
      * Gets self type from a tree.
      *
