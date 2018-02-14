@@ -150,7 +150,8 @@ TODO: StackOverflowException on PICOStore(run PICO on PICO source file)
 Explain unsatisfiable
 Update: code reviewing: https://github.com/opprop/checker-framework-inference/pull/128
 
-Inference Result:
+Successful Projects:
+=================
 1. AFHbackdoor(317 lines): Not so good material because methods are not called, so the inference result is not good.
 For projects like this, if this project uses third party APIs, we must have some stub files for those APIs, because
 @Immutable primitives could cause inference fail because by default @Mutable is the default for every bytecode. At least
@@ -247,6 +248,20 @@ Has fbc errors.
 8. exp4j(31327 lines): successfully inferred results, but wasn't fully inserted solutions. Insertion failure reason is the same
 as above.
 
+9. imgscalr(1996 lines): successfully inferred solutions and inserted solutions.
+
+10. jama(4772 lines): successfully inferred solutions and inserted solutions.
+
+11. react(10095 lines): inferred solutions, but failed to insert solutions back. The same insertion failure reason as above.
+
+Right now, successfully inferred on 11 projects. There are two annotation-tools bugs that caused solutions insertion fail.
+
+====================
+
+Failed Projects:
+
+Facedetection(538 lines): Failed because of wrong dataflow constraint generation. Needs discussion. See notes
+
 ode4j(85504 lines):
 
 dyn4j: SEVERE: Non-OK return code from javac! Quitting. Result code is: ERROR
@@ -257,7 +272,7 @@ dyn4j: SEVERE: Non-OK return code from javac! Quitting. Result code is: ERROR
 
 ojAlgo: too many errors. Given up.
 
-Right now, successfully inferred on 8 projects. There are two annotation-tools bugs that caused solutions insertion fail.
+==================== Failed projects end
 
 bdoorClient:
 if generate inequality constraint from @Bottom in validator, some instance method receiver were still inferred
