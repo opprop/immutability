@@ -347,3 +347,6 @@ TODO Viewpoint adapter adds support for adapting intersection and union type.
 ojALgo throws such exception.
 
 TODO File issue for mutating atm in inference. Reproduce in OsTrusted.
+
+!!! If a tree gets inferred solution, but wasn't inserted solution, it might be related to issue:
+https://github.com/opprop/checker-framework-inference/issues/131
