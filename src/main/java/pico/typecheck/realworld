@@ -151,7 +151,7 @@ Explain unsatisfiable
 Update: code reviewing: https://github.com/opprop/checker-framework-inference/pull/128
 
 Inference Result:
-AFHbackdoor(317 lines):
+1. AFHbackdoor(317 lines): Not so good material because methods are not called, so the inference result is not good.
 For projects like this, if this project uses third party APIs, we must have some stub files for those APIs, because
 @Immutable primitives could cause inference fail because by default @Mutable is the default for every bytecode. At least
 we should have a bare minimum stub file for classes&methods that are referenced from this project. Otherwise, the project
@@ -163,23 +163,31 @@ Example: package org.hibernate;
 If we don't have this stub, then everything is by default @Mutable, thus 2 can't be passed into Session#get() method and
 caused inference to give no solution and triggers explanation.
 
-dyn4j: SEVERE: Non-OK return code from javac! Quitting. Result code is: ERROR
-       Jan 07, 2018 7:19:17 PM checkers.inference.InferenceMain$DefaultResultHandler handleCompilerResult
-       SEVERE: error: AsSuperVisitor: type is not an erased subtype of supertype.
-         type: @VarAnnot(145) @Readonly ClosestEdgeToVertexSearchCriteria
-         superType: @VarAnnot(144) @Readonly SweepLineEdge
+2. bdoorProto(1299 lines): gets inferred solutions, but wasn't able to insert back.
+This is due to bug https://github.com/typetools/annotation-tools/issues/154.
 
-ojAlgo: too many errors. Given up.
+Remove constructor return for class Command, and use the following command will successfully insert solutions:
+~/jsr308/annotation-tools/annotation-file-utilities/scripts/insert-annotations-to-source logs/infer_result_0.jaif
+ /home/mier/jsr308/corpus/corpus/bdoorProto/src/bdoorProto/Command.java /home/mier/jsr308/corpus/corpus/bdoorProto/
+ src/bdoorProto/Packet.java /home/mier/jsr308/corpus/corpus/bdoorProto/src/bdoorProto/PacketFactory.java /home/mier/
+ jsr308/corpus/corpus/bdoorProto/src/bdoorProto/PacketHeader.java /home/mier/jsr308/corpus/corpus/bdoorProto/src/
+ bdoorProto/PacketUtils.java /home/mier/jsr308/corpus/corpus/bdoorProto/src/bdoorProto/PingCommand.java
+ /home/mier/jsr308/corpus/corpus/bdoorProto/src/bdoorProto/Reply.java /home/mier/jsr308/corpus/corpus/bdoorProto/src/
+ bdoorProto/Request.java
 
-bdoorProto(1299 lines): gets inferred solutions, but wasn't able to insert back. Doesn't have fbc errors.
+Doesn't have fbc errors.
 
-ECC-RSA-Backdoor(2822 lines): Gets inferred solutions, and solutions were inserted back to source code(class bounds were not
-inserted). This project has
+3. ECC-RSA-Backdoor(2822 lines): Gets inferred solutions, and solutions were inserted back to source code. This project has
 fbc errors(instance methods called inside constructors), but still gets solutions. But those who assign field gets inferred
 to have @Mutable declared receiver. If those instance methods are properly annotated with @UnderInitialization manually,
 the results may contain more @Immutable and @Readonly, I believe.
+Updated jdk.astub on ArrayList class to really use @Readonly declared receiver for isEmpty(), size() methods etc., so
+that if they are called from toString() method, there will be solution. Otherwise, due to well-formedness constraint,
+there wasn't solution.
+One bug in annotation-tools makes the insertion fail. Already opened an issue for this. See:
+https://github.com/typetools/annotation-tools/issues/155
 
-jdepend(6936 lines): found non-compliance code that modifies abstract state of receiver object in toString() method.
+4. jdepend(6936 lines): found non-compliance code that modifies abstract state of receiver object in toString() method.
 class AfferentNode extends PackageNode {
   ...
   public String toString() {
@@ -227,17 +235,29 @@ parameters which is from bytecode.
 constraint on type casting, including even ComparableConstraint. Otherwise, if you cast raw iterator's result(? extends @Mutable)
 to String, inference will exit saying "comparable.constraint.unsatisfiable". This type of cast exists in jdpend.
 
-jReactPhysics3D(10454 lines): inferred solutions but failed to insert solutions to source code.
+5. jReactPhysics3D(10454 lines): inferred solutions but failed to insert solutions to source code. The same reason as above.
 
-JLargeArrays(11337 lines): successfully inferred solutions and inserted results.
+6. JLargeArrays(11337 lines): successfully inferred solutions and inserted results.
 
-jblas(11841 lines): inference failed and triggerred explanation
+7. jblas(11841 lines): inference failed and triggerred explanation
 Update: successfully inferred results for jblas, but annotation-tools wasn't successful to insert solutions back to source.
+Insertion failure reason is the same as above.
 Has fbc errors.
 
-exp4j(31327 lines): successfully inferred results, but wasn't fully inserted solutions.
+8. exp4j(31327 lines): successfully inferred results, but wasn't fully inserted solutions. Insertion failure reason is the same
+as above.
 
-Right now, successfully inferred on 8 projects.
+ode4j(85504 lines):
+
+dyn4j: SEVERE: Non-OK return code from javac! Quitting. Result code is: ERROR
+       Jan 07, 2018 7:19:17 PM checkers.inference.InferenceMain$DefaultResultHandler handleCompilerResult
+       SEVERE: error: AsSuperVisitor: type is not an erased subtype of supertype.
+         type: @VarAnnot(145) @Readonly ClosestEdgeToVertexSearchCriteria
+         superType: @VarAnnot(144) @Readonly SweepLineEdge
+
+ojAlgo: too many errors. Given up.
+
+Right now, successfully inferred on 8 projects. There are two annotation-tools bugs that caused solutions insertion fail.
 
 bdoorClient:
 if generate inequality constraint from @Bottom in validator, some instance method receiver were still inferred
@@ -322,10 +342,6 @@ public class Test {
         f[0] = 2;
     }
 }
-
-TODO Doesn't insert class bound solution back to source code. File an issue
-Add "package test;" to the top of testcase(any one in testinput), class bound will not be inserted. This seems like a
-bug for me. Need to investigate a little bit.
 
 TODO Viewpoint adapter adds support for adapting intersection and union type.
 ojALgo throws such exception.
