@@ -1,17 +1,17 @@
 package qual:
-  annotation @Readonly:
-
-package qual:
   annotation @Bottom:
-
-package qual:
-  annotation @Immutable:
 
 package qual:
   annotation @Mutable:
 
 package qual:
+  annotation @Readonly:
+
+package qual:
   annotation @ReceiverDependantMutable:
+
+package qual:
+  annotation @Immutable:
 
 package test:
 class B:@qual.Immutable
@@ -20,12 +20,10 @@ insert-annotation Method.type: @qual.Immutable
 
 package test:
 class A:@qual.Immutable
-method foo()V:
-insert-annotation Method.body, Block.statement 0, Variable.type: @qual.Immutable
-insert-annotation Method.body, Block.statement 0, Variable.type, ArrayType.type: @qual.Immutable
-insert-annotation Method.body, Block.statement 0, Variable.initializer, NewArray.type 0: @qual.Immutable
-
 method <init>()V:
 insert-annotation Method.type: @qual.Immutable
 
-
+method test2()V:
+insert-annotation Method.body, Block.statement 0, Variable.type: @qual.Immutable
+insert-annotation Method.body, Block.statement 0, Variable.initializer, NewArray.type 0: @qual.Immutable
+insert-annotation Method.body, Block.statement 0, Variable.type, ArrayType.type: @qual.Immutable
