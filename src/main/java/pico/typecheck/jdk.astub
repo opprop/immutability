@@ -33,6 +33,19 @@ class StringBuilder {
   StringBuilder append(@Readonly Object var1);
 }
 
+class StringBuffer {
+  int length(@Readonly StringBuffer this);
+  int capacity(@Readonly StringBuffer this);
+  StringBuffer append(@Readonly Object obj);
+  String substring(@Readonly StringBuffer this, int start);
+  CharSequence subSequence(@Readonly StringBuffer this, int start, int end);
+  String substring(@Readonly StringBuffer this, int start, int end);
+  int indexOf(@Readonly StringBuffer this, String str);
+  int indexOf(@Readonly StringBuffer this, String str, int fromIndex);
+  int lastIndexOf(@Readonly StringBuffer this, String str);
+  int lastIndexOf(@Readonly StringBuffer this, String str, int fromIndex);
+}
+
 @ReceiverDependantMutable
 class Throwable {
   String getMessage(@ReceiverDependantMutable Throwable this);
@@ -52,6 +65,9 @@ class RuntimeException {
   @ReceiverDependantMutable RuntimeException(String var1, @Readonly Throwable var2, boolean var3, boolean var4);
 }
 
+@ReceiverDependantMutable
+class IndexOutOfBoundsException {}
+
 @Immutable
 class Enum<E extends @Immutable Enum<E>> {
   @Immutable Enum(String name, int ordinal);
@@ -60,6 +76,9 @@ class Enum<E extends @Immutable Enum<E>> {
 
 @ReceiverDependantMutable
 interface Cloneable {}
+
+@ReceiverDependantMutable
+interface Comparable<T> {}
 
 package java.util;
 

@@ -254,7 +254,9 @@ as above.
 
 11. react(10095 lines): inferred solutions, but failed to insert solutions back. The same insertion failure reason as above.
 
-Right now, successfully inferred on 11 projects. There are two annotation-tools bugs that caused solutions insertion fail.
+12. jump(2096 lines): inferred solutions, but failed to insert. The same insertion failure reason.
+
+Right now, successfully inferred on 12 projects. There are two annotation-tools bugs that caused solutions insertion fail.
 
 ====================
 
