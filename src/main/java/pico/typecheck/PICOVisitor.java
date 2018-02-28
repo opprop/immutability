@@ -172,7 +172,9 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             if (declareReceiverType != null) {
                 if (bound != null
                         && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)// clone() method doesn't warn
-                        && !atypeFactory.getTypeHierarchy().isSubtype(declareReceiverType, bound, READONLY)
+                        && !atypeFactory.getQualifierHierarchy().isSubtype(
+                                declareReceiverType.getAnnotationInHierarchy(READONLY),
+                                bound.getAnnotationInHierarchy(READONLY))
                         // Below three are allowed on declared receiver types of instance methods in either @Mutable class or @Immutable class
                         && !declareReceiverType.hasAnnotation(READONLY)
                         && !declareReceiverType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
