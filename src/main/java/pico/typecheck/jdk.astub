@@ -26,7 +26,7 @@ class String {
   String toString(@Immutable String this);
   boolean equals(@Immutable Object var1);
   static String valueOf(@Readonly Object var0);
-  static String format(String var0, @Readonly Object... var1);
+  static String format(String var0, @Readonly Object @Readonly ... var1);
 }
 
 class StringBuilder {
@@ -168,7 +168,7 @@ class HashMap<K extends @Immutable Object, V> {
 }
 
 class Arrays {
-  static <T> @Immutable List<T> asList(T... var0);
+  static <T> @Immutable List<T> asList(T @Readonly ... var0);
   static String toString(int @Readonly [] var0);
   static boolean equals(float @Readonly [] var0, float @Readonly [] var1);
   static boolean equals(double @Readonly [] var0, double @Readonly [] var1);
@@ -200,13 +200,13 @@ package java.io;
 @ReceiverDependantMutable
 class PrintStream {
   void print(@ReceiverDependantMutable PrintStream this, String var1);
-  PrintStream printf(@ReceiverDependantMutable PrintStream this, String var1, @Readonly Object... var2);
-  PrintStream format(String format, @Readonly Object... args);
+  PrintStream printf(@ReceiverDependantMutable PrintStream this, String var1, @Readonly Object @Readonly ... var2);
+  PrintStream format(String format, @Readonly Object @Readonly ... args);
 }
 
 @ReceiverDependantMutable
 class PrintWriter {
-  PrintWriter printf(@ReceiverDependantMutable PrintWriter this, String var1, @Readonly Object... var2);
+  PrintWriter printf(@ReceiverDependantMutable PrintWriter this, String var1, @Readonly Object @Readonly ... var2);
 }
 
 @ReceiverDependantMutable
