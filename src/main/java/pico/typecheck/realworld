@@ -188,6 +188,29 @@ there wasn't solution.
 One bug in annotation-tools makes the insertion fail. Already opened an issue for this. See:
 https://github.com/typetools/annotation-tools/issues/155
 
+Before and after adding @UnderInitialization:
+    private void copy(@UnderInitialization @Immutable BinNum this, @Mutable ALB num){
+        this.num = new @Mutable ALB().addA(num);
+    }
+
+    private void copy(@UnderInitialization @ReceiverDependantMutable BinNum this, @Readonly BinNum that){
+        this.num = new @Mutable ALB().addA(that.get());
+    }
+
+    /*---------------------------INITIALIZERS----------------------*/
+
+    public @ReceiverDependantMutable BinNum(){
+        this.num = new @Mutable ALB();
+    }
+
+    public @ReceiverDependantMutable BinNum(@Readonly BinNum that){
+        copy(that);
+    }
+
+    public @Immutable BinNum(@Immutable String num){
+        copy(new @Mutable ALB().init(num));
+    }
+
 4. jdepend(6936 lines): found non-compliance code that modifies abstract state of receiver object in toString() method.
 class AfferentNode extends PackageNode {
   ...
