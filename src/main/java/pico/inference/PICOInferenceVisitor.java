@@ -1,6 +1,5 @@
 package pico.inference;
 
-import checkers.inference.InferenceAnnotatedTypeFactory;
 import checkers.inference.InferenceChecker;
 import checkers.inference.InferenceMain;
 import checkers.inference.InferenceValidator;
@@ -78,22 +77,23 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
         if (infer) {
             mainIsNot(declarationType, READONLY, "type.invalid.annotations.on.use", tree);
-            addMutableImmutableIncompatibleConstraints(declarationType, useType);
+            addMutableImmutableRdmIncompatibleConstraints(declarationType, useType);
             return true;
         } else {
             AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
             if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE)) {
                 return true;
             }
-            assert AnnotationUtils.areSame(declared, MUTABLE) ||
-                    AnnotationUtils.areSame(declared, IMMUTABLE);
+            assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
 
             AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
-            if (AnnotationUtils.areSame(declared, MUTABLE) && !AnnotationUtils.areSame(used, IMMUTABLE)) {
+            if (AnnotationUtils.areSame(declared, MUTABLE) &&
+                    !(AnnotationUtils.areSame(used, IMMUTABLE) || AnnotationUtils.areSame(used, RECEIVER_DEPENDANT_MUTABLE))) {
                 return true;
             }
 
-            if (AnnotationUtils.areSame(declared, IMMUTABLE) && !AnnotationUtils.areSame(used, MUTABLE)) {
+            if (AnnotationUtils.areSame(declared, IMMUTABLE) &&
+                    !(AnnotationUtils.areSame(used, MUTABLE) || AnnotationUtils.areSame(used, RECEIVER_DEPENDANT_MUTABLE))) {
                 return true;
             }
 
@@ -101,21 +101,27 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
     }
 
-    private void addMutableImmutableIncompatibleConstraints(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType) {
+    private void addMutableImmutableRdmIncompatibleConstraints(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType) {
         final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
         final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
         Slot declSlot = slotManager.getVariableSlot(declarationType);
         Slot useSlot = slotManager.getVariableSlot(useType);
         Slot mutable = slotManager.getSlot(MUTABLE);
         Slot immutable = slotManager.getSlot(IMMUTABLE);
+        Slot rdm = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
         // declType == @Mutable -> useType != @Immutable
-        EqualityConstraint equalityConstraint = constraintManager.createEqualityConstraint(declSlot, mutable);
-        InequalityConstraint inequalityConstraint = constraintManager.createInequalityConstraint(useSlot, immutable);
-        constraintManager.addImplicationConstraint(Arrays.asList(equalityConstraint), inequalityConstraint);
+        EqualityConstraint isMutable = constraintManager.createEqualityConstraint(declSlot, mutable);
+        InequalityConstraint notImmutable = constraintManager.createInequalityConstraint(useSlot, immutable);
+        constraintManager.addImplicationConstraint(Arrays.asList(isMutable), notImmutable);
+        // declType == @Mutable -> useType != @ReceiverDependantMutable
+        InequalityConstraint notRDM = constraintManager.createInequalityConstraint(useSlot, rdm);
+        constraintManager.addImplicationConstraint(Arrays.asList(isMutable), notRDM);
         // declType == @Immutable -> useType != @Mutable
-        equalityConstraint = constraintManager.createEqualityConstraint(declSlot, immutable);
-        inequalityConstraint = constraintManager.createInequalityConstraint(useSlot, mutable);
-        constraintManager.addImplicationConstraint(Arrays.asList(equalityConstraint), inequalityConstraint);
+        EqualityConstraint isImmutable = constraintManager.createEqualityConstraint(declSlot, immutable);
+        InequalityConstraint notMutable = constraintManager.createInequalityConstraint(useSlot, mutable);
+        constraintManager.addImplicationConstraint(Arrays.asList(isImmutable), notMutable);
+        // declType == @Immutable -> useType != @ReceiverDependantMutable
+        constraintManager.addImplicationConstraint(Arrays.asList(isImmutable), notRDM);
     }
 
     @Override
@@ -243,7 +249,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             AnnotatedDeclaredType declaredReceiverType = executableType.getReceiverType();
             if (declaredReceiverType != null) {
                 if (infer) {
-                    addMutableImmutableIncompatibleConstraints(bound, declaredReceiverType);
+                    addMutableImmutableRdmIncompatibleConstraints(bound, declaredReceiverType);
                 } else {
                     if (!bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)// clone() method doesn't warn
                             && !atypeFactory.getQualifierHierarchy().isSubtype(
