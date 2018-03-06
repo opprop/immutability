@@ -82,6 +82,8 @@ interface Comparable<T> {}
 
 package java.util;
 
+interface Iterator<E extends @Readonly Object> {}
+
 @ReceiverDependantMutable
 class Date {
   @ReceiverDependantMutable Date();
@@ -193,6 +195,11 @@ class Vector<E> {
 class Hashtable<K extends @Immutable Object,V> {
   V get(@Readonly Hashtable<K,V> this, @Readonly Object key);
   boolean containsKey(@Readonly Hashtable<K,V> this, @Readonly Object key);
+}
+
+package java.util.logging;
+class Logger {
+  void log(@Readonly Level level, String msg, @Readonly Throwable thrown);
 }
 
 package java.io;
