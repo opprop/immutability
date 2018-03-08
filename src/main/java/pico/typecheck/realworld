@@ -164,6 +164,22 @@ Example: package org.hibernate;
 If we don't have this stub, then everything is by default @Mutable, thus 2 can't be passed into Session#get() method and
 caused inference to give no solution and triggers explanation.
 
+Without optimization:
+TotalSlots,120,100%
+@qual.ReceiverDependantMutable,1,0.83%
+@qual.Readonly,2,1.67%
+@qual.Bottom,12,10.00%
+@qual.Immutable,55,45.83%
+@qual.Mutable,50,41.67%
+
+With optimization:
+TotalSlots,120,100%
+@qual.ReceiverDependantMutable,1,0.83%
+@qual.Readonly,19,15.83%
+@qual.Immutable,50,41.67%
+@qual.Mutable,41,34.17%
+@qual.Bottom,9,7.50%
+
 2. bdoorProto(1299 lines): gets inferred solutions, but wasn't able to insert back.
 This is due to bug https://github.com/typetools/annotation-tools/issues/154.
 
@@ -178,7 +194,59 @@ Remove constructor return for class Command, and use the following command will 
 
 Doesn't have fbc errors.
 
-3. ECC-RSA-Backdoor(2822 lines): Gets inferred solutions, and solutions were inserted back to source code. This project has
+Without optimization:
+TotalSlots,168,100%
+@qual.ReceiverDependantMutable,12,7.14%
+@qual.Immutable,86,51.19%
+@qual.Readonly,10,5.95%
+@qual.Mutable,58,34.52%
+@qual.Bottom,2,1.19%
+
+With optimization:
+TotalSlots,170,100%
+@qual.Immutable,84,49.41%
+@qual.Bottom,1,0.59%
+@qual.ReceiverDependantMutable,4,2.35%
+@qual.Mutable,47,27.65%
+@qual.Readonly,34,20.00%
+
+3. imgscalr(1996 lines): successfully inferred solutions and inserted solutions.
+Ran typechecking mode. Got 45 errors. Of which 44 is immutable cannot be passed to mutable default parameter in log method.
+One is strange fbc error on static inner class.
+New inference also succeeded.
+Without optimization:
+TotalSlots,738,100%
+@qual.Bottom,52,7.05%
+@qual.Readonly,20,2.71%
+@qual.Mutable,399,54.07%
+@qual.Immutable,267,36.18%
+
+With optimizatin:
+TotalSlots,739,100%
+@qual.Readonly,87,11.77%
+@qual.Immutable,221,29.91%
+@qual.Mutable,382,51.69%
+@qual.Bottom,47,6.36%
+@qual.ReceiverDependantMutable,2,0.27%
+
+4. jump(2096 lines): inferred solutions, but failed to insert. The same insertion failure reason.
+Without optimization:
+TotalSlots,2049,100%
+@qual.Immutable,935,45.63%
+@qual.Mutable,256,12.49%
+@qual.Bottom,52,2.54%
+@qual.Readonly,800,39.04%
+@qual.ReceiverDependantMutable,6,0.29%
+
+With optimization:
+TotalSlots,2049,100%
+@qual.Readonly,1010,49.29%
+@qual.Bottom,53,2.59%
+@qual.Immutable,738,36.02%
+@qual.ReceiverDependantMutable,2,0.10%
+@qual.Mutable,246,12.01%
+
+5. ECC-RSA-Backdoor(2822 lines): Gets inferred solutions, and solutions were inserted back to source code. This project has
 fbc errors(instance methods called inside constructors), but still gets solutions. But those who assign field gets inferred
 to have @Mutable declared receiver. If those instance methods are properly annotated with @UnderInitialization manually,
 the results may contain more @Immutable and @Readonly, I believe.
@@ -212,8 +280,43 @@ Before and after adding @UnderInitialization:
     }
 
 Ran typecheckin side. Detect 5 errors. Once causes StackOverFlowError, which is a bug of TypeArgInferenceUtil.
+Without optimization:
+TotalSlots,2556,100%
+@qual.ReceiverDependantMutable,47,1.84%
+@qual.Bottom,195,7.63%
+@qual.Readonly,403,15.77%
+@qual.Mutable,1411,55.20%
+@qual.Immutable,500,19.56%
 
-4. jdepend(6936 lines): found non-compliance code that modifies abstract state of receiver object in toString() method.
+With optimization:
+TotalSlots,2556,100%
+@qual.ReceiverDependantMutable,18,0.70%
+@qual.Readonly,743,29.07%
+@qual.Immutable,391,15.30%
+@qual.Bottom,180,7.04%
+@qual.Mutable,1224,47.89%
+
+6. jama(4772 lines): successfully inferred solutions and inserted solutions.
+Ran typechecking mode. Got 4 fbc errors. Changing tred2(), tql2(), others() and hqr2() to have underinitialization would
+make the error gone.()
+New inference with preference constraints succeed to infer and insert solutions.
+Without optimize:
+TotalSlots,2774,100%
+@qual.ReceiverDependantMutable,16,0.58%
+@qual.Mutable,887,31.98%
+@qual.Readonly,33,1.19%
+@qual.Immutable,1422,51.26%
+@qual.Bottom,416,15.00%
+
+With optimize:
+TotalSlots,2774,100%
+@qual.Immutable,1399,50.43%
+@qual.ReceiverDependantMutable,21,0.76%
+@qual.Readonly,319,11.50%
+@qual.Mutable,633,22.82%
+@qual.Bottom,402,14.49%
+
+7. jdepend(6936 lines): found non-compliance code that modifies abstract state of receiver object in toString() method.
 class AfferentNode extends PackageNode {
   ...
   public String toString() {
@@ -261,47 +364,7 @@ parameters which is from bytecode.
 constraint on type casting, including even ComparableConstraint. Otherwise, if you cast raw iterator's result(? extends @Mutable)
 to String, inference will exit saying "comparable.constraint.unsatisfiable". This type of cast exists in jdpend.
 
-5. jReactPhysics3D(10454 lines): inferred solutions but failed to insert solutions to source code. The same reason as above.
-Update: inference gives no solution, as it mutates hashmap keys.
-DynamicsWorld line 213 vs 383
-
-6. JLargeArrays(11337 lines): successfully inferred solutions and inserted results.
-
-7. jblas(11841 lines): inference failed and triggerred explanation
-Update: successfully inferred results for jblas, but annotation-tools wasn't successful to insert solutions back to source.
-Insertion failure reason is the same as above.
-Has fbc errors.
-
-8. exp4j(31327 lines): successfully inferred results, but wasn't fully inserted solutions. Insertion failure reason is the same
-as above.
-
-9. imgscalr(1996 lines): successfully inferred solutions and inserted solutions.
-Ran typechecking mode. Got 45 errors. Of which 44 is immutable cannot be passed to mutable default parameter in log method.
-One is strange fbc error on static inner class.
-New inference also succeeded.
-
-10. jama(4772 lines): successfully inferred solutions and inserted solutions.
-Ran typechecking mode. Got 4 fbc errors. Changing tred2(), tql2(), others() and hqr2() to have underinitialization would
-make the error gone.()
-New inference with preference constraints succeed to infer and insert solutions.
-Without optimize:
-TotalSlots,2774,100%
-@qual.ReceiverDependantMutable,16,0.58%
-@qual.Mutable,887,31.98%
-@qual.Readonly,33,1.19%
-@qual.Immutable,1422,51.26%
-@qual.Bottom,416,15.00%
-
-With optimize:
-TotalSlots,2774,100%
-@qual.Immutable,1399,50.43%
-@qual.ReceiverDependantMutable,21,0.76%
-@qual.Readonly,319,11.50%
-@qual.Mutable,633,22.82%
-@qual.Bottom,402,14.49%
-
-
-11. react(10095 lines): inferred solutions, but failed to insert solutions back. The same insertion failure reason as above.
+8. react(10095 lines): inferred solutions, but failed to insert solutions back. The same insertion failure reason as above.
 New inference with preference constraint succeed to infer, but failed on insert.
 Without optimize:
 TotalSlots,14002,100%
@@ -319,9 +382,64 @@ TotalSlots,14003,100%
 @qual.ReceiverDependantMutable,672,4.80%
 @qual.Bottom,571,4.08%
 
+9. jReactPhysics3D(10454 lines): inferred solutions but failed to insert solutions to source code. The same reason as above.
+Update: inference gives no solution, as it mutates hashmap keys.
+DynamicsWorld line 213 vs 383
 
-12. jump(2096 lines): inferred solutions, but failed to insert. The same insertion failure reason.
-Got strange null pointer exception when running new inference
+10. JLargeArrays(11337 lines): successfully inferred solutions and inserted results.
+Without optimization:
+TotalSlots,10593,100%
+@qual.Mutable,3915,36.96%
+@qual.Readonly,1014,9.57%
+@qual.Bottom,767,7.24%
+@qual.Immutable,4884,46.11%
+@qual.ReceiverDependantMutable,13,0.12%
+
+With optimization:
+TotalSlots,10594,100%
+@qual.Bottom,731,6.90%
+@qual.Mutable,3423,32.31%
+@qual.Immutable,4394,41.48%
+@qual.Readonly,2013,19.00%
+@qual.ReceiverDependantMutable,33,0.31%
+
+11. jblas(11841 lines): inference failed and triggerred explanation
+Update: successfully inferred results for jblas, but annotation-tools wasn't successful to insert solutions back to source.
+Insertion failure reason is the same as above.
+Has fbc errors.
+Without optimization:
+TotalSlots,21304,100%
+@qual.Immutable,9153,42.96%
+@qual.Bottom,817,3.83%
+@qual.Readonly,997,4.68%
+@qual.Mutable,10114,47.47%
+@qual.ReceiverDependantMutable,223,1.05%
+
+With optimization:
+TotalSlots,21309,100%
+@qual.Readonly,8088,37.96%
+@qual.Immutable,7094,33.29%
+@qual.Mutable,5397,25.33%
+@qual.ReceiverDependantMutable,110,0.52%
+@qual.Bottom,620,2.91%
+
+12. exp4j(31327 lines): successfully inferred results, but wasn't fully inserted solutions. Insertion failure reason is the
+same as above.
+Without optimization:
+TotalSlots,1583,100%
+@qual.Bottom,113,7.14%
+@qual.Immutable,945,59.70%
+@qual.Readonly,138,8.72%
+@qual.Mutable,349,22.05%
+@qual.ReceiverDependantMutable,38,2.40%
+
+With optimization:
+TotalSlots,1583,100%
+@qual.Immutable,616,38.91%
+@qual.Bottom,111,7.01%
+@qual.ReceiverDependantMutable,54,3.41%
+@qual.Readonly,336,21.23%
+@qual.Mutable,466,29.44%
 
 Right now, successfully inferred on 12 projects. There are two annotation-tools bugs that caused solutions insertion fail.
 

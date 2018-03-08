@@ -669,6 +669,10 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
         if (infer) {
             mainIsNot(bound, READONLY, "class.bound.invalid", node);
+            if (checker.hasOption("optimalSolution")) {
+                addPreference(bound, RECEIVER_DEPENDANT_MUTABLE, 3);
+                addPreference(bound, IMMUTABLE, 3);
+            }
         } else {
             // Has to be either @Mutable, @ReceiverDependantMutable or @Immutable, nothing else
             if (!bound.hasAnnotation(MUTABLE) && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) && !bound.hasAnnotation(IMMUTABLE)) {
