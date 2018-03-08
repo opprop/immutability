@@ -283,10 +283,45 @@ New inference also succeeded.
 10. jama(4772 lines): successfully inferred solutions and inserted solutions.
 Ran typechecking mode. Got 4 fbc errors. Changing tred2(), tql2(), others() and hqr2() to have underinitialization would
 make the error gone.()
+New inference with preference constraints succeed to infer and insert solutions.
+Without optimize:
+TotalSlots,2774,100%
+@qual.ReceiverDependantMutable,16,0.58%
+@qual.Mutable,887,31.98%
+@qual.Readonly,33,1.19%
+@qual.Immutable,1422,51.26%
+@qual.Bottom,416,15.00%
+
+With optimize:
+TotalSlots,2774,100%
+@qual.Immutable,1399,50.43%
+@qual.ReceiverDependantMutable,21,0.76%
+@qual.Readonly,319,11.50%
+@qual.Mutable,633,22.82%
+@qual.Bottom,402,14.49%
+
 
 11. react(10095 lines): inferred solutions, but failed to insert solutions back. The same insertion failure reason as above.
+New inference with preference constraint succeed to infer, but failed on insert.
+Without optimize:
+TotalSlots,14002,100%
+@qual.Readonly,1691,12.08%
+@qual.Mutable,7276,51.96%
+@qual.Immutable,3839,27.42%
+@qual.ReceiverDependantMutable,596,4.26%
+@qual.Bottom,600,4.29%
+
+With optimize:
+TotalSlots,14003,100%
+@qual.Readonly,4788,34.19%
+@qual.Mutable,5472,39.08%
+@qual.Immutable,2500,17.85%
+@qual.ReceiverDependantMutable,672,4.80%
+@qual.Bottom,571,4.08%
+
 
 12. jump(2096 lines): inferred solutions, but failed to insert. The same insertion failure reason.
+Got strange null pointer exception when running new inference
 
 Right now, successfully inferred on 12 projects. There are two annotation-tools bugs that caused solutions insertion fail.
 

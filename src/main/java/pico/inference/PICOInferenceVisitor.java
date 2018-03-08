@@ -207,6 +207,19 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     @Override
+    public Void visitVariable(VariableTree node, Void p) {
+        VariableElement element = TreeUtils.elementFromDeclaration(node);
+        if (checker.hasOption("optimalSolution") && element != null
+                && element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
+            AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
+            // Recursively prefer to be rdm and immutable
+            addDeepPreference(type, RECEIVER_DEPENDANT_MUTABLE, 3, node);
+            addDeepPreference(type, IMMUTABLE, 2, node);
+        }
+        return super.visitVariable(node, p);
+    }
+
+    @Override
     public Void visitMethod(MethodTree node, Void p) {
         AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(node);
         AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(node, atypeFactory);
@@ -237,18 +250,30 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 }
             }
         } else {
+            // Additional logic compared to PICOVisitor to prefer declared receiver and parameters
+            // tp be @Readonly in inference results.
             AnnotatedDeclaredType declaredReceiverType = executableType.getReceiverType();
+            if (checker.hasOption("optimalSolution")) {
+                if (declaredReceiverType != null) {
+                    // Prefer declared receiver to be @Readonly
+                    addDeepPreference(declaredReceiverType, READONLY, 1, node);
+                }
+                // Prefer all parametes to be @Readonly
+                for (AnnotatedTypeMirror ptype : executableType.getParameterTypes()) {
+                    addDeepPreference(ptype, READONLY, 1, node);
+                }
+            }
+            // Above is additional preference logic
             if (declaredReceiverType != null) {
                 if (infer) {
                     addMutableImmutableRdmIncompatibleConstraints(bound, declaredReceiverType);
                 } else {
-                    if (!bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)// clone() method doesn't warn
+                    if (!bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
                             && !atypeFactory.getQualifierHierarchy().isSubtype(
                                     declaredReceiverType.getAnnotationInHierarchy(READONLY),
                                         bound.getAnnotationInHierarchy(READONLY))
                             // Below three are allowed on declared receiver types of instance methods in either @Mutable class or @Immutable class
-                            && !declaredReceiverType.hasAnnotation(READONLY)
-                            && !declaredReceiverType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+                            && !declaredReceiverType.hasAnnotation(READONLY)) {
                         checker.report(Result.failure("method.receiver.incompatible", declaredReceiverType), node);
                     }
                 }

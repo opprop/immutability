@@ -59,7 +59,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     public PICOVisitor(BaseTypeChecker checker) {
         super(checker);
-        shouldOutputFbcError = checker.getLintOption("printFbcErrors" , false);
+        shouldOutputFbcError = checker.hasOption("printFbcErrors");
         fbcViolatedMethods = shouldOutputFbcError ? new HashMap<>() : null;
     }
 
@@ -199,13 +199,12 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             AnnotatedDeclaredType declareReceiverType = executableType.getReceiverType();
             if (declareReceiverType != null) {
                 if (bound != null
-                        && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)// clone() method doesn't warn
+                        && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
                         && !atypeFactory.getQualifierHierarchy().isSubtype(
                                 declareReceiverType.getAnnotationInHierarchy(READONLY),
                                 bound.getAnnotationInHierarchy(READONLY))
                         // Below three are allowed on declared receiver types of instance methods in either @Mutable class or @Immutable class
                         && !declareReceiverType.hasAnnotation(READONLY)
-                        && !declareReceiverType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
                         && !declareReceiverType.hasAnnotation(POLY_MUTABLE)) {
                     checker.report(Result.failure("method.receiver.incompatible", declareReceiverType), node);
                 }

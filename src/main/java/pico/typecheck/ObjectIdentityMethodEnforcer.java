@@ -92,7 +92,7 @@ public class ObjectIdentityMethodEnforcer extends TreePathScanner<Void, Void> {
     // type arguments, upper bound of type parameter uses are also checked.
     private boolean isInAbstractState(Element elt, PICOAnnotatedTypeFactory typeFactory) {
         boolean in = true;
-        if (typeFactory.getDeclAnnotation(elt, Assignable.class) != null) {
+        if (PICOTypeUtil.isAssignableField(elt, typeFactory)) {
             in = false;
         } else if (AnnotatedTypes.containsModifier(typeFactory.getAnnotatedType(elt), MUTABLE)) {
             in = false;
