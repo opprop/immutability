@@ -23,7 +23,7 @@ if [[ "$1" = "-t" ]] ; then
     echo "Running typechecking"
     CHECKER="pico.typecheck.PICOChecker"
     #checker tool doesn't support --cfArgs yet, so the arguments don't have effect right now
-    running_cmd="python $DLJC/dljc -t checker --checker "${CHECKER}" --cfArgs=\"-AprintErrorStack,-AprintFbcErrors\" --log_to_stderr -- $build_cmd"
+    running_cmd="python $DLJC/dljc -t checker --checker "${CHECKER}" --cfArgs=\"-AprintFbcErrors\" --log_to_stderr -- $build_cmd"
 elif [[ "$1" = "-i" ]] ; then
     echo "Running inference"
     echo "Cleaning logs and annotated directory from previous result"
@@ -31,7 +31,7 @@ elif [[ "$1" = "-i" ]] ; then
     echo "Cleaning Done."
     CHECKER="pico.inference.PICOInferenceChecker"
     SOLVER="pico.inference.solver.PICOSolverEngine"
-    running_cmd="python $DLJC/dljc -t inference --checker "${CHECKER}" --cfArgs=\"-AprintErrorStack\" --solver "${SOLVER}" --solverArgs=\"collectStatistic=true,useGraph=false\" --mode ROUNDTRIP -afud $WORKING_DIR/annotated -o logs -- $build_cmd "
+    running_cmd="python $DLJC/dljc -t inference --checker "${CHECKER}" --cfArgs=\"-AoptimalSolution\" --solver "${SOLVER}" --solverArgs=\"collectStatistic=true,useGraph=false\" --mode ROUNDTRIP -afud $WORKING_DIR/annotated -o logs -- $build_cmd "
 else
     echo "Unknown tool: should be either -t|-i but found: ${1}"
     exit 1
