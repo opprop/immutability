@@ -2,7 +2,7 @@ import qual.ReceiverDependantMutable;
 
 class ViewpointAdaptationForAnonymous {
 
-    // :: fixable-error: (constructor.return.incompatible)
+    // :: fixable-error: (type.invalid.annotations.on.use)
     @ReceiverDependantMutable ViewpointAdaptationForAnonymous(String s) {}
 }
 

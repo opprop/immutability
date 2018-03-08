@@ -34,46 +34,61 @@ public class ObjectIdentityMethodTest extends Super{
 
     @ObjectIdentityMethod
     public void testFieldAcess() {
-        // :: error: (object.identity.static.field.access.forbidden)
+        // :: warning: (object.identity.static.field.access.forbidden) :: warning: (object.identity.method.invocation.invalid)
         a0.bar();
-        // :: error: (object.identity.field.access.invalid)
+        // :: warning: (object.identity.field.access.invalid) :: warning: (object.identity.method.invocation.invalid)
         a1.bar();
-        // :: error: (object.identity.field.access.invalid)
+        // :: warning: (object.identity.field.access.invalid) :: warning: (object.identity.method.invocation.invalid)
         a2.bar();
-        // :: error: (object.identity.field.access.invalid)
+        // :: warning: (object.identity.field.access.invalid) :: warning: (object.identity.method.invocation.invalid)
         a3.bar();
-        // Don't transitively check bar is object identity method => shallow object identity check!
+        // Transitively check bar() is object identity method => deep object identity check!
+        // :: warning: (object.identity.method.invocation.invalid)
         a4.bar();
-        // Don't transitively check b is in abstract state => shallow object identity check!
+        // Transitively check b is in abstract state => deep object identity check!
+        // :: warning: (object.identity.field.access.invalid)
         Object o = a4.b;
+        // :: warning: (object.identity.method.invocation.invalid)
         a5.bar();
+        // :: warning: (object.identity.method.invocation.invalid)
         a6.bar();
+        // :: warning: (object.identity.method.invocation.invalid)
         a7.bar();
-        // :: error: (object.identity.field.access.invalid)
+
+        /*With explicit "this"*/
+        // :: warning: (object.identity.field.access.invalid) :: warning: (object.identity.method.invocation.invalid)
         this.a1.bar();
-        // :: error: (object.identity.field.access.invalid)
+        // :: warning: (object.identity.field.access.invalid) :: warning: (object.identity.method.invocation.invalid)
         this.a2.bar();
-        // :: error: (object.identity.field.access.invalid)
+        // :: warning: (object.identity.field.access.invalid) :: warning: (object.identity.method.invocation.invalid)
         this.a3.bar();
+        // :: warning: (object.identity.method.invocation.invalid)
         this.a4.bar();
-        // Similar argument for shallow object identity check as above
+        // Similar argument for deep object identity check as above
+        // :: warning: (object.identity.field.access.invalid)
         Object o2 = this.a4.b;
+        // :: warning: (object.identity.method.invocation.invalid)
         this.a5.bar();
+        // :: warning: (object.identity.method.invocation.invalid)
         this.a6.bar();
+        // :: warning: (object.identity.method.invocation.invalid)
         this.a7.bar();
     }
 
     @ObjectIdentityMethod
     void testMethodInvocation(ObjectIdentityMethodTest p, A a) {
-        // :: error: (object.identity.method.invocation.invalid)
+        // :: warning: (object.identity.method.invocation.invalid)
         foo();
-        // :: error: (object.identity.method.invocation.invalid)
+        // :: warning: (object.identity.method.invocation.invalid)
         this.foo();
-        // :: error: (object.identity.method.invocation.invalid)
+        // :: warning: (object.identity.method.invocation.invalid)
         super.foo();
-        // Doesn't check the below two method invocation, as they are not invoked on the same receiver as
-        // current receiver "this"
+        // TODO Should these two method invocations also be checked? It's not trivial to only check
+        // method invocations on the transitively reachable objects from field. Right now, they are
+        // also checked
+        // :: warning: (object.identity.method.invocation.invalid)
         p.foo();
+        // :: warning: (object.identity.method.invocation.invalid)
         a.bar();
     }
 
@@ -82,11 +97,11 @@ public class ObjectIdentityMethodTest extends Super{
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        // :: error: (object.identity.field.access.invalid)
+        // :: warning: (object.identity.field.access.invalid)
         result += a1.hashCode();
-        // :: error: (object.identity.field.access.invalid)
+        // :: warning: (object.identity.field.access.invalid)
         result += a2.hashCode();
-        // :: error: (object.identity.field.access.invalid)
+        // :: warning: (object.identity.field.access.invalid)
         result += a3.hashCode();
         result += a4.hashCode();
         result += a5.hashCode();

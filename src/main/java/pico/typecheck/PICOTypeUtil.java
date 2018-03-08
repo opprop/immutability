@@ -15,6 +15,7 @@ import com.sun.source.util.TreePath;
 import org.checkerframework.framework.qual.ImplicitFor;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
@@ -45,6 +46,7 @@ import java.util.Map;
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
 public class PICOTypeUtil {
 
@@ -212,17 +214,34 @@ public class PICOTypeUtil {
         return false;
     }
 
-    /**Only apply mutable default to static fields with non-implicitly immutable types. Those are handled
-     by the PICOImplicitsTypeAnnotator*/
-    public static void addDefaultForStaticField(AnnotatedTypeFactory annotatedTypeFactory,
-                                                AnnotatedTypeMirror annotatedTypeMirror, Element element) {
-        if (element != null && element.getKind() == ElementKind.FIELD && ElementUtils.isStatic(element)) {
-            AnnotatedTypeMirror explicitATM = annotatedTypeFactory.fromElement(element);
-            if (!explicitATM.isAnnotatedInHierarchy(READONLY)) {
-                if (!PICOTypeUtil.isImplicitlyImmutableType(explicitATM)) {
-                    annotatedTypeMirror.replaceAnnotation(MUTABLE);
-                }
-            }
+    public static void addDefaultForField(AnnotatedTypeFactory annotatedTypeFactory,
+                                          AnnotatedTypeMirror annotatedTypeMirror, Element element) {
+        if (element != null && element.getKind() == ElementKind.FIELD) {
+           if (ElementUtils.isStatic(element)) {
+               AnnotatedTypeMirror explicitATM = annotatedTypeFactory.fromElement(element);
+               if (!explicitATM.isAnnotatedInHierarchy(READONLY)) {
+                   if (!PICOTypeUtil.isImplicitlyImmutableType(explicitATM)) {
+                       annotatedTypeMirror.replaceAnnotation(MUTABLE);
+                   }
+               }
+           } else {
+               AnnotatedTypeMirror explicitATM = annotatedTypeFactory.fromElement(element);
+               if (!explicitATM.isAnnotatedInHierarchy(READONLY)) {
+                   if (explicitATM instanceof AnnotatedDeclaredType) {
+                       AnnotatedDeclaredType adt = (AnnotatedDeclaredType) explicitATM;
+                       Element typeElement = adt.getUnderlyingType().asElement();
+                       if (typeElement instanceof TypeElement) {
+                           AnnotatedDeclaredType bound = getBoundTypeOfTypeDeclaration((TypeElement) typeElement, annotatedTypeFactory);
+                           if (bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+                               annotatedTypeMirror.replaceAnnotation(RECEIVER_DEPENDANT_MUTABLE);
+                           }
+                       }
+                   } else if (explicitATM instanceof AnnotatedArrayType) {
+                       // Also apply rdm to array main.
+                       annotatedTypeMirror.replaceAnnotation(RECEIVER_DEPENDANT_MUTABLE);
+                   }
+               }
+           }
         }
     }
 

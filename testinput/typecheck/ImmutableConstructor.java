@@ -42,7 +42,7 @@ public class ImmutableConstructor {
         // This no longer is error now(?). Because instantiating @Immutable constructor
         // as @PolyImmutable(PolymorphicQualifier) automatically resolves @PolyImmutable
         // to @Immutable, which might be a good thing
-        // :: error: (constructor.invocation.invalid)
+        // :: error: (type.invalid.annotations.on.use)
         new @ReceiverDependantMutable ImmutableConstructor(po, io);
 
         // :: error: (constructor.invocation.invalid) :: error: (pico.new.invalid)

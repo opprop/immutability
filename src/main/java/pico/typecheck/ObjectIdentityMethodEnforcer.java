@@ -8,6 +8,7 @@ import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.Result;
+import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import qual.Assignable;
@@ -37,8 +38,6 @@ public class ObjectIdentityMethodEnforcer extends TreePathScanner<Void, Void> {
         asfchecker.scan(statement, null);
     }
 
-    // checks method invocation with forms: foo(), this.foo(), super.foo(). All the other forms
-    // are skipped： f.foo(), this.f.foo(), a.b.foo()
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void aVoid) {
         Element elt = TreeUtils.elementFromUse(node);
@@ -51,19 +50,13 @@ public class ObjectIdentityMethodEnforcer extends TreePathScanner<Void, Void> {
         if (ElementUtils.isStatic(elt)) {
             return;// Doesn't check static method invocation because it doesn't access instance field
         }
-        if (node.getMethodSelect() instanceof MemberSelectTree
-                && !"this".contentEquals(((MemberSelectTree)node.getMethodSelect()).getExpression().toString())
-                && !"super".contentEquals(((MemberSelectTree)node.getMethodSelect()).getExpression().toString())) {
-            return;// Only check method invocation when the invoked method is on the receiver itself(super is also on itself)
-        }
-        // Checks two types of method invocation: e.g. foo() or this.foo()/super.foo().
         if (!PICOTypeUtil.isObjectIdentityMethod((ExecutableElement) elt, typeFactory)) {
-            // Report error since invoked method is not only dependant on abstract state fields
-            checker.report(Result.failure("object.identity.method.invocation.invalid", elt), node);
+            // Report warning since invoked method is not only dependant on abstract state fields, but we
+            // don't know whether this method invocation's result flows into the hashcode or not.
+            checker.report(Result.warning("object.identity.method.invocation.invalid", elt), node);
         }
     }
 
-    // For field accesses with no explicit "this": e.g. f=2;l=f; f.hashCode() etc.
     @Override
     public Void visitIdentifier(IdentifierTree node, Void aVoid) {
         Element elt = TreeUtils.elementFromUse(node);
@@ -71,37 +64,39 @@ public class ObjectIdentityMethodEnforcer extends TreePathScanner<Void, Void> {
         return super.visitIdentifier(node, aVoid);
     }
 
-    // For field access with explicit "this" keyword: e.g. this.f=2;l=this.f; this.f.hashCode()
     @Override
     public Void visitMemberSelect(MemberSelectTree node, Void aVoid) {
-        if (node.getExpression() != null && node.getExpression().toString().contentEquals("this")) {
-            Element elt = TreeUtils.elementFromUse(node);
-            checkField(node, elt);
-        }
+        Element elt = TreeUtils.elementFromUse(node);
+        checkField(node, elt);
         return super.visitMemberSelect(node, aVoid);
     }
 
     private void checkField(Tree node, Element elt) {
-        if (elt != null && elt.getKind() == ElementKind.FIELD) {
+        if (elt == null) return;
+        if (elt.getSimpleName().contentEquals("this") || elt.getSimpleName().contentEquals("super")) {
+            return;
+        }
+        if (elt.getKind() == ElementKind.FIELD) {
             if (ElementUtils.isStatic(elt)) {
-                checker.report(Result.failure("object.identity.static.field.access.forbidden", elt), node);
+                checker.report(Result.warning("object.identity.static.field.access.forbidden", elt), node);
             } else {
                 if (!isInAbstractState(elt, typeFactory)) {
-                    // Report error since accessed field is not within abstract state
-                    checker.report(Result.failure("object.identity.field.access.invalid", elt), node);
+                    // Report warning since accessed field is not within abstract state
+                    checker.report(Result.warning("object.identity.field.access.invalid", elt), node);
                 }
             }
         }
     }
 
-    // Test if a field is in abstract state or not
+    // Deeply test if a field is in abstract state or not. For composite types: array component,
+    // type arguments, upper bound of type parameter uses are also checked.
     private boolean isInAbstractState(Element elt, PICOAnnotatedTypeFactory typeFactory) {
         boolean in = true;
         if (typeFactory.getDeclAnnotation(elt, Assignable.class) != null) {
             in = false;
-        } else if (typeFactory.getAnnotatedType(elt).hasAnnotation(MUTABLE)) {
+        } else if (AnnotatedTypes.containsModifier(typeFactory.getAnnotatedType(elt), MUTABLE)) {
             in = false;
-        } else if (typeFactory.getAnnotatedType(elt).hasAnnotation(READONLY)) {
+        } else if (AnnotatedTypes.containsModifier(typeFactory.getAnnotatedType(elt), READONLY)) {
             in = false;
         }
 

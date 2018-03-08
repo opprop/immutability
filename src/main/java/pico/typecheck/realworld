@@ -211,6 +211,8 @@ Before and after adding @UnderInitialization:
         copy(new @Mutable ALB().init(num));
     }
 
+Ran typecheckin side. Detect 5 errors. Once causes StackOverFlowError, which is a bug of TypeArgInferenceUtil.
+
 4. jdepend(6936 lines): found non-compliance code that modifies abstract state of receiver object in toString() method.
 class AfferentNode extends PackageNode {
   ...
@@ -260,6 +262,8 @@ constraint on type casting, including even ComparableConstraint. Otherwise, if y
 to String, inference will exit saying "comparable.constraint.unsatisfiable". This type of cast exists in jdpend.
 
 5. jReactPhysics3D(10454 lines): inferred solutions but failed to insert solutions to source code. The same reason as above.
+Update: inference gives no solution, as it mutates hashmap keys.
+DynamicsWorld line 213 vs 383
 
 6. JLargeArrays(11337 lines): successfully inferred solutions and inserted results.
 
@@ -272,8 +276,13 @@ Has fbc errors.
 as above.
 
 9. imgscalr(1996 lines): successfully inferred solutions and inserted solutions.
+Ran typechecking mode. Got 45 errors. Of which 44 is immutable cannot be passed to mutable default parameter in log method.
+One is strange fbc error on static inner class.
+New inference also succeeded.
 
 10. jama(4772 lines): successfully inferred solutions and inserted solutions.
+Ran typechecking mode. Got 4 fbc errors. Changing tred2(), tql2(), others() and hqr2() to have underinitialization would
+make the error gone.()
 
 11. react(10095 lines): inferred solutions, but failed to insert solutions back. The same insertion failure reason as above.
 

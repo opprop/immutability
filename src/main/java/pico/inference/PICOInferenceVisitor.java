@@ -235,15 +235,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                     checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
                     return super.visitMethod(node, p);
                 }
-                if (bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
-                    // Any one of @Mutable, @ReceiverDependantMutable and @Immutable are allowed to be constructor
-                    // return type if the class bound is @ReceiverDependantMutable.
-                    return super.visitMethod(node, p);
-                }
-                if (!atypeFactory.getQualifierHierarchy().isSubtype(
-                        constructorReturnType.getAnnotationInHierarchy(READONLY), bound.getAnnotationInHierarchy(READONLY))) {
-                    checker.report(Result.failure("constructor.return.incompatible"), node);
-                }
             }
         } else {
             AnnotatedDeclaredType declaredReceiverType = executableType.getReceiverType();
@@ -778,9 +769,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
         checkAssignability(var, varTree);
 
-        // In typechecking mode, viewpoint adaptation is already correctly handled by PICOTreeAnnotator#visitVariable()
-        if (infer && varTree instanceof VariableTree) {
-            // Only in inference mode, and tree is VariableTree
+        if (varTree instanceof VariableTree) {
             VariableElement element = TreeUtils.elementFromDeclaration((VariableTree) varTree);
             if (element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
                 AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(varTree, atypeFactory);
@@ -789,7 +778,11 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 AnnotatedTypeMirror varAdapted = var.shallowCopy(true);
                 // Viewpoint adapt varAdapted to the bound. PICOInferenceAnnotatedTypeFactory#viewpointAdaptMember()
                 // mutates varAdapted, so after the below method is called, varAdapted is the result adapted to bound
-                ((PICOInferenceAnnotatedTypeFactory) atypeFactory).viewpointAdaptMember(varAdapted, bound, element);
+                if (infer) {
+                    ((PICOInferenceAnnotatedTypeFactory) atypeFactory).viewpointAdaptMember(varAdapted, bound, element);
+                } else {
+                    ((PICOInferenceRealTypeFactory) atypeFactory).viewpointAdaptMember(varAdapted, bound, element);
+                }
                 // Pass varAdapted here as lhs type.
                 // Caution: cannot pass var directly. Modifying type in PICOInferenceTreeAnnotator#
                 // visitVariable() will cause wrong type to be gotton here, as on inference side,

@@ -140,7 +140,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
 
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
-        PICOTypeUtil.addDefaultForStaticField(this, type, elt);
+        PICOTypeUtil.addDefaultForField(this, type, elt);
         PICOTypeUtil.defaultConstructorReturnToClassBound(this, elt, type);
         PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
         super.addComputedTypeAnnotations(elt, type);
@@ -178,6 +178,11 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         shouldCache = oldShouldCache;
 
         return result;
+    }
+
+    @Override
+    protected void viewpointAdaptMember(AnnotatedTypeMirror type, AnnotatedTypeMirror owner, Element element) {
+        super.viewpointAdaptMember(type, owner, element);
     }
 
     @Override

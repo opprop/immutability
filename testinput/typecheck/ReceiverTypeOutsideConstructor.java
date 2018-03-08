@@ -18,12 +18,12 @@ class A {
         d = new @Immutable Date();
     }
 
-    // :: error: (constructor.return.incompatible)
+    // :: error: (type.invalid.annotations.on.use)
     @ReceiverDependantMutable A(Object o1) {
         d = new @ReceiverDependantMutable Date();
     }
 
-    // :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
+    // :: error: (type.invalid.annotations.on.use)
     @Mutable A(Object o1, Object o2) {
         d = new @Mutable Date();
     }
@@ -88,12 +88,12 @@ class C {
         d = new @Mutable Date();
     }
 
-    // :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
+    // :: error: (type.invalid.annotations.on.use)
     @Immutable C() {
         d = new @Immutable Date();
     }
 
-    // :: error: (constructor.return.incompatible)
+    // :: error: (type.invalid.annotations.on.use)
     @ReceiverDependantMutable C(Object o1) {
         d = new @ReceiverDependantMutable Date();
     }

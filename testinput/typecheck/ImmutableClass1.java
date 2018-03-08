@@ -8,9 +8,9 @@ import qual.Readonly;
 
 @Immutable
 class ImmutableClass1{
-    // :: error: (constructor.return.incompatible) :: error: (type.invalid.annotations.on.use)
+    // :: error: (type.invalid.annotations.on.use)
     @Mutable ImmutableClass1(Object o) {}
-    // :: error: (constructor.return.incompatible)
+    // :: error: (type.invalid.annotations.on.use)
     @ReceiverDependantMutable ImmutableClass1() {}
     @Immutable ImmutableClass1(@Immutable Number n) {}
 
@@ -18,6 +18,7 @@ class ImmutableClass1{
 
     void method2(@Immutable ImmutableClass1 this) {}
 
+    // :: error: (type.invalid.annotations.on.use)
     void method3(@ReceiverDependantMutable ImmutableClass1 this) {}
 
     void method4(@PolyMutable ImmutableClass1 this) {}

@@ -26,6 +26,7 @@ import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import pico.inference.PICOInferenceAnnotatedTypeFactory;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -117,6 +118,40 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     }
 
     @Override
+    protected void commonAssignmentCheck(
+            Tree varTree, ExpressionTree valueExp, String errorKey) {
+        AnnotatedTypeMirror var = atypeFactory.getAnnotatedTypeLhs(varTree);
+        assert var != null : "no variable found for tree: " + varTree;
+
+        if (!validateType(varTree, var)) {
+            return;
+        }
+
+        checkAssignability(var, varTree);
+
+        if (varTree instanceof VariableTree) {
+            VariableElement element = TreeUtils.elementFromDeclaration((VariableTree) varTree);
+            if (element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
+                AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(varTree, atypeFactory);
+                // var is singleton, so shouldn't modify var directly. Otherwise, the variable tree's type will be
+                // altered permanently, and other clients who access this type will see the change, too.
+                AnnotatedTypeMirror varAdapted = var.shallowCopy(true);
+                // Viewpoint adapt varAdapted to the bound. PICOInferenceAnnotatedTypeFactory#viewpointAdaptMember()
+                // mutates varAdapted, so after the below method is called, varAdapted is the result adapted to bound
+                atypeFactory.viewpointAdaptMember(varAdapted, bound, element);
+                // Pass varAdapted here as lhs type.
+                // Caution: cannot pass var directly. Modifying type in PICOInferenceTreeAnnotator#
+                // visitVariable() will cause wrong type to be gotton here, as on inference side,
+                // atm is uniquely determined by each element.
+                commonAssignmentCheck(varAdapted, valueExp, errorKey);
+                return;
+            }
+        }
+
+        commonAssignmentCheck(var, valueExp, errorKey);
+    }
+
+    @Override
     protected boolean checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
         // TODO Is the copied code really needed?
         /*Copied Code Start*/
@@ -158,17 +193,8 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
             if (constructorReturnType.hasAnnotation(READONLY) || constructorReturnType.hasAnnotation(POLY_MUTABLE)) {
                 checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
-                // Immediately go to super implementation if constructor return is not correct to avoid duplicate warnings
-                // from "constructor.return.incompatible" if @Readonly or @PolyMutable is used on constructor return
                 return super.visitMethod(node, p);
             }
-
-            if (!bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)// any constructor return allowed
-                    && !atypeFactory.getQualifierHierarchy().isSubtype(
-                            constructorReturnType.getAnnotationInHierarchy(READONLY), bound.getAnnotationInHierarchy(READONLY))) {
-                checker.report(Result.failure("constructor.return.incompatible"), node);
-            }
-            /*Doesn't check constructor parameters if constructor return is immutable or receiverdependantmutable*/
         } else {
             AnnotatedDeclaredType declareReceiverType = executableType.getReceiverType();
             if (declareReceiverType != null) {

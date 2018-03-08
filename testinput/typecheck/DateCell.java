@@ -11,6 +11,7 @@ public class DateCell {
 
     @ReceiverDependantMutable Date date;
 
+    // :: error: (type.invalid.annotations.on.use)
     @ReceiverDependantMutable Date getDate(@ReceiverDependantMutable DateCell this) {
         return this.date;
     }

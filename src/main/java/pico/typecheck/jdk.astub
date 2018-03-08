@@ -178,6 +178,7 @@ class Arrays {
 
 class Objects {
   static int hashCode(@Readonly Object o);
+  static boolean equals(@Readonly Object a, @Readonly Object b);
 }
 
 @ReceiverDependantMutable

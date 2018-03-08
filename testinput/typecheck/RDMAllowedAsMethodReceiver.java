@@ -3,12 +3,12 @@ import qual.ReceiverDependantMutable;
 import qual.Immutable;
 
 @Immutable class RDMAllowedAsMethodReceiver {
-    // @ReceiverDependantMutable declared receiver is allowed. Otherwise, clone() has warnings
-    // in every overriding class.
+    // :: error: (type.invalid.annotations.on.use)
     void foo(@ReceiverDependantMutable RDMAllowedAsMethodReceiver this) {}
 }
 
 @Mutable
 class AnotherExample {
+    // :: error: (type.invalid.annotations.on.use)
     void foo(@ReceiverDependantMutable AnotherExample this) {}
 }

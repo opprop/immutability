@@ -4,7 +4,7 @@ import qual.ReceiverDependantMutable;
 
 public class ConstructorInvocationUsingNew {
 
-    // :: fixable-error: (constructor.return.incompatible)
+    // :: fixable-error: (type.invalid.annotations.on.use)
     @ReceiverDependantMutable ConstructorInvocationUsingNew() {}
 
     public static void main(String[] args) {

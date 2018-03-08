@@ -150,6 +150,11 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         return new PICOQualifierHierarchy(factory, (Object[]) null);
     }
 
+    @Override
+    protected void viewpointAdaptMember(AnnotatedTypeMirror type, AnnotatedTypeMirror owner, Element element) {
+        super.viewpointAdaptMember(type, owner, element);
+    }
+
     // Transfer the visibility to package
     @Override
     protected void viewpointAdaptMethod(ExecutableElement methodElt, AnnotatedTypeMirror receiverType, AnnotatedExecutableType methodType) {
@@ -185,7 +190,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
      * applying @Immutable on type declaration to constructor return type).*/
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
-        PICOTypeUtil.addDefaultForStaticField(this, type, elt);
+        PICOTypeUtil.addDefaultForField(this, type, elt);
         PICOTypeUtil.defaultConstructorReturnToClassBound(this, elt, type);
         PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
         super.addComputedTypeAnnotations(elt, type);
@@ -453,38 +458,9 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         @Override
         public Void visitVariable(VariableTree node, AnnotatedTypeMirror annotatedTypeMirror) {
             VariableElement element = TreeUtils.elementFromDeclaration(node);
-            PICOTypeUtil.addDefaultForStaticField(atypeFactory, annotatedTypeMirror, element);
+            PICOTypeUtil.addDefaultForField(atypeFactory, annotatedTypeMirror, element);
             PICOTypeUtil.applyImmutableToEnumAndEnumConstant(annotatedTypeMirror);
-            Types types = atypeFactory.getProcessingEnv().getTypeUtils();
-            viewpointAdaptInstanceFieldToClassBound(types, annotatedTypeMirror, element, node);
             return super.visitVariable(node, annotatedTypeMirror);
-        }
-
-        /**
-         * Adapts main modifier of an instance field to the bound of the enclosing class.
-         *
-         * So if a field declaration has initializer, viewpoint adapted field type is used.
-         * But this viewpoint adaptation doesn't affect the type of usage of field in other
-         * locations, for example in constructors and initialization blocks: declared type
-         * of the field is still used for viewpoint adaptation inside constructors and initialization
-         * blocks instead of the adapted field type. So the affecting scope of the viewpoint
-         * adaptation is only instance field declarations with initializer on it.
-         *
-         * If the field type is type variable, it doesn't viewpoint adapt the bounds of the type
-         * variable. If there is annotation on that type variable use, this method still adapts
-         * that main modifier to the bound of the enclosing class.
-         */
-        private void viewpointAdaptInstanceFieldToClassBound(
-                Types types, AnnotatedTypeMirror annotatedTypeMirror, VariableElement element, VariableTree tree) {
-            if (element != null && element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
-                AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(tree, atypeFactory);
-                AnnotatedTypeMirror adaptedFieldType = AnnotatedTypes.asMemberOf(types, atypeFactory, bound, element, tree);
-                // Type variable use with no annotation on its main modifier hits null case
-                if (adaptedFieldType.getAnnotationInHierarchy(READONLY) != null) {
-                    // Possible cases: AnnotatedDeclaredType, AnnotatedArrayType or AnnotatedTypeVariable with annotation on it
-                    annotatedTypeMirror.replaceAnnotation(adaptedFieldType.getAnnotationInHierarchy(READONLY));
-                }
-            }
         }
     }
 
