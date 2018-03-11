@@ -272,6 +272,9 @@ class ObjectOutputStream {
   void writeObject(@Readonly Object obj);
 }
 
+@ReceiverDependantMutable
+interface Serializable {}
+
 package org.hibernate;
 class Session {
   Object get(@Readonly Class clazz, @Readonly Serializable id);

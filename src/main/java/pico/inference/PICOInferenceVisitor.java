@@ -214,7 +214,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
             // Recursively prefer to be rdm and immutable
             addDeepPreference(type, RECEIVER_DEPENDANT_MUTABLE, 3, node);
-            addDeepPreference(type, IMMUTABLE, 2, node);
+            addDeepPreference(type, IMMUTABLE, 3, node);
         }
         return super.visitVariable(node, p);
     }
@@ -670,8 +670,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (infer) {
             mainIsNot(bound, READONLY, "class.bound.invalid", node);
             if (checker.hasOption("optimalSolution")) {
-                addPreference(bound, RECEIVER_DEPENDANT_MUTABLE, 3);
-                addPreference(bound, IMMUTABLE, 3);
+                addPreference(bound, RECEIVER_DEPENDANT_MUTABLE, 2);
+                addPreference(bound, IMMUTABLE, 2);
             }
         } else {
             // Has to be either @Mutable, @ReceiverDependantMutable or @Immutable, nothing else
