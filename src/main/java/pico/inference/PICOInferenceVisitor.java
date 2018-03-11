@@ -15,6 +15,7 @@ import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.CompoundAssignmentTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
@@ -23,6 +24,7 @@ import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.TypeCastTree;
+import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
@@ -439,21 +441,40 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
         ExpressionTree variable = node.getVariable();
-        AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
-        if (receiverType == null) {
-            return super.visitAssignment(node, p);
-        }
-        if (PICOTypeUtil.isAssigningAssignableField(node, atypeFactory)) {
-            checkAssignableField(node, variable, receiverType);
-        } else if (isInitializingObject(node)) {
-            checkInitializingObject(node, variable, receiverType);
-        } else {
-            checkMutableReceiverCase(node, variable, receiverType);
-        }
+        checkMutation(node, variable);
         return super.visitAssignment(node, p);
     }
 
-    private void checkAssignableField(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+    @Override
+    public Void visitCompoundAssignment(CompoundAssignmentTree node, Void p) {
+        ExpressionTree variable = node.getVariable();
+        checkMutation(node, variable);
+        return super.visitCompoundAssignment(node, p);
+    }
+
+    @Override
+    public Void visitUnary(UnaryTree node, Void p) {
+        if (PICOTypeUtil.isSideEffectingUnaryTree(node)) {
+            ExpressionTree variable = node.getExpression();
+            checkMutation(node, variable);
+        }
+        return super.visitUnary(node, p);
+    }
+
+    private void checkMutation(ExpressionTree node, ExpressionTree variable) {
+        AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
+        if(receiverType != null) {
+            if (PICOTypeUtil.isAssigningAssignableField(node, atypeFactory)){
+                checkAssignableField(node, variable, receiverType);
+            } else if (isInitializingObject(node)) {
+                checkInitializingObject(node, variable, receiverType);
+            } else {
+                checkMutableReceiverCase(node, variable, receiverType);
+            }
+        }
+    }
+
+    private void checkAssignableField(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         Element fieldElement = TreeUtils.elementFromUse(node);
         if (fieldElement != null) {//TODO Can this bu null?
             AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
@@ -477,7 +498,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
     }
 
-    private void checkInitializingObject(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+    private void checkInitializingObject(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (infer) {
             // Can be anything from mutable, immutable or receiverdependantmutable
             mainIsNot(receiverType, READONLY, "illegal.field.write", node);
@@ -488,7 +509,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
     }
 
-    private void checkMutableReceiverCase(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+    private void checkMutableReceiverCase(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (infer) {
             mainIs(receiverType, MUTABLE, "illegal.field.write", node);
         } else {
@@ -499,7 +520,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     // Completely copied from PICOVisitor
-    private void reportFieldOrArrayWriteError(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+    private void reportFieldOrArrayWriteError(Tree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (variable.getKind() == Kind.MEMBER_SELECT) {
             checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
         } else if (variable.getKind() == Kind.IDENTIFIER) {
@@ -524,12 +545,11 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
      *
      * @see #hasUnderInitializationDeclaredReceiver(MethodTree)
      */
-    private boolean isInitializingObject(AssignmentTree node) {
-        Element element = TreeUtils.elementFromUse(node);
+    private boolean isInitializingObject(ExpressionTree variable) {
+        Element element = TreeUtils.elementFromUse(variable);
         // If the assignment is not field assignment, there is no possibility of initializing object.
         if (element == null || !element.getKind().isField()) return false;
-        ExpressionTree variable = node.getVariable();
-        TreePath treePath = atypeFactory.getPath(node);
+        TreePath treePath = atypeFactory.getPath(variable);
         if (treePath == null) return false;
 
         if (TreeUtils.enclosingTopLevelBlock(treePath) != null) {

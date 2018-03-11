@@ -8,8 +8,10 @@ import checkers.inference.model.Slot;
 import checkers.inference.util.InferenceUtil;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.framework.qual.ImplicitFor;
@@ -39,9 +41,11 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
@@ -49,6 +53,16 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
 public class PICOTypeUtil {
+
+    private static final Set<Tree.Kind> sideEffectingUnaryOperators;
+
+    static {
+        sideEffectingUnaryOperators = new HashSet<>();
+        sideEffectingUnaryOperators.add(Tree.Kind.POSTFIX_INCREMENT);
+        sideEffectingUnaryOperators.add(Tree.Kind.PREFIX_INCREMENT);
+        sideEffectingUnaryOperators.add(Tree.Kind.POSTFIX_DECREMENT);
+        sideEffectingUnaryOperators.add(Tree.Kind.PREFIX_DECREMENT);
+    }
 
     private static boolean isInTypesOfImplicitForOfImmutable(AnnotatedTypeMirror atm) {
         ImplicitFor implicitFor = Immutable.class.getAnnotation(ImplicitFor.class);
@@ -336,7 +350,7 @@ public class PICOTypeUtil {
         return valid;
     }
 
-    public static boolean isAssigningAssignableField(AssignmentTree node, AnnotationProvider provider) {
+    public static boolean isAssigningAssignableField(ExpressionTree node, AnnotationProvider provider) {
         Element fieldElement = TreeUtils.elementFromUse(node);
         if (fieldElement == null) return false;
         return isAssignableField(fieldElement, provider);
@@ -405,5 +419,9 @@ public class PICOTypeUtil {
             annotatedTypeMirror.addMissingAnnotations(
                     Arrays.asList(getBoundTypeOfTypeDeclaration(classTree, atypeFactory).getAnnotationInHierarchy(READONLY)));
         }
+    }
+
+    public static boolean isSideEffectingUnaryTree(final UnaryTree tree) {
+        return sideEffectingUnaryOperators.contains(tree.getKind());
     }
 }

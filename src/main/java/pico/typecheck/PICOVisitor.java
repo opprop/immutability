@@ -3,6 +3,7 @@ package pico.typecheck;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.CompoundAssignmentTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
@@ -10,6 +11,7 @@ import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
+import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
@@ -266,24 +268,41 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         // , it doesn't. This causes inconsistencies when enforcing immutability and doing subtype check. I overrode
         // getAnnotatedTypeLhs() to also use flow sensitive refinement, but came across with "private access" problem
         // on field "computingAnnotatedTypeMirrorOfLHS"
+        checkMutation(node, variable);
+        return super.visitAssignment(node, p);
+    }
+
+    @Override
+    public Void visitCompoundAssignment(CompoundAssignmentTree node, Void p) {
+        ExpressionTree variable = node.getVariable();
+        checkMutation(node, variable);
+        return super.visitCompoundAssignment(node, p);
+    }
+
+    @Override
+    public Void visitUnary(UnaryTree node, Void p) {
+        if (PICOTypeUtil.isSideEffectingUnaryTree(node)) {
+            ExpressionTree variable = node.getExpression();
+            checkMutation(node, variable);
+        }
+        return super.visitUnary(node, p);
+    }
+
+    private void checkMutation(Tree node, ExpressionTree variable) {
         AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
         // Cannot use receiverTree = TreeUtils.getReceiverTree(variable) to determine if it's
         // field assignment or not. Because for field assignment with implicit "this", receiverTree
         // is null but receiverType is non-null. We still need to check this case.
-        if (receiverType == null) {
-            return super.visitAssignment(node, p);
-        }
-        if (!allowWrite(receiverType, node)) {
+        if (receiverType != null && !allowWrite(receiverType, variable)) {
             reportFieldOrArrayWriteError(node, variable, receiverType);
         }
-        return super.visitAssignment(node, p);
     }
 
-    private boolean allowWrite(AnnotatedTypeMirror receiverType, AssignmentTree node) {
+    private boolean allowWrite(AnnotatedTypeMirror receiverType, ExpressionTree variable) {
         // One pico side, if only receiver is mutable, we allow assigning/reassigning. Because if the field
         // is declared as final, Java compiler will catch that, and we couldn't have reached this point
-        if (PICOTypeUtil.isAssigningAssignableField(node, atypeFactory)) {
-            return isAllowedAssignableField(receiverType, node);
+        if (PICOTypeUtil.isAssigningAssignableField(variable, atypeFactory)) {
+            return isAllowedAssignableField(receiverType, variable);
         } else if (isInitializingReceiverDependantMutableOrImmutableObject(receiverType)) {
             return true;
         } else if (receiverType.hasAnnotation(MUTABLE)) {
@@ -293,7 +312,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         return false;
     }
 
-    private boolean isAllowedAssignableField(AnnotatedTypeMirror receiverType, AssignmentTree node) {
+    private boolean isAllowedAssignableField(AnnotatedTypeMirror receiverType, ExpressionTree node) {
         Element fieldElement = TreeUtils.elementFromUse(node);
         AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
         if (fieldElement == null) return false;
@@ -313,7 +332,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         }
     }
 
-    private void reportFieldOrArrayWriteError(AssignmentTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+    private void reportFieldOrArrayWriteError(Tree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (variable.getKind() == Kind.MEMBER_SELECT) {
             checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
         } else if (variable.getKind() == Kind.IDENTIFIER) {
