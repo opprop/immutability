@@ -239,6 +239,11 @@ class Logger {
 package java.util.regex;
 class Pattern {
   Matcher matcher(@Readonly CharSequence input);
+  static boolean matches(String regex, @Readonly CharSequence input);
+  String[] split(@Readonly CharSequence input, int limit);
+  String[] split(@Readonly CharSequence input);
+  static final int countChars(@Readonly CharSequence seq, int index, int lengthInCodePoints);
+  static final int countCodePoints(@Readonly CharSequence seq);
 }
 
 package java.io;
