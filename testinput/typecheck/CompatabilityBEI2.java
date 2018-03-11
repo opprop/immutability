@@ -39,7 +39,6 @@ abstract class I implements @Mutable List<@Immutable Object> {}
 // :: error: (bound.extends.incompatabile)
 @Immutable class N extends @ReceiverDependantMutable ArrayList<@Immutable Object> {}
 
-// :: error: (subclass.bound.incompatible)
 abstract class O implements CharSequence {}
 
 @Immutable interface ImmutableInterface<E extends @ReceiverDependantMutable Object> {}

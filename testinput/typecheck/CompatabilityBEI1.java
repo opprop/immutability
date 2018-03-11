@@ -46,13 +46,10 @@ class I implements @Mutable Cloneable {}
 // :: error: (bound.extends.incompatabile)
 @Immutable class N extends @ReceiverDependantMutable Object {}
 
-// :: error: (subclass.bound.incompatible)
 abstract class O implements CharSequence {}
 
-// :: error: (subclass.bound.incompatible)
 @Mutable abstract class P implements CharSequence {}
 
 @Immutable abstract class Q implements CharSequence {}
 
-// :: error: (subclass.bound.incompatible)
 @ReceiverDependantMutable abstract class R implements CharSequence {}

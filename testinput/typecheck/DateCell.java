@@ -7,11 +7,11 @@ import qual.ReceiverDependantMutable;
 import java.lang.SuppressWarnings;
 import java.util.Date;
 
-public class DateCell {
+// :: error: (initialization.fields.uninitialized)
+@ReceiverDependantMutable public class DateCell {
 
     @ReceiverDependantMutable Date date;
 
-    // :: error: (type.invalid.annotations.on.use)
     @ReceiverDependantMutable Date getDate(@ReceiverDependantMutable DateCell this) {
         return this.date;
     }
