@@ -4,6 +4,7 @@ import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.ParameterizedTypeTree;
@@ -428,6 +429,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         public Void visitIdentifier(IdentifierTree node, AnnotatedTypeMirror annotatedTypeMirror) {
             PICOTypeUtil.dragAnnotationFromBoundToExtendsAndImplements(node, annotatedTypeMirror, atypeFactory);
             return super.visitIdentifier(node, annotatedTypeMirror);
+        }
+
+        @Override
+        public Void visitMemberSelect(MemberSelectTree node, AnnotatedTypeMirror annotatedTypeMirror) {
+            PICOTypeUtil.dragAnnotationFromBoundToExtendsAndImplements(node, annotatedTypeMirror, atypeFactory);
+            return super.visitMemberSelect(node, annotatedTypeMirror);
         }
 
         @Override

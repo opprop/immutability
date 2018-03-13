@@ -415,9 +415,13 @@ public class PICOTypeUtil {
         }
 
         if (onExtendsOrImplements) {
-            // Respect exsiting annotation still
-            annotatedTypeMirror.addMissingAnnotations(
-                    Arrays.asList(getBoundTypeOfTypeDeclaration(classTree, atypeFactory).getAnnotationInHierarchy(READONLY)));
+            // Respect explicitly written annotation still. However, if the there is annotation here, but it's
+            // inheritted from type element bound, then we still flush them out, because they are not explicit
+            // usage.
+            if (annotatedTypeMirror.getExplicitAnnotations().isEmpty()) {
+                annotatedTypeMirror.replaceAnnotation(
+                        getBoundTypeOfTypeDeclaration(classTree, atypeFactory).getAnnotationInHierarchy(READONLY));
+            }
         }
     }
 
