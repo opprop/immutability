@@ -1,3 +1,5 @@
+import java.util.Arrays;
+
 public class BottomArrayWrite {
     double[] a = null;
 
@@ -15,6 +17,14 @@ public class BottomArrayWrite {
 
     void bar() {
         a = new double[1];
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 0;
+        // :: error: (argument.type.incompatible)
+        hash = 83 * hash + Arrays.hashCode(a);
+        return hash;
     }
 }
 
