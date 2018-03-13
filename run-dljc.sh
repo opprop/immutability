@@ -23,7 +23,7 @@ if [[ "$1" = "-t" ]] ; then
     echo "Running typechecking"
     CHECKER="pico.typecheck.PICOChecker"
     #checker tool doesn't support --cfArgs yet, so the arguments don't have effect right now
-    running_cmd="python $DLJC/dljc -t checker --checker "${CHECKER}" --cfArgs=\"-AprintFbcErrors\" --log_to_stderr -- $build_cmd"
+    running_cmd="python $DLJC/dljc -t checker --checker "${CHECKER}" --cfArgs=\"-AprintFbcErrors\" -o logs2 -- $build_cmd"
 elif [[ "$1" = "-i" ]] ; then
     echo "Running inference"
     echo "Cleaning logs and annotated directory from previous result"
