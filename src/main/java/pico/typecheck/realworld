@@ -334,7 +334,7 @@ TotalSlots,2774,100%
 @qual.Mutable,633,22.82%
 @qual.Bottom,402,14.49%
 
-8. jdeb(6247 lines): successfully inseferred solutions but failed to insert solutions to source code. Got exception
+8. jdeb(6247 lines): succes sfully inseferred solutions but failed to insert solutions to source code. Got exception
 in annotation tools. Don't know if this is realted to issue:
 https://github.com/typetools/annotation-tools/issues/155
 Without optimization:
