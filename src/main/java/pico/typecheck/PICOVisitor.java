@@ -408,6 +408,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                         Result.failure(
                                 "super.constructor.invocation.incompatible", subClassConstructorReturnType, superClassConstructorReturnType), node);
             }
+            return;
         }
 
         /*Copied Code Starts*/
