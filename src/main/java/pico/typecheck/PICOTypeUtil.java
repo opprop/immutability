@@ -315,7 +315,9 @@ public class PICOTypeUtil {
 
     /**Check if a field is assignable or not.*/
     public static boolean isAssignableField(Element variableElement, AnnotationProvider provider) {
-        assert variableElement instanceof VariableElement;
+        if (!(variableElement instanceof VariableElement)) {
+            return false;
+        }
         boolean hasExplicitAssignableAnnotation = provider.getDeclAnnotation(variableElement, Assignable.class) != null;
         if (!ElementUtils.isStatic(variableElement)) {
             // Instance fields must have explicit @Assignable annotation to be assignable
