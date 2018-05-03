@@ -239,7 +239,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             AnnotatedDeclaredType overriddenType = pair.getKey();
             AnnotatedExecutableType overriddenMethod =
                     AnnotatedTypes.asMemberOf(
-                            types, atypeFactory, enclosingType, pair.getValue(), node);
+                            types, atypeFactory, enclosingType, pair.getValue());
             // Viewpoint adapt super method executable type to current class bound(is this always class bound?)
             // to allow flexible overriding
             atypeFactory.viewpointAdaptMethod(pair.getValue(), enclosingType, overriddenMethod);
