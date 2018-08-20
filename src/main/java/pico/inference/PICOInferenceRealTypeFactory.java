@@ -12,7 +12,7 @@ import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.framework.util.ViewpointAdapter;
+import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.TreeUtils;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator;
@@ -71,8 +71,8 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
 
     // TODO Remove this temporary viewpoint adaptor
     @Override
-    protected ViewpointAdapter<?> createViewpointAdapter() {
-        return new PICOViewpointAdapter();
+    protected AbstractViewpointAdapter createViewpointAdapter() {
+        return new PICOViewpointAdapter(this);
     }
 
     /**Annotators are executed by the added order. Same for Type Annotator*/
@@ -178,15 +178,5 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         shouldCache = oldShouldCache;
 
         return result;
-    }
-
-    @Override
-    protected void viewpointAdaptMember(AnnotatedTypeMirror type, AnnotatedTypeMirror owner, Element element) {
-        super.viewpointAdaptMember(type, owner, element);
-    }
-
-    @Override
-    protected void viewpointAdaptMethod(ExecutableElement methodElt, AnnotatedTypeMirror receiverType, AnnotatedTypeMirror.AnnotatedExecutableType methodType) {
-        super.viewpointAdaptMethod(methodElt, receiverType, methodType);
     }
 }

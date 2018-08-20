@@ -140,7 +140,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                 AnnotatedTypeMirror varAdapted = var.shallowCopy(true);
                 // Viewpoint adapt varAdapted to the bound. PICOInferenceAnnotatedTypeFactory#viewpointAdaptMember()
                 // mutates varAdapted, so after the below method is called, varAdapted is the result adapted to bound
-                atypeFactory.viewpointAdaptMember(varAdapted, bound, element);
+                atypeFactory.getViewpointAdapter().viewpointAdaptMember(bound, element, varAdapted);
                 // Pass varAdapted here as lhs type.
                 // Caution: cannot pass var directly. Modifying type in PICOInferenceTreeAnnotator#
                 // visitVariable() will cause wrong type to be gotton here, as on inference side,
@@ -242,7 +242,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                             types, atypeFactory, enclosingType, pair.getValue());
             // Viewpoint adapt super method executable type to current class bound(is this always class bound?)
             // to allow flexible overriding
-            atypeFactory.viewpointAdaptMethod(pair.getValue(), enclosingType, overriddenMethod);
+            atypeFactory.getViewpointAdapter().viewpointAdaptMethod(enclosingType, pair.getValue() , overriddenMethod);
             AnnotatedExecutableType overrider = atypeFactory.getAnnotatedType(node);
             if (!checkOverride(node, overrider, enclosingType, overriddenMethod, overriddenType)) {
                 // Stop at the first mismatch; this makes a difference only if

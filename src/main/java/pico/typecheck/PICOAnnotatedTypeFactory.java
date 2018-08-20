@@ -21,9 +21,9 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.QualifierHierarchy;
+import org.checkerframework.framework.type.ViewpointAdapter;
 import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
@@ -33,9 +33,8 @@ import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
-import org.checkerframework.framework.util.ViewpointAdapter;
+import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
@@ -50,11 +49,9 @@ import qual.SubstitutablePolyMutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
-import javax.lang.model.util.Types;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -106,8 +103,8 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     }
 
     @Override
-    protected ViewpointAdapter<?> createViewpointAdapter() {
-        return new PICOViewpointAdapter();
+    protected ViewpointAdapter createViewpointAdapter() {
+        return new PICOViewpointAdapter(this);
     }
 
     /**Annotators are executed by the added order. Same for Type Annotator*/
@@ -149,17 +146,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     @Override
     public QualifierHierarchy createQualifierHierarchy(MultiGraphFactory factory) {
         return new PICOQualifierHierarchy(factory, (Object[]) null);
-    }
-
-    @Override
-    protected void viewpointAdaptMember(AnnotatedTypeMirror type, AnnotatedTypeMirror owner, Element element) {
-        super.viewpointAdaptMember(type, owner, element);
-    }
-
-    // Transfer the visibility to package
-    @Override
-    protected void viewpointAdaptMethod(ExecutableElement methodElt, AnnotatedTypeMirror receiverType, AnnotatedExecutableType methodType) {
-        super.viewpointAdaptMethod(methodElt, receiverType, methodType);
     }
 
     /**Just to transfer the method from super class to package*/

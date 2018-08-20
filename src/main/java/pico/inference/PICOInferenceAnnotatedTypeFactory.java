@@ -86,17 +86,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
 
     @Override
     protected InferenceViewpointAdapter createViewpointAdapter() {
-        return new PICOInferenceViewpointAdapter();
-    }
-
-    @Override
-    protected void viewpointAdaptMember(AnnotatedTypeMirror type, AnnotatedTypeMirror owner, Element element) {
-        super.viewpointAdaptMember(type, owner, element);
-    }
-
-    @Override
-    protected void viewpointAdaptMethod(ExecutableElement methodElt, AnnotatedTypeMirror receiverType, AnnotatedTypeMirror.AnnotatedExecutableType methodType) {
-        super.viewpointAdaptMethod(methodElt, receiverType, methodType);
+        return new PICOInferenceViewpointAdapter(this);
     }
 
     VariableAnnotator getVariableAnnotator() {
