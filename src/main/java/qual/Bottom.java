@@ -1,6 +1,7 @@
 package qual;
 
 import org.checkerframework.framework.qual.DefaultFor;
+import org.checkerframework.framework.qual.DefaultInUncheckedCodeFor;
 import org.checkerframework.framework.qual.ImplicitFor;
 import org.checkerframework.framework.qual.LiteralKind;
 import org.checkerframework.framework.qual.SubtypeOf;
@@ -25,4 +26,5 @@ import java.lang.annotation.Target;
 // qualifier than @Bottom explicitly on explicit lower bound to have different-than-default type.
 @Target({})
 @TargetLocations({})
+@DefaultInUncheckedCodeFor({TypeUseLocation.RETURN})
 public @interface Bottom {}
