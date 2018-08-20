@@ -12,7 +12,7 @@ export CHECKERFRAMEWORK=$ROOT/checker-framework
 export PATH=$AFU/scripts:$JAVA_HOME/bin:$PATH
 
 # Split $TRAVIS_REPO_SLUG into the owner and repository parts
-SLUGOWNER=opprop
+SLUGOWNER=topnessman
 SLUGREPO=${TRAVIS_REPO_SLUG##*/}
 
 echo "------ Downloading everthing from SLUG_OWNER: $SLUGOWNER ------"
@@ -21,21 +21,21 @@ echo "------ Downloading everthing from SLUG_OWNER: $SLUGOWNER ------"
 if [ -d $JSR308/annotation-tools ] ; then
     (cd $JSR308/annotation-tools && git pull)
 else
-    (cd $JSR308 && git clone --depth 1 https://github.com/"$SLUGOWNER"/annotation-tools.git)
+    (cd $JSR308 && git clone -b pico-dependant-copy --depth 1 https://github.com/"$SLUGOWNER"/annotation-tools.git)
 fi
 
 # Clone stubparser
 if [ -d $JSR308/stubparser ] ; then
     (cd $JSR308/stubparser && git pull)
 else
-    (cd $JSR308 && git clone --depth 1 https://github.com/"$SLUGOWNER"/stubparser.git)
+    (cd $JSR308 && git clone -b pico-dependant-copy --depth 1 https://github.com/"$SLUGOWNER"/stubparser.git)
 fi
 # Clone checker-framework
 if [ -d $JSR308/checker-framework ] ; then
     (cd $JSR308/checker-framework && git checkout pico-dependant && git pull)
 else
     # ViewpointAdapter changes are not yet merged to master, so we depend on pico-dependant branch
-    (cd $JSR308 && git clone -b pico-dependant --depth 1 https://github.com/"$SLUGOWNER"/checker-framework.git)
+    (cd $JSR308 && git clone -b pico-dependant-copy --depth 1 https://github.com/"$SLUGOWNER"/checker-framework.git)
 fi
 
 # Clone checker-framework-inference
@@ -43,7 +43,7 @@ if [ -d $JSR308/checker-framework-inference ] ; then
     (cd $JSR308/checker-framework-inference && git checkout pico-dependant && git pull)
 else
     # Again we depend on pico-dependant branch
-    (cd $JSR308 && git clone -b pico-dependant --depth 1 https://github.com/"$SLUGOWNER"/checker-framework-inference.git)
+    (cd $JSR308 && git clone -b pico-dependant-copy --depth 1 https://github.com/"$SLUGOWNER"/checker-framework-inference.git)
 fi
 
 # Build annotation-tools (and jsr308-langtools)
