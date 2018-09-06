@@ -1,5 +1,27 @@
 package pico.inference;
 
+import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+
+import java.util.Arrays;
+import java.util.List;
+
+import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
+
+import org.checkerframework.framework.type.AnnotatedTypeFactory;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
+
+import com.sun.source.tree.AnnotatedTypeTree;
+import com.sun.source.tree.BinaryTree;
+import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.Tree;
+import com.sun.source.tree.WildcardTree;
+
 import checkers.inference.InferenceAnnotatedTypeFactory;
 import checkers.inference.InferenceMain;
 import checkers.inference.InferrableChecker;
@@ -9,28 +31,7 @@ import checkers.inference.model.AnnotationLocation;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.VariableSlot;
 import checkers.inference.model.tree.ArtificialExtendsBoundTree;
-import checkers.inference.qual.VarAnnot;
-import com.sun.source.tree.AnnotatedTypeTree;
-import com.sun.source.tree.BinaryTree;
-import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.WildcardTree;
-import org.checkerframework.framework.type.AnnotatedTypeFactory;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import pico.typecheck.PICOTypeUtil;
-
-import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeKind;
-
-import java.util.Arrays;
-import java.util.List;
-
-import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 
 public class PICOVariableAnnotator extends VariableAnnotator {
 

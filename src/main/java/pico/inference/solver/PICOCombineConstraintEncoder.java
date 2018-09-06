@@ -7,7 +7,6 @@ import checkers.inference.solver.backend.maxsat.MathUtils;
 import checkers.inference.solver.backend.maxsat.VectorUtils;
 import checkers.inference.solver.backend.maxsat.encoder.MaxSATAbstractConstraintEncoder;
 import checkers.inference.solver.frontend.Lattice;
-import checkers.inference.util.ConstraintVerifier;
 import exceptions.solver.EncodingStuckException;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.sat4j.core.VecInt;
@@ -29,8 +28,8 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTAB
  */
 public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncoder implements CombineConstraintEncoder<VecInt[]> {
 
-    public PICOCombineConstraintEncoder(Lattice lattice, ConstraintVerifier verifier, Map<AnnotationMirror, Integer> typeToInt) {
-        super(lattice, verifier, typeToInt);
+    public PICOCombineConstraintEncoder(Lattice lattice, Map<AnnotationMirror, Integer> typeToInt) {
+        super(lattice, typeToInt);
     }
 
     /**Wrapper method to get integer id of an AnnotationMirror to avoid Map get operations*/

@@ -1,9 +1,23 @@
 package pico.inference;
 
-import com.sun.source.tree.Tree;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
+import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
@@ -12,13 +26,15 @@ import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.framework.type.AbstractViewpointAdapter;
-import org.checkerframework.javacutil.ErrorReporter;
+import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
+
+import com.sun.source.tree.Tree;
+
+import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOTreeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOTypeAnnotator;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 import pico.typecheck.PICOViewpointAdapter;
 import qual.Bottom;
@@ -26,20 +42,6 @@ import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
-
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 
 /**
  * PICOInferenceRealTypeFactory exists because: 1)PICOAnnotatedTypeFactory is not subtype of
@@ -167,7 +169,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
                     // lhsTree is a type tree at the pseudo assignment of a returned expression to declared return type.
                     result = getAnnotatedType(lhsTree);
                 } else {
-                    ErrorReporter.errorAbort(
+                    throw new BugInCF(
                             "GenericAnnotatedTypeFactory: Unexpected tree passed to getAnnotatedTypeLhs. "
                                     + "lhsTree: "
                                     + lhsTree

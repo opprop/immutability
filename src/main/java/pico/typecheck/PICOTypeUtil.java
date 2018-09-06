@@ -15,6 +15,7 @@ import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.framework.qual.ImplicitFor;
+import org.checkerframework.framework.qual.TypeKind;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
@@ -37,7 +38,6 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,13 +69,13 @@ public class PICOTypeUtil {
         assert implicitFor != null;
         assert implicitFor.types() != null;
         for (TypeKind typeKind : implicitFor.types()) {
-            if (typeKind == atm.getKind()) return true;
+            if (typeKind.name() == atm.getKind().name()) return true;
         }
         return false;
     }
 
     private static boolean isInTypeNamesOfImplicitForOfImmutable(AnnotatedTypeMirror atm) {
-        if (atm.getKind() != TypeKind.DECLARED) {
+        if (atm.getKind().name() != TypeKind.DECLARED.name()) {
             return false;
         }
         ImplicitFor implicitFor = Immutable.class.getAnnotation(ImplicitFor.class);
@@ -152,7 +152,7 @@ public class PICOTypeUtil {
             supertypecls = null;
         }
 
-        if (supertypecls != null && supertypecls.getKind() != TypeKind.NONE) {
+        if (supertypecls != null && supertypecls.getKind().name() != TypeKind.NONE.name()) {
             TypeElement supercls = (TypeElement) ((DeclaredType) supertypecls).asElement();
             boundsOfSupers.add(getBoundTypeOfTypeDeclaration(supercls, atypeFactory));
         }
