@@ -141,12 +141,8 @@ afterEvaluate {
 clean {
     delete "build",
         "testdata",
+        "testTmp",
         fileTree("testinput") {include "**/*.class"}
-}
-
-tasks.clean {
-    delete += "build"
-    delete += "testdata"
 }
 
 // Commented out because plugins section is commented out
