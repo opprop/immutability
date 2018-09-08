@@ -1,14 +1,15 @@
 package pico.inference;
 
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+
 import checkers.inference.InferenceAnnotatedTypeFactory;
 import checkers.inference.InferenceChecker;
 import checkers.inference.InferenceTreeAnnotator;
 import checkers.inference.InferrableChecker;
 import checkers.inference.SlotManager;
 import checkers.inference.VariableAnnotator;
-import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.ConstraintManager;
-import checkers.inference.model.Slot;
 import checkers.inference.util.InferenceViewpointAdapter;
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
@@ -18,6 +19,9 @@ import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.util.TreePath;
+import java.util.Collection;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.type.TypeKind;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -33,27 +37,29 @@ import org.checkerframework.javacutil.TreeUtils;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.type.TypeKind;
-
-import java.util.Collection;
-
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-
 /**
- * Propagates correct constraints on trees and types using TreeAnnotators and TypeAnnotators.
- * Add preference constraint on defaulting behaviour in typecheck mode, as the annotation can
- * be something different;
- * Replace VariableSlot that represents the annotation with ConstantSlot that is the implicit
- * type on that type. This ensures that that VariableSlot doesn't enter solver and solver doesn't
- * give solution to the VariableSlot, and there won't be annotations inserted to implicit locations.
+ * Propagates correct constraints on trees and types using TreeAnnotators and TypeAnnotators. Add
+ * preference constraint on defaulting behaviour in typecheck mode, as the annotation can be
+ * something different; Replace VariableSlot that represents the annotation with ConstantSlot that
+ * is the implicit type on that type. This ensures that that VariableSlot doesn't enter solver and
+ * solver doesn't give solution to the VariableSlot, and there won't be annotations inserted to
+ * implicit locations.
  */
 public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFactory {
-    public PICOInferenceAnnotatedTypeFactory(InferenceChecker inferenceChecker, boolean withCombineConstraints, BaseAnnotatedTypeFactory realTypeFactory, InferrableChecker realChecker, SlotManager slotManager, ConstraintManager constraintManager) {
-        super(inferenceChecker, withCombineConstraints, realTypeFactory, realChecker, slotManager, constraintManager);
+    public PICOInferenceAnnotatedTypeFactory(
+            InferenceChecker inferenceChecker,
+            boolean withCombineConstraints,
+            BaseAnnotatedTypeFactory realTypeFactory,
+            InferrableChecker realChecker,
+            SlotManager slotManager,
+            ConstraintManager constraintManager) {
+        super(
+                inferenceChecker,
+                withCombineConstraints,
+                realTypeFactory,
+                realChecker,
+                slotManager,
+                constraintManager);
         // Always call postInit() at the end of ATF constructor!
         postInit();
     }
@@ -66,9 +72,11 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     // be inserted results anyway).
     @Override
     public TreeAnnotator createTreeAnnotator() {
-        return new ListTreeAnnotator(new ImplicitsTreeAnnotator(this),
+        return new ListTreeAnnotator(
+                new ImplicitsTreeAnnotator(this),
                 new PICOInferencePropagationTreeAnnotator(this),
-                new InferenceTreeAnnotator(this, realChecker, realTypeFactory, variableAnnotator, slotManager));
+                new InferenceTreeAnnotator(
+                        this, realChecker, realTypeFactory, variableAnnotator, slotManager));
     }
 
     @Override
@@ -76,12 +84,14 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         // Reuse PICOImplicitsTypeAnnotator even in inference mode. Because the type annotator's implementation
         // are the same. The only drawback is that naming is not good(doesn't include "Inference"), thus may be
         // hard to debug
-        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICOImplicitsTypeAnnotator(this));
+        return new ListTypeAnnotator(
+                super.createTypeAnnotator(), new PICOImplicitsTypeAnnotator(this));
     }
 
     @Override
     public VariableAnnotator createVariableAnnotator() {
-        return new PICOVariableAnnotator(this, realTypeFactory, realChecker, slotManager, constraintManager);
+        return new PICOVariableAnnotator(
+                this, realTypeFactory, realChecker, slotManager, constraintManager);
     }
 
     @Override
@@ -96,7 +106,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     /**
      * Gets self type from a tree.
      *
-     * This method doesn't flush and modify "type" if "methodReceiver" is non-null, compared to
+     * <p>This method doesn't flush and modify "type" if "methodReceiver" is non-null, compared to
      * its super implementation. In inferene mode, modifying type directly is dangerous, because
      * type is singleton, so it mappes to one unique element. If the type associated is mutated,
      * other clients later on will all see this change, which is not expected behaviour.
@@ -120,7 +130,8 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
             AnnotatedTypeMirror.AnnotatedDeclaredType methodReceiver;
             if (TreeUtils.isConstructor(enclosingMethod)) {
                 methodReceiver =
-                        (AnnotatedTypeMirror.AnnotatedDeclaredType) getAnnotatedType(enclosingMethod).getReturnType();
+                        (AnnotatedTypeMirror.AnnotatedDeclaredType)
+                                getAnnotatedType(enclosingMethod).getReturnType();
             } else {
                 methodReceiver = getAnnotatedType(enclosingMethod).getReceiverType();
             }
@@ -144,7 +155,8 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
             assert type.getKind() == TypeKind.ARRAY
                     : "PropagationTreeAnnotator.visitNewArray: should be an array type";
 
-            AnnotatedTypeMirror componentType = ((AnnotatedTypeMirror.AnnotatedArrayType) type).getComponentType();
+            AnnotatedTypeMirror componentType =
+                    ((AnnotatedTypeMirror.AnnotatedArrayType) type).getComponentType();
 
             Collection<? extends AnnotationMirror> prev = null;
             if (tree.getInitializers() != null && tree.getInitializers().size() != 0) {
@@ -155,7 +167,12 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
                     // initType might be a typeVariable, so use effectiveAnnotations.
                     Collection<AnnotationMirror> annos = initType.getEffectiveAnnotations();
 
-                    prev = (prev == null) ? annos : atypeFactory.getQualifierHierarchy().leastUpperBounds(prev, annos);
+                    prev =
+                            (prev == null)
+                                    ? annos
+                                    : atypeFactory
+                                            .getQualifierHierarchy()
+                                            .leastUpperBounds(prev, annos);
                 }
             } else {
                 prev = componentType.getAnnotations();
@@ -172,7 +189,8 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
                     && context.second != null
                     && context.second instanceof AnnotatedTypeMirror.AnnotatedArrayType) {
                 AnnotatedTypeMirror contextComponentType =
-                        ((AnnotatedTypeMirror.AnnotatedArrayType) context.second).getComponentType();
+                        ((AnnotatedTypeMirror.AnnotatedArrayType) context.second)
+                                .getComponentType();
                 // Only compare the qualifiers that existed in the array type
                 // Defaulting wasn't performed yet, so prev might have fewer qualifiers than
                 // contextComponentType, which would cause a failure.
@@ -181,14 +199,21 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
                 for (AnnotationMirror am : prev) {
                     // Workaround for mutable Object array component type problem.
                     if (componentType instanceof AnnotatedDeclaredType) {
-                        if (((AnnotatedDeclaredType) componentType).getUnderlyingType().asElement().getSimpleName().contentEquals("Object")) {
+                        if (((AnnotatedDeclaredType) componentType)
+                                .getUnderlyingType()
+                                .asElement()
+                                .getSimpleName()
+                                .contentEquals("Object")) {
                             continue;
                         }
                     }
 
                     if (contextComponentType.isAnnotatedInHierarchy(am)
-                            && !atypeFactory.getQualifierHierarchy().isSubtype(
-                            am, contextComponentType.getAnnotationInHierarchy(am))) {
+                            && !atypeFactory
+                                    .getQualifierHierarchy()
+                                    .isSubtype(
+                                            am,
+                                            contextComponentType.getAnnotationInHierarchy(am))) {
                         prevIsSubtype = false;
                     }
                 }
@@ -197,8 +222,8 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
                 // It fails for array initializer expressions. Those should be handled nicer.
                 if (contextComponentType.getKind() == componentType.getKind()
                         && (prev.isEmpty()
-                        || (!contextComponentType.getAnnotations().isEmpty()
-                        && prevIsSubtype))) {
+                                || (!contextComponentType.getAnnotations().isEmpty()
+                                        && prevIsSubtype))) {
                     post = contextComponentType.getAnnotations();
                 } else {
                     // The type of the array initializers is incompatible with the
@@ -220,17 +245,22 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
             // Above is copied from super
         }
 
-        /**Add immutable to the result type of a binary operation if the result type is implicitly immutable*/
+        /**
+         * Add immutable to the result type of a binary operation if the result type is implicitly
+         * immutable
+         */
         @Override
         public Void visitBinary(BinaryTree node, AnnotatedTypeMirror type) {
-            applyImmutableIfImplicitlyImmutable(type);// Usually there isn't existing annotation on binary trees, but to be safe, run it first
+            applyImmutableIfImplicitlyImmutable(
+                    type); // Usually there isn't existing annotation on binary trees, but to be safe, run it first
             return super.visitBinary(node, type);
         }
 
-        /**Add immutable to the result type of a cast if the result type is implicitly immutable*/
+        /** Add immutable to the result type of a cast if the result type is implicitly immutable */
         @Override
         public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
-            applyImmutableIfImplicitlyImmutable(type);// Must run before calling super method to respect existing annotation
+            applyImmutableIfImplicitlyImmutable(
+                    type); // Must run before calling super method to respect existing annotation
             if (type.isAnnotatedInHierarchy(READONLY)) {
                 // VarAnnot is guarenteed to not exist on type, because PropagationTreeAnnotator has the highest previledge
                 // So VarAnnot hasn't been inserted to cast type yet.
@@ -239,8 +269,11 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
             return super.visitTypeCast(node, type);
         }
 
-        /**Because TreeAnnotator runs before ImplicitsTypeAnnotator, implicitly immutable types are not guaranteed
-         to always have immutable annotation. If this happens, we manually add immutable to type. */
+        /**
+         * Because TreeAnnotator runs before ImplicitsTypeAnnotator, implicitly immutable types are
+         * not guaranteed to always have immutable annotation. If this happens, we manually add
+         * immutable to type.
+         */
         private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
             if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
                 PICOTypeUtil.applyConstant(type, IMMUTABLE);

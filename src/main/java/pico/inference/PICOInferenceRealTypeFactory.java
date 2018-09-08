@@ -1,9 +1,22 @@
 package pico.inference;
 
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+
 import com.sun.source.tree.Tree;
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
+import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
@@ -12,13 +25,12 @@ import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.TreeUtils;
+import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOTreeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOTypeAnnotator;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 import pico.typecheck.PICOViewpointAdapter;
 import qual.Bottom;
@@ -27,27 +39,13 @@ import qual.Mutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
 
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-
 /**
  * PICOInferenceRealTypeFactory exists because: 1)PICOAnnotatedTypeFactory is not subtype of
- * BaseAnnotatedTypeFactory. 2) In inference side, PICO only supports reduced version of
- * mutability qualifiers. 3) In inference side, PICO doesn't need to care initialization hierarchy.
- * We have all the logic that are in PICOAnnotatedTypeFactory except those that belong
- * to InitializationAnnotatedTypeFactory as if there is only one mutability qualifier hierarchy.
- * This class has lots of copied code from PICOAnnotatedTypeFactory. The two should be in sync.
+ * BaseAnnotatedTypeFactory. 2) In inference side, PICO only supports reduced version of mutability
+ * qualifiers. 3) In inference side, PICO doesn't need to care initialization hierarchy. We have all
+ * the logic that are in PICOAnnotatedTypeFactory except those that belong to
+ * InitializationAnnotatedTypeFactory as if there is only one mutability qualifier hierarchy. This
+ * class has lots of copied code from PICOAnnotatedTypeFactory. The two should be in sync.
  */
 public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
 
@@ -57,7 +55,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         postInit();
     }
 
-    /**Only support mutability qualifier hierarchy*/
+    /** Only support mutability qualifier hierarchy */
     @Override
     protected Set<Class<? extends Annotation>> createSupportedTypeQualifiers() {
         return new LinkedHashSet<Class<? extends Annotation>>(
@@ -75,7 +73,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         return new PICOViewpointAdapter(this);
     }
 
-    /**Annotators are executed by the added order. Same for Type Annotator*/
+    /** Annotators are executed by the added order. Same for Type Annotator */
     @Override
     protected TreeAnnotator createTreeAnnotator() {
         return new ListTreeAnnotator(
@@ -109,15 +107,17 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         return new ListTypeAnnotator(typeAnnotators);
     }
 
-    /** TODO If the dataflow refines the type as bottom, should we allow such a refinement? If we allow it,
-     PICOValidator will give an error if it begins to enforce @Bottom is not used*/
-/*    @Override
+    /**
+     * TODO If the dataflow refines the type as bottom, should we allow such a refinement? If we
+     * allow it, PICOValidator will give an error if it begins to enforce @Bottom is not used
+     */
+    /*    @Override
     protected void applyInferredAnnotations(AnnotatedTypeMirror type, PICOValue as) {
         super.applyInferredAnnotations(type, as);
         // What to do if refined type is bottom?
     }*/
 
-    /**Forbid applying top annotations to type variables if they are used on local variables*/
+    /** Forbid applying top annotations to type variables if they are used on local variables */
     @Override
     public boolean getShouldDefaultTypeVarLocals() {
         return false;
@@ -125,7 +125,8 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
 
     // Copied from PICOAnnotatedTypeFactory
     @Override
-    protected void annotateInheritedFromClass(AnnotatedTypeMirror type, Set<AnnotationMirror> fromClass) {
+    protected void annotateInheritedFromClass(
+            AnnotatedTypeMirror type, Set<AnnotationMirror> fromClass) {
         // If interitted from class element is @Mutable or @Immutable, then apply this annotation to the usage type
         if (fromClass.contains(MUTABLE) || fromClass.contains(IMMUTABLE)) {
             super.annotateInheritedFromClass(type, fromClass);
@@ -135,7 +136,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         // (default qualifier in hierarchy to be applied to the usage type). This is to avoid having @ReceiverDependantMutable
         // on type usages as a default behaviour. By default, @Mutable is better used as the type for usages that
         // don't have explicit annotation.
-        return;// Don't add annotations from class element
+        return; // Don't add annotations from class element
     }
 
     @Override
@@ -146,7 +147,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         super.addComputedTypeAnnotations(elt, type);
     }
 
-    /**This method gets lhs WITH flow sensitive refinement*/
+    /** This method gets lhs WITH flow sensitive refinement */
     // TODO This method is completely copied from PICOAnnotatedTypeFactory
     @Override
     public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
