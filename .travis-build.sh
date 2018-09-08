@@ -53,4 +53,4 @@ fi
 (cd $JSR308/checker-framework-inference && gradle dist) # This step needs to be manually in $CFI executed due to path problems
 
 # Build PICO
-(cd $JSR308/immutability && gradle build)
+(cd $JSR308/immutability && ./gradlew build)
