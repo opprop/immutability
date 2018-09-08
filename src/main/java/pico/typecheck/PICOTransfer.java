@@ -3,7 +3,6 @@ package pico.typecheck;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.VariableTree;
-import javax.lang.model.element.VariableElement;
 import org.checkerframework.checker.initialization.InitializationTransfer;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
@@ -13,20 +12,21 @@ import org.checkerframework.dataflow.cfg.node.NullLiteralNode;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.javacutil.TreeUtils;
 
-/** Created by mier on 15/08/17. */
-public class PICOTransfer extends InitializationTransfer<PICOValue, PICOTransfer, PICOStore> {
+import javax.lang.model.element.VariableElement;
+
+/**
+ * Created by mier on 15/08/17.
+ */
+public class PICOTransfer extends InitializationTransfer<PICOValue, PICOTransfer, PICOStore>{
 
     public PICOTransfer(PICOAnalysis analysis) {
         super(analysis);
     }
 
     @Override
-    public TransferResult<PICOValue, PICOStore> visitAssignment(
-            AssignmentNode n, TransferInput<PICOValue, PICOStore> in) {
-        if (n.getExpression() instanceof NullLiteralNode
-                && n.getTarget().getTree() instanceof VariableTree) {
-            VariableElement varElement =
-                    TreeUtils.elementFromDeclaration((VariableTree) n.getTarget().getTree());
+    public TransferResult<PICOValue, PICOStore> visitAssignment(AssignmentNode n, TransferInput<PICOValue, PICOStore> in) {
+        if (n.getExpression() instanceof NullLiteralNode && n.getTarget().getTree() instanceof VariableTree) {
+            VariableElement varElement = TreeUtils.elementFromDeclaration((VariableTree) n.getTarget().getTree());
             // Below is for removing false positive warning of bottom illegal write cacused by refining field to @Bottom if
             // field initializer is null.
             // Forbid refinement from null literal in initializer to fields variable tree(identifier tree not affected, e.g.
@@ -43,11 +43,7 @@ public class PICOTransfer extends InitializationTransfer<PICOValue, PICOTransfer
     }
 
     @Override
-    protected void addFieldValues(
-            PICOStore info,
-            AnnotatedTypeFactory factory,
-            ClassTree classTree,
-            MethodTree methodTree) {
+    protected void addFieldValues(PICOStore info, AnnotatedTypeFactory factory, ClassTree classTree, MethodTree methodTree) {
         return;
     }
 }

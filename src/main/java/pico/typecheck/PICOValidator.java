@@ -1,13 +1,8 @@
 package pico.typecheck;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
-
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.VariableTree;
-import javax.lang.model.element.VariableElement;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
@@ -17,17 +12,21 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
+import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import javax.lang.model.element.VariableElement;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
 /**
- * Created by mier on 29/09/17. Enforce correct usage of immutability and assignability qualifiers.
+ * Created by mier on 29/09/17.
+ * Enforce correct usage of immutability and assignability qualifiers.
  * TODO @PolyMutable is only used on constructor/method parameters or method return
  */
 public class PICOValidator extends BaseTypeValidator {
-    public PICOValidator(
-            BaseTypeChecker checker,
-            BaseTypeVisitor<?> visitor,
-            AnnotatedTypeFactory atypeFactory) {
+    public PICOValidator(BaseTypeChecker checker, BaseTypeVisitor<?> visitor, AnnotatedTypeFactory atypeFactory) {
         super(checker, visitor, atypeFactory);
     }
 
@@ -54,38 +53,26 @@ public class PICOValidator extends BaseTypeValidator {
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
         if (PICOTypeUtil.inStaticScope(visitor.getCurrentPath())
-                && !""
-                        .contentEquals(
-                                TreeUtils.enclosingClass(visitor.getCurrentPath())
-                                        .getSimpleName()) // Exclude @RDM usages in anonymous classes
+                && !"".contentEquals(TreeUtils.enclosingClass(visitor.getCurrentPath()).getSimpleName())// Exclude @RDM usages in anonymous classes
                 && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
             reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
         }
     }
 
-    /**
-     * Check that implicitly immutable type has immutable or bottom type. Dataflow might refine
-     * immtable type to @Bottom, so we accept @Bottom as a valid qualifier for implicitly immutable
-     * types
-     */
+    /**Check that implicitly immutable type has immutable or bottom type. Dataflow might refine immtable type to @Bottom,
+     * so we accept @Bottom as a valid qualifier for implicitly immutable types*/
     private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
-        if (PICOTypeUtil.isImplicitlyImmutableType(type)
-                && !type.hasAnnotation(IMMUTABLE)
-                && !type.hasAnnotation(BOTTOM)) {
+        if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(IMMUTABLE) && !type.hasAnnotation(BOTTOM)) {
             reportInvalidAnnotationsOnUse(type, tree);
         }
     }
 
-    /**
-     * Ensures the well-formdness in terms of assignability on a field. This covers both instance
-     * fields and static fields.
-     */
+    /**Ensures the well-formdness in terms of assignability on a field. This covers both instance fields and static fields.*/
     private void checkOnlyOneAssignabilityModifierOnField(Tree tree) {
         if (tree.getKind() == Kind.VARIABLE) {
             VariableTree variableTree = (VariableTree) tree;
             VariableElement variableElement = TreeUtils.elementFromDeclaration(variableTree);
-            if (!PICOTypeUtil.hasOneAndOnlyOneAssignabilityQualifier(
-                    variableElement, atypeFactory)) {
+            if (!PICOTypeUtil.hasOneAndOnlyOneAssignabilityQualifier(variableElement, atypeFactory)) {
                 reportFieldMultipleAssignabilityModifiersError(variableElement);
             }
         }

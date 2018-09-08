@@ -1,14 +1,15 @@
 package pico.inference;
 
 import checkers.inference.util.InferenceViewpointAdapter;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.type.TypeKind;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import pico.typecheck.PICOTypeUtil;
 
-public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter {
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.type.TypeKind;
+
+public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter{
 
     public PICOInferenceViewpointAdapter(AnnotatedTypeFactory atypeFactory) {
         super(atypeFactory);
@@ -23,8 +24,7 @@ public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter {
     }
 
     @Override
-    protected AnnotatedTypeMirror combineAnnotationWithType(
-            AnnotationMirror receiverAnnotation, AnnotatedTypeMirror declared) {
+    protected AnnotatedTypeMirror combineAnnotationWithType(AnnotationMirror receiverAnnotation, AnnotatedTypeMirror declared) {
         if (PICOTypeUtil.isImplicitlyImmutableType(declared)) {
             return declared;
         }

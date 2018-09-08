@@ -11,7 +11,9 @@ import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.source.SupportedOptions;
 import pico.typecheck.PICOAnnotationMirrorHolder;
 
-/** Main entry class */
+/**
+ * Main entry class
+ */
 @SupportedOptions({"upcast", "anycast", "comparablecast", "optimalSolution"})
 public class PICOInferenceChecker extends BaseInferrableChecker {
 
@@ -27,24 +29,12 @@ public class PICOInferenceChecker extends BaseInferrableChecker {
     }
 
     @Override
-    public InferenceAnnotatedTypeFactory createInferenceATF(
-            InferenceChecker inferenceChecker,
-            InferrableChecker realChecker,
-            BaseAnnotatedTypeFactory realTypeFactory,
-            SlotManager slotManager,
-            ConstraintManager constraintManager) {
-        return new PICOInferenceAnnotatedTypeFactory(
-                inferenceChecker,
-                realChecker.withCombineConstraints(),
-                realTypeFactory,
-                realChecker,
-                slotManager,
-                constraintManager);
+    public InferenceAnnotatedTypeFactory createInferenceATF(InferenceChecker inferenceChecker, InferrableChecker realChecker, BaseAnnotatedTypeFactory realTypeFactory, SlotManager slotManager, ConstraintManager constraintManager) {
+        return new PICOInferenceAnnotatedTypeFactory(inferenceChecker, realChecker.withCombineConstraints(), realTypeFactory, realChecker, slotManager, constraintManager);
     }
 
     @Override
-    public InferenceVisitor<?, ?> createVisitor(
-            InferenceChecker ichecker, BaseAnnotatedTypeFactory factory, boolean infer) {
+    public InferenceVisitor<?, ?> createVisitor(InferenceChecker ichecker, BaseAnnotatedTypeFactory factory, boolean infer) {
         return new PICOInferenceVisitor(this, ichecker, factory, infer);
     }
 
