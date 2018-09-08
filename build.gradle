@@ -113,15 +113,6 @@ afterEvaluate {
             showStandardStreams true
         }
 
-        // remove the generated .smt files
-        afterTest {
-            ant.delete() {
-                fileset(dir: ".") {
-                    include(name: "*.smt")
-                }
-            }
-        }
-
         // After each test, print a summary.
         afterSuite { desc, result ->
             if (desc.getClassName() != null) {
