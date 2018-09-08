@@ -13,7 +13,7 @@ ext {
     jsr308 = file(new File("..")).absolutePath
     cfPath = "${jsr308}/checker-framework"
     cfiPath = "${jsr308}/checker-framework-inference"
-    jsr308langtoolsPath = "${jsr308}/jsr308-langtools"
+    // jsr308langtoolsPath = "${jsr308}/jsr308-langtools"
     afu = "${jsr308}/annotation-tools/annotation-file-utilities"
     picoPath = "${jsr308}/immutability"
 }
@@ -78,7 +78,7 @@ compileJava {
 
 afterEvaluate {
     // Create a task for each JUnit test class whose name is the same as the JUnit class name.
-    sourceSets.test.allJava.filter { it.path.contains("${picoPath}/tests") }.forEach { file ->
+    sourceSets.test.allJava.filter { it.path.contains("${picoPath}/src/test/java") }.forEach { file ->
         String junitClassName = file.name.replaceAll(".java", "")
         String testName = junitClassName.replaceAll("Test", "")
         tasks.create(name: "${junitClassName}", type: Test) {
@@ -132,7 +132,7 @@ afterEvaluate {
 clean {
     delete "build",
         "testdata",
-        "testTmp",
+        "annotated",
         fileTree("testinput") {include "**/*.class"}
 }
 
@@ -147,10 +147,12 @@ tasks.googleJavaFormat {
     description = "Reformat Java source code with Google-Java-format"
     exclude 'testinput'
     exclude 'testdata'
+    exclude 'annotated'
 }
 tasks.verifyGoogleJavaFormat {
     group 'Formatting'
     description = "Check Java source code is in Google-Java-format"
     exclude 'testinput'
     exclude 'testdata'
+    exclude 'annotated'
 }

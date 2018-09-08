@@ -21,7 +21,7 @@ public class ImmutabilityInferenceTest extends CFInferenceTest {
                 "-Anomsgtext",
                 "-Astubs=src/main/java/pico/typecheck/jdk.astub",
                 "-d",
-                "testTmp/inference/inferrable");
+                "testdata/inference/inferrable");
     }
 
     @Override
