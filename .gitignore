@@ -8,8 +8,6 @@
 /dist/
 
 # Eclipse
-.classpath
-.project
 .settings/
 
 # Intellij

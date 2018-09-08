@@ -133,6 +133,7 @@ clean {
     delete "build",
         "testdata",
         "annotated",
+        "default.jaif",
         fileTree("testinput") {include "**/*.class"}
 }
 
