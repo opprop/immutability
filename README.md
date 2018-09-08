@@ -1,5 +1,5 @@
 # Practical Immutability For Classes And Objects(PICO)
-[![build-status](https://travis-ci.com/topnessman/immutability.svg?token=dCZffAkpqvi1mn4e7arA&branch=master)](https://travis-ci.com/topnessman/immutability)
+[![build-status](https://travis-ci.com/jyluo/immutability.svg?token=bHsdsHzQizq3ynF5gztK&branch=master)](https://travis-ci.com/jyluo/immutability)
 
 
 PICO is a type system that supports class level and object level immutability based on Checker Framework.
