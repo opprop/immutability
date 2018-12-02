@@ -1,5 +1,43 @@
 package pico.typecheck;
 
+import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
+import static pico.typecheck.PICOAnnotationMirrorHolder.COMMITED;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+
+import org.checkerframework.checker.initialization.InitializationVisitor;
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.common.basetype.TypeValidator;
+import org.checkerframework.framework.source.Result;
+import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedMethodType;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.Pair;
+import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypesUtils;
+
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
@@ -13,42 +51,6 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
-import org.checkerframework.checker.initialization.InitializationVisitor;
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.common.basetype.TypeValidator;
-import org.checkerframework.framework.source.Result;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
-import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.ErrorReporter;
-import org.checkerframework.javacutil.Pair;
-import org.checkerframework.javacutil.TreeUtils;
-import org.checkerframework.javacutil.TypesUtils;
-import pico.inference.PICOInferenceAnnotatedTypeFactory;
-
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
-import static pico.typecheck.PICOAnnotationMirrorHolder.COMMITED;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
 /**
  * Created by mier on 20/06/17.
@@ -340,7 +342,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
             checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
         } else {
-            ErrorReporter.errorAbort("Unknown assignment variable at: ", node);
+            throw new BugInCF("Unknown assignment variable at: ", node);
         }
     }
 
@@ -380,9 +382,9 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         super.visitMethodInvocation(node, p);
-        Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> mfuPair =
+        ParameterizedMethodType mfuPair =
                 atypeFactory.methodFromUse(node);
-        AnnotatedExecutableType invokedMethod = mfuPair.first;
+        AnnotatedExecutableType invokedMethod = mfuPair.methodType;
         ExecutableElement invokedMethodElement = invokedMethod.getElement();
         // Only check invocability if it's super call, as non-super call is already checked
         // by super implementation(of course in both cases, invocability is not checked when

@@ -1,17 +1,27 @@
 package pico.typecheck;
 
-import com.sun.source.tree.BinaryTree;
-import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.IdentifierTree;
-import com.sun.source.tree.MemberSelectTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.NewArrayTree;
-import com.sun.source.tree.ParameterizedTypeTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.TypeCastTree;
-import com.sun.source.tree.UnaryTree;
-import com.sun.source.tree.VariableTree;
+import static pico.typecheck.PICOAnnotationMirrorHolder.COMMITED;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+import static pico.typecheck.PICOAnnotationMirrorHolder.SUBSTITUTABLE_POLY_MUTABLE;
+
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
+
 import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.qual.FBCBottom;
 import org.checkerframework.checker.initialization.qual.Initialized;
@@ -34,11 +44,24 @@ import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
-import org.checkerframework.framework.type.AbstractViewpointAdapter;
+import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
+
+import com.sun.source.tree.BinaryTree;
+import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.MemberSelectTree;
+import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.NewArrayTree;
+import com.sun.source.tree.ParameterizedTypeTree;
+import com.sun.source.tree.Tree;
+import com.sun.source.tree.TypeCastTree;
+import com.sun.source.tree.UnaryTree;
+import com.sun.source.tree.VariableTree;
+
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
@@ -46,27 +69,6 @@ import qual.PolyMutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
 import qual.SubstitutablePolyMutable;
-
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeKind;
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
-import static pico.typecheck.PICOAnnotationMirrorHolder.COMMITED;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-import static pico.typecheck.PICOAnnotationMirrorHolder.SUBSTITUTABLE_POLY_MUTABLE;
 
 /**
  * AnnotatedTypeFactory for PICO. In addition to getting atms, it also propagates and applies mutability
@@ -222,7 +224,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                     // lhsTree is a type tree at the pseudo assignment of a returned expression to declared return type.
                     result = getAnnotatedType(lhsTree);
                 } else {
-                    ErrorReporter.errorAbort(
+                    throw new BugInCF(
                             "GenericAnnotatedTypeFactory: Unexpected tree passed to getAnnotatedTypeLhs. "
                                     + "lhsTree: "
                                     + lhsTree
@@ -238,11 +240,11 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     /**Handles invoking static methods with polymutable on its declaration*/
     @Override
-    public Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
-        Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> pair = super.methodFromUse(tree, methodElt, receiverType);
+    public ParameterizedMethodType methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
+        ParameterizedMethodType pair = super.methodFromUse(tree, methodElt, receiverType);
         // We want to replace polymutable with substitutablepolymutable when we invoke static methods
         if (ElementUtils.isStatic(methodElt)) {
-            AnnotatedExecutableType methodType = pair.first;
+            AnnotatedExecutableType methodType = pair.methodType;
             AnnotatedTypeMirror returnType = methodType.getReturnType();
             if (returnType.hasAnnotation(POLY_MUTABLE)) {
                 // Only substitute polymutable but not other qualifiers! Missing the if statement

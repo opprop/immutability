@@ -1,16 +1,39 @@
 package pico.inference;
 
-import checkers.inference.InferenceChecker;
-import checkers.inference.InferenceMain;
-import checkers.inference.InferenceValidator;
-import checkers.inference.InferenceVisitor;
-import checkers.inference.SlotManager;
-import checkers.inference.model.ConstantSlot;
-import checkers.inference.model.ConstraintManager;
-import checkers.inference.model.EqualityConstraint;
-import checkers.inference.model.InequalityConstraint;
-import checkers.inference.model.Slot;
-import checkers.inference.model.SubtypeConstraint;
+import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
+import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
+
+import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
+import org.checkerframework.framework.source.Result;
+import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedMethodType;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.Pair;
+import org.checkerframework.javacutil.TreeUtils;
+
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
@@ -27,38 +50,20 @@ import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
-import org.checkerframework.framework.source.Result;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
-import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.ErrorReporter;
-import org.checkerframework.javacutil.Pair;
-import org.checkerframework.javacutil.TreeUtils;
+
+import checkers.inference.InferenceChecker;
+import checkers.inference.InferenceMain;
+import checkers.inference.InferenceValidator;
+import checkers.inference.InferenceVisitor;
+import checkers.inference.SlotManager;
+import checkers.inference.model.ConstantSlot;
+import checkers.inference.model.Constraint;
+import checkers.inference.model.ConstraintManager;
+import checkers.inference.model.EqualityConstraint;
+import checkers.inference.model.InequalityConstraint;
+import checkers.inference.model.Slot;
+import checkers.inference.model.SubtypeConstraint;
 import pico.typecheck.PICOTypeUtil;
-
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeKind;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
 /**
  * Generate constraints based on the PICO constraint-based type rules in infer mode. Has typecheck
@@ -112,15 +117,15 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         Slot immutable = slotManager.getSlot(IMMUTABLE);
         Slot rdm = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
         // declType == @Mutable -> useType != @Immutable
-        EqualityConstraint isMutable = constraintManager.createEqualityConstraint(declSlot, mutable);
-        InequalityConstraint notImmutable = constraintManager.createInequalityConstraint(useSlot, immutable);
+        Constraint isMutable = constraintManager.createEqualityConstraint(declSlot, mutable);
+        Constraint notImmutable = constraintManager.createInequalityConstraint(useSlot, immutable);
         constraintManager.addImplicationConstraint(Arrays.asList(isMutable), notImmutable);
         // declType == @Mutable -> useType != @ReceiverDependantMutable
-        InequalityConstraint notRDM = constraintManager.createInequalityConstraint(useSlot, rdm);
+        Constraint notRDM = constraintManager.createInequalityConstraint(useSlot, rdm);
         constraintManager.addImplicationConstraint(Arrays.asList(isMutable), notRDM);
         // declType == @Immutable -> useType != @Mutable
-        EqualityConstraint isImmutable = constraintManager.createEqualityConstraint(declSlot, immutable);
-        InequalityConstraint notMutable = constraintManager.createInequalityConstraint(useSlot, mutable);
+        Constraint isImmutable = constraintManager.createEqualityConstraint(declSlot, immutable);
+        Constraint notMutable = constraintManager.createInequalityConstraint(useSlot, mutable);
         constraintManager.addImplicationConstraint(Arrays.asList(isImmutable), notMutable);
         // declType == @Immutable -> useType != @ReceiverDependantMutable
         constraintManager.addImplicationConstraint(Arrays.asList(isImmutable), notRDM);
@@ -241,8 +246,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 Slot boundSlot = slotManager.getVariableSlot(bound);
                 Slot consRetSlot = slotManager.getVariableSlot(constructorReturnType);
                 Slot rdmSlot = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
-                InequalityConstraint inequalityConstraint = constraintManager.createInequalityConstraint(boundSlot, rdmSlot);
-                SubtypeConstraint subtypeConstraint = constraintManager.createSubtypeConstraint(consRetSlot, boundSlot);
+                Constraint inequalityConstraint = constraintManager.createInequalityConstraint(boundSlot, rdmSlot);
+                Constraint subtypeConstraint = constraintManager.createSubtypeConstraint(consRetSlot, boundSlot);
                 // bound != @ReceiverDependantMutable -> consRet <: bound
                 constraintManager.addImplicationConstraint(Arrays.asList(inequalityConstraint), subtypeConstraint);
             } else {
@@ -483,8 +488,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 Slot fieldSlot = slotManager.getVariableSlot(fieldType);
                 Slot readonly = slotManager.getSlot(READONLY);
                 Slot receiver_dependant_mutable = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
-                EqualityConstraint receiverReadOnly = constraintManager.createEqualityConstraint(receiverSlot, readonly);
-                InequalityConstraint fieldNotRDM = constraintManager.createInequalityConstraint(fieldSlot, receiver_dependant_mutable);
+                Constraint receiverReadOnly = constraintManager.createEqualityConstraint(receiverSlot, readonly);
+                Constraint fieldNotRDM = constraintManager.createInequalityConstraint(fieldSlot, receiver_dependant_mutable);
                 constraintManager.addImplicationConstraint(Arrays.asList(receiverReadOnly), fieldNotRDM);
             } else {
                 if (receiverType.hasAnnotation(READONLY) && fieldType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
@@ -524,7 +529,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
             checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
         } else {
-            ErrorReporter.errorAbort("Unknown assignment variable at: ", node);
+            throw new BugInCF("Unknown assignment variable at: ", node);
         }
     }
 
@@ -615,9 +620,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         super.visitMethodInvocation(node, p);
-        Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> mfuPair =
+        ParameterizedMethodType mfuPair =
                 atypeFactory.methodFromUse(node);
-        AnnotatedExecutableType invokedMethod = mfuPair.first;
+        AnnotatedExecutableType invokedMethod = mfuPair.methodType;
         ExecutableElement invokedMethodElement = invokedMethod.getElement();
         // Only check invocability if it's super call, as non-super call is already checked
         // by super implementation(of course in both cases, invocability is not checked when
@@ -783,8 +788,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         Slot mutable = slotManager.getSlot(MUTABLE);
         Slot immutable = slotManager.getSlot(IMMUTABLE);
         // declType == @Mutable -> useType == @Mutable
-        EqualityConstraint equalityConstraintLHS = constraintManager.createEqualityConstraint(declSlot, mutable);
-        EqualityConstraint equalityConstraintRHS = constraintManager.createEqualityConstraint(useSlot, mutable);
+        Constraint equalityConstraintLHS = constraintManager.createEqualityConstraint(declSlot, mutable);
+        Constraint equalityConstraintRHS = constraintManager.createEqualityConstraint(useSlot, mutable);
         constraintManager.addImplicationConstraint(Arrays.asList(equalityConstraintLHS), equalityConstraintRHS);
         // declType == @Immutable -> useType == @Immutable
         equalityConstraintLHS = constraintManager.createEqualityConstraint(declSlot, immutable);

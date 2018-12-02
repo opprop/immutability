@@ -4,7 +4,7 @@ import org.checkerframework.framework.qual.ImplicitFor;
 import org.checkerframework.framework.qual.LiteralKind;
 import org.checkerframework.framework.qual.SubtypeOf;
 
-import javax.lang.model.type.TypeKind;
+import org.checkerframework.framework.qual.TypeKind;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

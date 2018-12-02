@@ -13,7 +13,6 @@ ext {
     jsr308 = file(new File("..")).absolutePath
     cfPath = "${jsr308}/checker-framework"
     cfiPath = "${jsr308}/checker-framework-inference"
-    // jsr308langtoolsPath = "${jsr308}/jsr308-langtools"
     afu = "${jsr308}/annotation-tools/annotation-file-utilities"
     picoPath = "${jsr308}/immutability"
 }
