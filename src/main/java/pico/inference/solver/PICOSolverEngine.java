@@ -27,7 +27,7 @@ public class PICOSolverEngine extends SolverEngine {
     @Override
     public InferenceResult solve(Map<String, String> configuration, Collection<Slot> slots, Collection<Constraint> constraints, QualifierHierarchy qualHierarchy, ProcessingEnvironment processingEnvironment) {
         InferenceResult result= super.solve(configuration, slots, constraints, qualHierarchy, processingEnvironment);
-        if (collectStatistic && result.hasSolution()) {
+        if (collectStatistics && result.hasSolution()) {
             writeInferenceResult("pico-inference-result.txt", ((BaseInferenceResult)result).inferredResults);
         }
         return result;
