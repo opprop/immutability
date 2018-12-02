@@ -5,7 +5,7 @@
 	<classpathentry kind="src" path="/checker"/>
 	<classpathentry kind="src" path="/checker-framework-inference"/>
 	<classpathentry kind="lib" path="lib/org.ow2.sat4j.core-2.3.4.jar"/>
-    <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="build/classes/java"/>
 </classpath>
