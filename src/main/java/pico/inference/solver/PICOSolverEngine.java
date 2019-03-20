@@ -1,6 +1,6 @@
 package pico.inference.solver;
 
-import checkers.inference.BaseInferenceResult;
+import checkers.inference.DefaultInferenceResult;
 import checkers.inference.InferenceResult;
 import checkers.inference.model.Constraint;
 import checkers.inference.model.Slot;
@@ -28,7 +28,7 @@ public class PICOSolverEngine extends SolverEngine {
     public InferenceResult solve(Map<String, String> configuration, Collection<Slot> slots, Collection<Constraint> constraints, QualifierHierarchy qualHierarchy, ProcessingEnvironment processingEnvironment) {
         InferenceResult result= super.solve(configuration, slots, constraints, qualHierarchy, processingEnvironment);
         if (collectStatistics && result.hasSolution()) {
-            writeInferenceResult("pico-inference-result.txt", ((BaseInferenceResult)result).inferredResults);
+            writeInferenceResult("pico-inference-result.txt", ((DefaultInferenceResult)result).varIdToAnnotation);
         }
         return result;
     }

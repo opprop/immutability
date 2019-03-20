@@ -69,7 +69,7 @@ public class PICOVariableAnnotator extends VariableAnnotator {
 
         // Insert @Immutable VarAnnot directly to enum bound
         if (PICOTypeUtil.isEnumOrEnumConstant(bound)) {
-            boundSlot = createConstant(IMMUTABLE);
+            boundSlot = slotManager.createConstantSlot(IMMUTABLE);
             classType.addAnnotation(slotManager.getAnnotation(boundSlot));
             classDeclAnnos.put(classElement, boundSlot);
             return;
@@ -80,7 +80,7 @@ public class PICOVariableAnnotator extends VariableAnnotator {
             // Have source tree
             if (bound.isAnnotatedInHierarchy(READONLY)) {
                 // Have bound annotation -> convert to equivalent ConstantSlot
-                boundSlot = createConstant(bound.getAnnotationInHierarchy(READONLY));
+                boundSlot = slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
             } else {
                 // No existing annotation -> create new VariableSlot
                 boundSlot = createVariable(treeToLocation(classTree));
@@ -89,15 +89,15 @@ public class PICOVariableAnnotator extends VariableAnnotator {
             // No source tree: bytecode classes
             if (bound.isAnnotatedInHierarchy(READONLY)) {
                 // Have bound annotation in stub file
-                boundSlot = createConstant(bound.getAnnotationInHierarchy(READONLY));
+                boundSlot = slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
             } else {
                 // No stub file
                 if (PICOTypeUtil.isImplicitlyImmutableType(classType)) {
                     // Implicitly immutable
-                    boundSlot = createConstant(IMMUTABLE);
+                    boundSlot = slotManager.createConstantSlot(IMMUTABLE);
                 } else {
                     // None of the above applies: use conservative @Mutable
-                    boundSlot = createConstant(MUTABLE);
+                    boundSlot = slotManager.createConstantSlot(MUTABLE);
                 }
             }
         }
