@@ -23,7 +23,7 @@ import javax.lang.model.type.TypeKind;
 
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.source.Result;
-import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedMethodType;
+import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
@@ -167,14 +167,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     // TODO This might not be correct for infer mode. Maybe returning as it is
     @Override
     public boolean validateType(Tree tree, AnnotatedTypeMirror type) {
-        // basic consistency checks
-        if (!AnnotatedTypes.isValidType(atypeFactory.getQualifierHierarchy(), type)) {
-            if (!infer) {
-                checker.report(
-                        Result.failure("type.invalid", type.getAnnotations(), type.toString()), tree);
-                return false;
-            }
-        }
 
         if (!typeValidator.isValid(type, tree)) {
             if (!infer) {
@@ -622,9 +614,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         super.visitMethodInvocation(node, p);
-        ParameterizedMethodType mfuPair =
+        ParameterizedExecutableType mfuPair =
                 atypeFactory.methodFromUse(node);
-        AnnotatedExecutableType invokedMethod = mfuPair.methodType;
+        AnnotatedExecutableType invokedMethod = mfuPair.executableType;
         ExecutableElement invokedMethodElement = invokedMethod.getElement();
         // Only check invocability if it's super call, as non-super call is already checked
         // by super implementation(of course in both cases, invocability is not checked when
@@ -818,8 +810,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (!validateType(varTree, var)) {
             return;
         }
-
-        checkAssignability(var, varTree);
 
         if (varTree instanceof VariableTree) {
             VariableElement element = TreeUtils.elementFromDeclaration((VariableTree) varTree);

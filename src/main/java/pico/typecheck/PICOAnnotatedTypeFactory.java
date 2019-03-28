@@ -84,7 +84,9 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     public PICOAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker, true);
         postInit();
-        addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
+        if (READONLY != null) {
+        	addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
+        }
     }
 
     @Override
@@ -240,11 +242,11 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     /**Handles invoking static methods with polymutable on its declaration*/
     @Override
-    public ParameterizedMethodType methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
-        ParameterizedMethodType pair = super.methodFromUse(tree, methodElt, receiverType);
+    public ParameterizedExecutableType methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
+        ParameterizedExecutableType pair = super.methodFromUse(tree, methodElt, receiverType);
         // We want to replace polymutable with substitutablepolymutable when we invoke static methods
         if (ElementUtils.isStatic(methodElt)) {
-            AnnotatedExecutableType methodType = pair.methodType;
+            AnnotatedExecutableType methodType = pair.executableType;
             AnnotatedTypeMirror returnType = methodType.getReturnType();
             if (returnType.hasAnnotation(POLY_MUTABLE)) {
                 // Only substitute polymutable but not other qualifiers! Missing the if statement
