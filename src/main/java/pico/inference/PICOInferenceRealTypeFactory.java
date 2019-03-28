@@ -55,7 +55,9 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
 
     public PICOInferenceRealTypeFactory(BaseTypeChecker checker, boolean useFlow) {
         super(checker, useFlow);
-        addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
+        if (READONLY != null) {
+            addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
+        }
         postInit();
     }
 
