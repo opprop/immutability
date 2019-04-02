@@ -393,54 +393,6 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         return null;
     }
 
-    // TODO Find a better way to inject saveFbcViolatedMethods instead of copying lots of code from super method
-    @Override
-    protected void checkMethodInvocability(AnnotatedExecutableType method, MethodInvocationTree node) {
-        // Check subclass constructor calls the correct super class constructor: mutable calls mutable; immutable
-        // calls immutable; any calls receiverdependantmutable
-        if (method.getElement().getKind() == ElementKind.CONSTRUCTOR) {
-            AnnotatedTypeMirror subClassConstructorReturnType = atypeFactory.getReceiverType(node);
-            AnnotatedTypeMirror superClassConstructorReturnType = method.getReturnType();
-            // superClassConstructorReturnType is already the result of viewpoint adaptation, so subClassConstructorReturnType <:
-            // superClassConstructorReturnType is enough to determine the super constructor invocation is valid or not
-            if (!atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType, READONLY)) {
-                checker.report(
-                        Result.failure(
-                                "super.constructor.invocation.incompatible", subClassConstructorReturnType, superClassConstructorReturnType), node);
-            }
-            return;
-        }
-
-        /*Copied Code Starts*/
-        if (method.getReceiverType() == null) {
-            // Static methods don't have a receiver.
-            return;
-        }
-
-        AnnotatedTypeMirror methodReceiver = method.getReceiverType().getErased();
-        AnnotatedTypeMirror treeReceiver = methodReceiver.shallowCopy(false);
-        AnnotatedTypeMirror rcv = atypeFactory.getReceiverType(node);
-
-        treeReceiver.addAnnotations(rcv.getEffectiveAnnotations());
-
-        if (!skipReceiverSubtypeCheck(node, methodReceiver, rcv)
-                && !atypeFactory.getTypeHierarchy().isSubtype(treeReceiver, methodReceiver)) {
-            checker.report(
-                    Result.failure(
-                            "method.invocation.invalid",
-                            TreeUtils.elementFromUse(node),
-                            treeReceiver.toString(),
-                            methodReceiver.toString()),
-                    node);
-            /*Difference Starts*/
-            if (shouldOutputFbcError) {
-                saveFbcViolatedMethods(TreeUtils.elementFromUse(node), treeReceiver.toString(), methodReceiver.toString());
-            }
-            /*Different Ends*/
-        }
-        /*Copied Code Ends*/
-    }
-
     private void saveFbcViolatedMethods(ExecutableElement method, String actualReceiver, String declaredReceiver) {
         if (actualReceiver.contains("@UnderInitialization") && declaredReceiver.contains("@Initialized")) {
             String key = ElementUtils.enclosingClass(method) + "#" + method;

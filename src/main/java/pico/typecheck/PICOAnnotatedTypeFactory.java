@@ -84,9 +84,9 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     public PICOAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker, true);
         postInit();
-        if (READONLY != null) {
-        	addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
-        }
+        // PICO aliasing is not implemented correctly
+        // remove for now
+//        addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
     }
 
     @Override
