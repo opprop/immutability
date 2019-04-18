@@ -154,7 +154,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     }
 
     @Override
-    protected boolean checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
+    protected void checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
         // TODO Is the copied code really needed?
         /*Copied Code Start*/
         AnnotatedDeclaredType returnType = (AnnotatedDeclaredType) constructor.getReturnType();
@@ -181,9 +181,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType, READONLY)) {
             checker.report(Result.failure(
                     "constructor.invocation.invalid", invocation, returnType), newClassTree);
-            return false;
         }
-        return true;
     }
 
     @Override
