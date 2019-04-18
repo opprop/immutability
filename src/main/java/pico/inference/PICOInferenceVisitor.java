@@ -185,7 +185,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     @Override
-    protected boolean checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
+    protected void checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
         if (infer) {
             AnnotationMirror constructorReturn = extractVarAnnot(constructor.getReturnType());
             mainIsSubtype(invocation, constructorReturn, "constructor.invocation.invalid", newClassTree);
@@ -194,10 +194,10 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType)) {
                 checker.report(Result.failure(
                         "constructor.invocation.invalid", invocation, returnType), newClassTree);
-                return false;
+                return;
             }
         }
-        return super.checkConstructorInvocation(invocation, constructor, newClassTree);
+        super.checkConstructorInvocation(invocation, constructor, newClassTree);
     }
 
     private AnnotationMirror extractVarAnnot(final AnnotatedTypeMirror atm) {
