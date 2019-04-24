@@ -31,13 +31,13 @@ class A {
 
 @Immutable class AIMS extends A {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.extends.clause)
 @ReceiverDependantMutable class ARDMS extends A {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.extends.clause)
 @Mutable class AMS extends A {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.extends.clause)
 class AUNKS extends A {}
 
 // ReceiverDependantMutable class
@@ -103,10 +103,10 @@ class C {
     }
 }
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.extends.clause)
 @Immutable class CIMS extends C {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.extends.clause)
 @ReceiverDependantMutable class CRDMS extends C {}
 
 // :: error: (super.constructor.invocation.incompatible)
