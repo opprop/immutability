@@ -25,28 +25,28 @@ class H extends ArrayList<@Immutable Object> {}
 @Mutable
 abstract class I implements @Mutable List<@Immutable Object> {}
 
-// :: error: (bound.implements.incompatabile)
+// :: error: (declaration.inconsistent.with.implements.clause)
 @Mutable abstract class J implements @Immutable List<@Immutable Object> {}
 
-// :: error: (bound.implements.incompatabile)
+// :: error: (declaration.inconsistent.with.implements.clause)
 @Mutable abstract class K implements @ReceiverDependantMutable List<@Immutable Object> {}
 
-// :: error: (bound.extends.incompatabile)
+// :: error: (declaration.inconsistent.with.extends.clause)
 @Immutable class L extends @Mutable ArrayList<@Immutable Object> {}
 
 @Immutable class M extends @Immutable ArrayList<@Immutable Object> {}
 
-// :: error: (bound.extends.incompatabile)
+// :: error: (declaration.inconsistent.with.extends.clause)
 @Immutable class N extends @ReceiverDependantMutable ArrayList<@Immutable Object> {}
 
 abstract class O implements CharSequence {}
 
 @Immutable interface ImmutableInterface<E extends @ReceiverDependantMutable Object> {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.implements.clause)
 @Mutable abstract class P implements ImmutableInterface<@Mutable Object> {}
 
 @Immutable abstract class Q implements ImmutableInterface<@Immutable Object> {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.implements.clause)
 @ReceiverDependantMutable abstract class R implements ImmutableInterface<@ReceiverDependantMutable Object> {}

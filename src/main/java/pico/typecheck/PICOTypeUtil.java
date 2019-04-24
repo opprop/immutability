@@ -6,7 +6,6 @@ import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.Slot;
 import checkers.inference.util.InferenceUtil;
-import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
@@ -397,34 +396,6 @@ public class PICOTypeUtil {
             }
         }
         return in;
-    }
-
-    public static void dragAnnotationFromBoundToExtendsAndImplements(Tree node,
-                                                                     AnnotatedTypeMirror annotatedTypeMirror,
-                                                                     AnnotatedTypeFactory atypeFactory) {
-        boolean onExtendsOrImplements = false;
-        ClassTree classTree = null;
-        TreePath path = atypeFactory.getPath(node);
-        if (path != null) {
-            final TreePath parentPath = path.getParentPath();
-            if (parentPath != null) {
-                final Tree parentNode = parentPath.getLeaf();
-                if (TreeUtils.isClassTree(parentNode)) {
-                    onExtendsOrImplements = true;
-                    classTree = (ClassTree) parentNode;
-                }
-            }
-        }
-
-        if (onExtendsOrImplements) {
-            // Respect explicitly written annotation still. However, if the there is annotation here, but it's
-            // inheritted from type element bound, then we still flush them out, because they are not explicit
-            // usage.
-            if (annotatedTypeMirror.getExplicitAnnotations().isEmpty()) {
-                annotatedTypeMirror.replaceAnnotation(
-                        getBoundTypeOfTypeDeclaration(classTree, atypeFactory).getAnnotationInHierarchy(READONLY));
-            }
-        }
     }
 
     public static boolean isSideEffectingUnaryTree(final UnaryTree tree) {

@@ -50,13 +50,9 @@ import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 
 import com.sun.source.tree.BinaryTree;
-import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.IdentifierTree;
-import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
-import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
@@ -413,31 +409,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     public static class PICOTreeAnnotator extends TreeAnnotator {
         public PICOTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
             super(atypeFactory);
-        }
-
-        @Override
-        public Void visitIdentifier(IdentifierTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            PICOTypeUtil.dragAnnotationFromBoundToExtendsAndImplements(node, annotatedTypeMirror, atypeFactory);
-            return super.visitIdentifier(node, annotatedTypeMirror);
-        }
-
-        @Override
-        public Void visitMemberSelect(MemberSelectTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            PICOTypeUtil.dragAnnotationFromBoundToExtendsAndImplements(node, annotatedTypeMirror, atypeFactory);
-            return super.visitMemberSelect(node, annotatedTypeMirror);
-        }
-
-        @Override
-        public Void visitParameterizedType(ParameterizedTypeTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            PICOTypeUtil.dragAnnotationFromBoundToExtendsAndImplements(node, annotatedTypeMirror, atypeFactory);
-            return super.visitParameterizedType(node, annotatedTypeMirror);
-        }
-
-        @Override
-        public Void visitClass(ClassTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            // Apply @Immutable to enum element's bound
-            PICOTypeUtil.applyImmutableToEnumAndEnumConstant(annotatedTypeMirror);
-            return super.visitClass(node, annotatedTypeMirror);
         }
 
         // This adds @Immutable annotation to constructor return type if type declaration has @Immutable when the

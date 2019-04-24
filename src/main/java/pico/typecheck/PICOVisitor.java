@@ -450,63 +450,47 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             checker.report(Result.failure("class.bound.invalid", bound), node);
             return;// Doesn't process the class tree anymore
         }
-        if (!checkCompatabilityBetweenBoundAndSuperClassesBounds(node, typeElement, bound)) {
-            return;
-        }
 
-        if (!checkCompatabilityBetweenBoundAndExtendsImplements(node, bound)) {
-            return;
-        }
-
-        // Reach this point iff 1) bound annotation is one of mutable, rdm or immutable;
-        // 2) bound is compatible with bounds on super types. Only continue if bound check
-        // passed. Reaching here already means having passed bound check.
         super.processClassTree(node);
     }
-
-    private boolean checkCompatabilityBetweenBoundAndSuperClassesBounds(ClassTree node, TypeElement typeElement, AnnotatedDeclaredType bound) {
-        // Must have compatible bound annotation as the direct super types
-        List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
-        for (AnnotatedDeclaredType superBound : superBounds) {
-            // If annotation on super bound is @ReceiverDependantMutable, then any valid bound is permitted.
-            if (superBound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) continue;
-            // super bound is either @Mutable or @Immutable. Must be the subtype of the corresponding super bound
-            if (!atypeFactory.getQualifierHierarchy().isSubtype(
-                    bound.getAnnotationInHierarchy(READONLY), superBound.getAnnotationInHierarchy(READONLY))) {
-                checker.report(Result.failure("subclass.bound.incompatible", bound, superBound), node);
-                return false;
-            }
+    
+    @Override
+    protected void checkExtendsImplements(ClassTree classTree) {
+    	if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
+            // Don't check extends clause on anonymous classes.
+            return;
         }
-        return true;
-    }
-
-    private boolean checkCompatabilityBetweenBoundAndExtendsImplements(ClassTree node, AnnotatedDeclaredType bound) {
-        boolean hasSame;
-        Tree ext = node.getExtendsClause();
-        if (ext != null) {
-            AnnotatedTypeMirror extendsType = atypeFactory.getAnnotatedType(ext);
-            hasSame = bound.getAnnotations().size() == extendsType.getAnnotations().size()
-                        && AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY),
-                                                    bound.getAnnotationInHierarchy(READONLY));
-            if (!hasSame) {
-                checker.report(Result.failure("bound.extends.incompatabile"), node);
-                return false;
-            }
-        }
-
-        List<? extends Tree> impls = node.getImplementsClause();
-        if (impls != null) {
-            for (Tree im : impls) {
-                AnnotatedTypeMirror implementsType = atypeFactory.getAnnotatedType(im);
-                hasSame = bound.getAnnotations().size() == implementsType.getAnnotations().size()
-                        && AnnotationUtils.areSame(implementsType.getAnnotationInHierarchy(READONLY),
-                                                    bound.getAnnotationInHierarchy(READONLY));
-                if (!hasSame) {
-                    checker.report(Result.failure("bound.implements.incompatabile"), node);
-                    return false;
-                }
-            }
-        }
-        return true;
+    	
+    	AnnotationMirror classAnnot =
+    			atypeFactory.getAnnotatedType(classTree).getAnnotationInHierarchy(READONLY);
+    	
+    	Tree extendsClause = classTree.getExtendsClause();
+    	if (extendsClause != null) {
+			AnnotationMirror extAnnot = atypeFactory.fromTypeTree(extendsClause).getAnnotationInHierarchy(READONLY);
+			if (extAnnot != null && !AnnotationUtils.areSame(extAnnot, classAnnot)) {
+				checker.report(
+                        Result.failure(
+                                "declaration.inconsistent.with.extends.clause",
+                                classAnnot,
+                                extAnnot),
+                        extendsClause);
+			}
+    		
+    	}
+    	
+    	List<? extends Tree> implementsClauses = classTree.getImplementsClause();
+    	if (implementsClauses != null) {
+    		for (Tree impl : implementsClauses) {
+    			AnnotationMirror implAnnot = atypeFactory.fromTypeTree(impl).getAnnotationInHierarchy(READONLY);
+    			if (implAnnot != null && !AnnotationUtils.areSame(implAnnot, classAnnot)) {
+    				checker.report(
+                            Result.failure(
+                                    "declaration.inconsistent.with.implements.clause",
+                                    classAnnot,
+                                    implAnnot),
+                            impl);
+    			}
+    		}
+    	}
     }
 }
