@@ -13,9 +13,9 @@ import checkers.inference.test.CFInferenceTest;
 import pico.inference.PICOInferenceChecker;
 import pico.inference.solver.PICOSolverEngine;
 
-public class ImmutabilityInferenceTest extends CFInferenceTest {
+public class ImmutabilityInferenceTests extends CFInferenceTest {
 
-    public ImmutabilityInferenceTest(File testFile) {
+    public ImmutabilityInferenceTests(File testFile) {
         super(testFile, PICOInferenceChecker.class, "",
               "-Anomsgtext", "-Astubs=src/main/java/pico/typecheck/jdk.astub", "-d", "testdata/inference/inferrable");
     }

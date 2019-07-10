@@ -79,7 +79,7 @@ afterEvaluate {
     // Create a task for each JUnit test class whose name is the same as the JUnit class name.
     sourceSets.test.allJava.filter { it.path.contains("${picoPath}/src/test/java") }.forEach { file ->
         String junitClassName = file.name.replaceAll(".java", "")
-        String testName = junitClassName.replaceAll("Test", "")
+        String testName = junitClassName.replaceAll("Tests", "")
         tasks.create(name: "${junitClassName}", type: Test) {
             description "Run ${testName} tests."
             include "**/${name}.class"
