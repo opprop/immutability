@@ -101,7 +101,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return true;
         }
         // At this point, element type can only be @Mutable or @Immutable. Otherwise, it's a problem in
-        // PICOVisitor#processorClassTree(ClassTree)
+        // PICOVisitor#processClassTree(ClassTree)
         assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
 
         AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
