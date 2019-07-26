@@ -10,7 +10,7 @@ export JAVAC=$CF/checker/bin/javac
 export PICO=$(cd $(dirname "$0") && pwd)
 
 # Dependencies
-export CLASSPATH=$PICO/build/classes/java/main:$CFI/dist/checker-framework-inference.jar
+export CLASSPATH=$PICO/build/libs/immutability.jar:$CFI/dist/checker-framework-inference.jar
 
 # Command
 DEBUG=""
