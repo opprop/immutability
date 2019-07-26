@@ -57,7 +57,7 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter {
         } else if (AnnotationUtils.areSame(declaredAnnotation, RECEIVER_DEPENDANT_MUTABLE)) {
             return receiverAnnotation;
         } else {
-            throw new BugInCF("Unkown declared modifier: " + declaredAnnotation, new UnkownImmutabilityQualifierException());
+            throw new BugInCF("Unknown declared modifier: " + declaredAnnotation, new UnkownImmutabilityQualifierException());
         }
     }
 //
