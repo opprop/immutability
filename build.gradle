@@ -160,6 +160,7 @@ task checkFormat(type: Exec, dependsOn: [getCodeFormatScripts, pythonIsInstalled
     } as List
     def pythonArgs = javaFiles.clone()
     pythonArgs.add(0, "$projectDir/build/utils/.run-google-java-format/check-google-java-format.py")
+    pythonArgs.add(1, "--aosp") // 4 space indentation
 
     commandLine "python"
     args pythonArgs
@@ -179,6 +180,7 @@ task reformat(type: Exec, dependsOn: [getCodeFormatScripts, pythonIsInstalled], 
     } as List
     def pythonArgs = javaFiles.clone()
     pythonArgs.add(0, "$projectDir/build/utils/.run-google-java-format/run-google-java-format.py")
+    pythonArgs.add(1, "--aosp") // 4 space indentation
 
     commandLine "python"
     args pythonArgs
