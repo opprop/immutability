@@ -1,10 +1,8 @@
-/// Why doesn't this work on Travis under Java 7?
-/// The same text does in Randoop's build.gradle file.
 plugins {
-    // Plugin that applies Google-Java-format to the Java files in the project.
-    // https://github.com/sherter/google-java-format-gradle-plugin
-    // id 'com.github.sherter.google-java-format' version '0.6'
+    id 'org.ajoberstar.grgit' version '3.1.1' apply false
 }
+
+import org.ajoberstar.grgit.Grgit
 
 apply plugin: 'java'
 
@@ -41,7 +39,6 @@ dependencies {
     compile 'org.ow2.sat4j:org.ow2.sat4j.maxsat:2.3.4'
     // The production code uses the SLF4J logging API at compile time
     compile 'org.slf4j:slf4j-api:1.7.13'
-
     // CF test lib dependency
     testCompile fileTree(dir: "${cfPath}/framework-test/build/libs", include: "framework-test-*.jar")
     testCompile 'junit:junit:4.12'
@@ -136,23 +133,63 @@ clean {
         fileTree("testinput") {include "**/*.class"}
 }
 
-// // Commented out because plugins section is commented out
-// /* Configuration for formatting */
-// googleJavaFormat {
-//     // toolVersion '1.3'
-//     options style: 'AOSP'
-// }
-// tasks.googleJavaFormat {
-//     group 'Formatting'
-//     description = "Reformat Java source code with Google-Java-format"
-//     exclude 'testinput'
-//     exclude 'testdata'
-//     exclude 'annotated'
-// }
-// tasks.verifyGoogleJavaFormat {
-//     group 'Formatting'
-//     description = "Check Java source code is in Google-Java-format"
-//     exclude 'testinput'
-//     exclude 'testdata'
-//     exclude 'annotated'
-// }
+/* Configuration for formatting */
+/* Copy from https://github.com/randoop/randoop/blob/master/build.gradle */
+task getCodeFormatScripts {
+    description "Obtain the run-google-java-format scripts"
+    doLast {
+        if (! new File("$projectDir/build/utils/.run-google-java-format").exists()) {
+            Grgit.clone(dir: "$projectDir/build/utils/.run-google-java-format", uri: 'https://github.com/plume-lib/run-google-java-format.git')
+        } else {
+            def rgjfGit = Grgit.open(dir: "$projectDir/build/utils/.run-google-java-format")
+            rgjfGit.pull()
+        }
+    }
+}
+
+task pythonIsInstalled(type: Exec) {
+    description "Check that the python executable is installed."
+    executable = "python"
+    args "--version"
+}
+
+task checkFormat(type: Exec, dependsOn: [getCodeFormatScripts, pythonIsInstalled], group: 'Formatting') {
+    description "Check whether the Java source code is properly formatted"
+    def javaFiles = fileTree("$projectDir").matching{
+        include "**/*.java" exclude "testinput/**" exclude "testdata/**" exclude "build/**"
+    } as List
+    def pythonArgs = javaFiles.clone()
+    pythonArgs.add(0, "$projectDir/build/utils/.run-google-java-format/check-google-java-format.py")
+
+    commandLine "python"
+    args pythonArgs
+    ignoreExitValue true
+
+    doLast {
+        if (execResult.exitValue != 0) {
+            throw new GradleException("Found improper formatting, try running:  ./gradlew reformat")
+        }
+    }
+}
+
+task reformat(type: Exec, dependsOn: [getCodeFormatScripts, pythonIsInstalled], group: 'Formatting') {
+    description "Format the Java source code according to the Google Java Format style"
+    def javaFiles = fileTree("$projectDir").matching{
+        include "**/*.java" exclude "testinput/**" exclude "testdata/**" exclude "build/**"
+    } as List
+    def pythonArgs = javaFiles.clone()
+    pythonArgs.add(0, "$projectDir/build/utils/.run-google-java-format/run-google-java-format.py")
+
+    commandLine "python"
+    args pythonArgs
+}
+
+task installGitHooks(type: Copy) {
+    group=null
+    description "Installs git hooks for pre-commit"
+    from 'scripts/'
+    into '.git/hooks'
+}
+
+/* Always run this task */
+gradle.startParameter.taskNames = [":installGitHooks"] + gradle.startParameter.taskNames

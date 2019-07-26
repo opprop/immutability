@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# This file will be used as .git/hooks/pre-commit .
+# However, it should be edited as scripts/git-hook-pre-commit .
+
+# Fail if any command fails
+set -e
+
+# Be certain that all code compiles, the code is formatted correctly
+# (compile tasks run verifyGoogleJavaFormat).
+./gradlew checkFormat
