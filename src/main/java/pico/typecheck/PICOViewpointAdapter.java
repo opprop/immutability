@@ -8,21 +8,17 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.SUBSTITUTABLE_POLY_MUTABLE;
 
+import exceptions.UnkownImmutabilityQualifierException;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeKind;
-
 import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 
-import exceptions.UnkownImmutabilityQualifierException;
-
-/**
- * Created by mier on 20/06/17.
- */
+/** Created by mier on 20/06/17. */
 public class PICOViewpointAdapter extends AbstractViewpointAdapter {
 
     public PICOViewpointAdapter(AnnotatedTypeFactory atypeFactory) {
@@ -43,7 +39,8 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter {
     }
 
     @Override
-    protected AnnotationMirror combineAnnotationWithAnnotation(AnnotationMirror receiverAnnotation, AnnotationMirror declaredAnnotation) {
+    protected AnnotationMirror combineAnnotationWithAnnotation(
+            AnnotationMirror receiverAnnotation, AnnotationMirror declaredAnnotation) {
         if (AnnotationUtils.areSame(declaredAnnotation, READONLY)) {
             return READONLY;
         } else if (AnnotationUtils.areSame(declaredAnnotation, MUTABLE)) {
@@ -57,17 +54,20 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter {
         } else if (AnnotationUtils.areSame(declaredAnnotation, RECEIVER_DEPENDANT_MUTABLE)) {
             return receiverAnnotation;
         } else {
-            throw new BugInCF("Unkown declared modifier: " + declaredAnnotation, new UnkownImmutabilityQualifierException());
+            throw new BugInCF(
+                    "Unkown declared modifier: " + declaredAnnotation,
+                    new UnkownImmutabilityQualifierException());
         }
     }
-//
-//    @Override
-//    protected AnnotationMirror getModifier(AnnotatedTypeMirror atm, AnnotatedTypeFactory f) {
-//        return atm.getAnnotationInHierarchy(READONLY);
-//    }
+    //
+    //    @Override
+    //    protected AnnotationMirror getModifier(AnnotatedTypeMirror atm, AnnotatedTypeFactory f) {
+    //        return atm.getAnnotationInHierarchy(READONLY);
+    //    }
 
-//    @Override
-//    protected <TypeFactory extends AnnotatedTypeFactory> AnnotationMirror extractModifier(AnnotatedTypeMirror atm, TypeFactory f) {
-//        return null;
-//    }
+    //    @Override
+    //    protected <TypeFactory extends AnnotatedTypeFactory> AnnotationMirror
+    // extractModifier(AnnotatedTypeMirror atm, TypeFactory f) {
+    //        return null;
+    //    }
 }

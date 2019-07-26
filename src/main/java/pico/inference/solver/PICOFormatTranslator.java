@@ -8,20 +8,19 @@ import checkers.inference.solver.frontend.Lattice;
 import org.sat4j.core.VecInt;
 
 /**
- * {@link checkers.inference.solver.backend.FormatTranslator} that encodes constraints to format that
- * underlying solver can understand. Difference from super class is this class also encodes viewpoint
- * adaptation logic by delegating to {@link PICOCombineConstraintEncoder}
+ * {@link checkers.inference.solver.backend.FormatTranslator} that encodes constraints to format
+ * that underlying solver can understand. Difference from super class is this class also encodes
+ * viewpoint adaptation logic by delegating to {@link PICOCombineConstraintEncoder}
  */
-public class PICOFormatTranslator extends MaxSatFormatTranslator{
+public class PICOFormatTranslator extends MaxSatFormatTranslator {
 
     public PICOFormatTranslator(Lattice lattice) {
         super(lattice);
-
     }
 
     @Override
     protected ConstraintEncoderFactory<VecInt[]> createConstraintEncoderFactory() {
-        return new MaxSATConstraintEncoderFactory(lattice, typeToInt, this){
+        return new MaxSATConstraintEncoderFactory(lattice, typeToInt, this) {
             @Override
             public CombineConstraintEncoder<VecInt[]> createCombineConstraintEncoder() {
                 return new PICOCombineConstraintEncoder(lattice, typeToInt);

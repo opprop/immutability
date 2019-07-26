@@ -5,23 +5,6 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 
-import java.util.Arrays;
-import java.util.List;
-
-import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeKind;
-
-import org.checkerframework.framework.type.AnnotatedTypeFactory;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
-
-import com.sun.source.tree.AnnotatedTypeTree;
-import com.sun.source.tree.BinaryTree;
-import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.WildcardTree;
-
 import checkers.inference.InferenceAnnotatedTypeFactory;
 import checkers.inference.InferenceMain;
 import checkers.inference.InferrableChecker;
@@ -31,14 +14,31 @@ import checkers.inference.model.AnnotationLocation;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.VariableSlot;
 import checkers.inference.model.tree.ArtificialExtendsBoundTree;
+import com.sun.source.tree.AnnotatedTypeTree;
+import com.sun.source.tree.BinaryTree;
+import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.Tree;
+import com.sun.source.tree.WildcardTree;
+import java.util.Arrays;
+import java.util.List;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
+import org.checkerframework.framework.type.AnnotatedTypeFactory;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import pico.typecheck.PICOTypeUtil;
 
 public class PICOVariableAnnotator extends VariableAnnotator {
 
     private boolean generateBottomInequality = true;
 
-    public PICOVariableAnnotator(InferenceAnnotatedTypeFactory typeFactory, AnnotatedTypeFactory realTypeFactory,
-                                 InferrableChecker realChecker, SlotManager slotManager, ConstraintManager constraintManager) {
+    public PICOVariableAnnotator(
+            InferenceAnnotatedTypeFactory typeFactory,
+            AnnotatedTypeFactory realTypeFactory,
+            InferrableChecker realChecker,
+            SlotManager slotManager,
+            ConstraintManager constraintManager) {
         super(typeFactory, realTypeFactory, realChecker, slotManager, constraintManager);
     }
 
@@ -46,8 +46,9 @@ public class PICOVariableAnnotator extends VariableAnnotator {
     protected void handleClassDeclaration(AnnotatedDeclaredType classType, ClassTree classTree) {
         super.handleClassDeclaration(classType, classTree);
         int interfaceIndex = 1;
-        for(Tree implementsTree : classTree.getImplementsClause()) {
-            final AnnotatedTypeMirror implementsType = inferenceTypeFactory.getAnnotatedTypeFromTypeTree(implementsTree);
+        for (Tree implementsTree : classTree.getImplementsClause()) {
+            final AnnotatedTypeMirror implementsType =
+                    inferenceTypeFactory.getAnnotatedTypeFromTypeTree(implementsTree);
             AnnotatedTypeMirror supertype = classType.directSuperTypes().get(interfaceIndex);
             assert supertype.getUnderlyingType() == implementsType.getUnderlyingType();
             visit(supertype, implementsTree);
@@ -80,7 +81,8 @@ public class PICOVariableAnnotator extends VariableAnnotator {
             // Have source tree
             if (bound.isAnnotatedInHierarchy(READONLY)) {
                 // Have bound annotation -> convert to equivalent ConstantSlot
-                boundSlot = slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
+                boundSlot =
+                        slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
             } else {
                 // No existing annotation -> create new VariableSlot
                 boundSlot = createVariable(treeToLocation(classTree));
@@ -89,7 +91,8 @@ public class PICOVariableAnnotator extends VariableAnnotator {
             // No source tree: bytecode classes
             if (bound.isAnnotatedInHierarchy(READONLY)) {
                 // Have bound annotation in stub file
-                boundSlot = slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
+                boundSlot =
+                        slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
             } else {
                 // No stub file
                 if (PICOTypeUtil.isImplicitlyImmutableType(classType)) {
@@ -107,7 +110,10 @@ public class PICOVariableAnnotator extends VariableAnnotator {
 
     // Don't generate subtype constraint between use type and bound type
     @Override
-    protected void handleInstantiationConstraint(AnnotatedTypeMirror.AnnotatedDeclaredType adt, VariableSlot instantiationSlot, Tree tree) {
+    protected void handleInstantiationConstraint(
+            AnnotatedTypeMirror.AnnotatedDeclaredType adt,
+            VariableSlot instantiationSlot,
+            Tree tree) {
         return;
     }
 
@@ -120,15 +126,18 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         return super.addPrimaryVariable(atm, tree);
     }
 
-    // Generates inequality constraint between every strict VariableSlot and @Bottom so that @Bottom is not inserted
+    // Generates inequality constraint between every strict VariableSlot and @Bottom so that @Bottom
+    // is not inserted
     // back to source code, but can be within the internal state because of dataflow refinement
     @Override
     protected VariableSlot createVariable(AnnotationLocation location) {
         VariableSlot varSlot = super.createVariable(location);
-        // Forbid any explicit use of @Bottom to be inserted back to source code(no VariableSlot instance is inferred
+        // Forbid any explicit use of @Bottom to be inserted back to source code(no VariableSlot
+        // instance is inferred
         // @Bottom)
         if (generateBottomInequality) {
-            constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(BOTTOM));
+            constraintManager.addInequalityConstraint(
+                    varSlot, slotManager.createConstantSlot(BOTTOM));
         }
         return varSlot;
     }
@@ -152,19 +161,30 @@ public class PICOVariableAnnotator extends VariableAnnotator {
                     return false;
                 }
 
-                final AnnotatedTypeMirror.AnnotatedWildcardType rawArg = (AnnotatedTypeMirror.AnnotatedWildcardType) rawTypeArgs.get(i);
+                final AnnotatedTypeMirror.AnnotatedWildcardType rawArg =
+                        (AnnotatedTypeMirror.AnnotatedWildcardType) rawTypeArgs.get(i);
 
-                // The only difference starts: instead of copying bounds of declared type variable to
-                // type argument wildcard bound, apply default @Mutable(of course equivalent VarAnnot)
+                // The only difference starts: instead of copying bounds of declared type variable
+                // to
+                // type argument wildcard bound, apply default @Mutable(of course equivalent
+                // VarAnnot)
                 // just like the behaviour in typechecking side.
                 // Previsouly, the behaviour is: "E extends @Readonly Object super @Bottom null".
                 // Type argument is "? extends Object", so it became "? extends @Readonly Object".
-                // This type argument then flows to local variable, and passed as actual method receiver.
-                // Since declared receiver is defaulted to @Mutable, it caused inference to give no solution.
-                rawArg.getExtendsBound().addMissingAnnotations(
-                        Arrays.asList(PICOTypeUtil.createEquivalentVarAnnotOfRealQualifier(MUTABLE)));
-                rawArg.getSuperBound().addMissingAnnotations(
-                        Arrays.asList(PICOTypeUtil.createEquivalentVarAnnotOfRealQualifier(BOTTOM)));
+                // This type argument then flows to local variable, and passed as actual method
+                // receiver.
+                // Since declared receiver is defaulted to @Mutable, it caused inference to give no
+                // solution.
+                rawArg.getExtendsBound()
+                        .addMissingAnnotations(
+                                Arrays.asList(
+                                        PICOTypeUtil.createEquivalentVarAnnotOfRealQualifier(
+                                                MUTABLE)));
+                rawArg.getSuperBound()
+                        .addMissingAnnotations(
+                                Arrays.asList(
+                                        PICOTypeUtil.createEquivalentVarAnnotOfRealQualifier(
+                                                BOTTOM)));
                 // The only different ends
             }
             return true;
@@ -180,8 +200,13 @@ public class PICOVariableAnnotator extends VariableAnnotator {
                 tree = ((AnnotatedTypeTree) tree).getUnderlyingType();
             }
             if (!(tree instanceof WildcardTree)) {
-                throw new IllegalArgumentException("Wildcard type ( " + wildcardType + " ) associated " +
-                        "with non-WildcardTree ( " + tree + " ) ");
+                throw new IllegalArgumentException(
+                        "Wildcard type ( "
+                                + wildcardType
+                                + " ) associated "
+                                + "with non-WildcardTree ( "
+                                + tree
+                                + " ) ");
             }
         }
 
@@ -194,8 +219,10 @@ public class PICOVariableAnnotator extends VariableAnnotator {
             addPrimaryVariable(wildcardType.getSuperBound(), tree);
             generateBottomInequality = prev;
 
-            // Visit extend bound, construct an artificial extends bound tree to represent the extendbound.
-            ArtificialExtendsBoundTree artificialExtendsBoundTree = new ArtificialExtendsBoundTree(wildcardTree);
+            // Visit extend bound, construct an artificial extends bound tree to represent the
+            // extendbound.
+            ArtificialExtendsBoundTree artificialExtendsBoundTree =
+                    new ArtificialExtendsBoundTree(wildcardTree);
             addPrimaryVariable(wildcardType.getExtendsBound(), artificialExtendsBoundTree);
 
         } else if (wildcardKind == Tree.Kind.EXTENDS_WILDCARD) {
