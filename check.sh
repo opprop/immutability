@@ -10,7 +10,8 @@ export JAVAC=$CF/checker/bin/javac
 export PICO=$(cd $(dirname "$0") && pwd)
 
 # Dependencies
-export CLASSPATH=$PICO/build/libs/immutability.jar:$CFI/dist/checker-framework-inference.jar
+export CLASSPATH=$PICO/build/classes/java/main:$PICO/build/resources/main:\
+$PICO/build/libs/immutability.jar:$CFI/dist/checker-framework-inference.jar
 
 # Command
 DEBUG=""
@@ -35,9 +36,9 @@ done
 cmd=""
 
 if [ "$DEBUG" == "" ]; then
-	cmd="$JAVAC -cp "${CLASSPATH}" -processor "${CHECKER}" "${ARGS[@]}""
+    cmd="$JAVAC -cp "${CLASSPATH}" -processor "${CHECKER}" "${ARGS[@]}""
 else
-	cmd="$JAVAC "$DEBUG" -cp "${CLASSPATH}" -processor "${CHECKER}" -AatfDoNotCache "${ARGS[@]}""
+    cmd="$JAVAC "$DEBUG" -cp "${CLASSPATH}" -processor "${CHECKER}" -AatfDoNotCache "${ARGS[@]}""
 fi
 
 eval "$cmd"
