@@ -8,6 +8,7 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
+import com.sun.source.util.TreePath;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 
+import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -492,5 +494,32 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     			}
     		}
     	}
+    }
+
+    /**
+     * The invoked constructor’s return type adapted to the invoking constructor’s return type must
+     * be a supertype of the invoking constructor’s return type.
+     *
+     * @param superCall the super invocation, e.g., "super()"
+     * @param errorKey the error key, e.g., "super.invocation.invalid"
+     */
+    @Override
+    protected void checkThisOrSuperConstructorCall(
+            MethodInvocationTree superCall, @CompilerMessageKey String errorKey) {
+        TreePath path = atypeFactory.getPath(superCall);
+        MethodTree enclosingMethod = TreeUtils.enclosingMethod(path);
+        AnnotatedTypeMirror superType = atypeFactory.getAnnotatedType(superCall);
+        AnnotatedExecutableType constructorType = atypeFactory.getAnnotatedType(enclosingMethod);
+        AnnotationMirror superTypeMirror = superType.getAnnotationInHierarchy(READONLY);
+        AnnotationMirror constructorTypeMirror =
+                constructorType.getReturnType().getAnnotationInHierarchy(READONLY);
+        if (!atypeFactory
+                .getQualifierHierarchy()
+                .isSubtype(constructorTypeMirror, superTypeMirror)) {
+            checker.report(
+                    Result.failure(errorKey, constructorTypeMirror, superCall, superTypeMirror),
+                    superCall);
+        }
+        super.checkThisOrSuperConstructorCall(superCall, errorKey);
     }
 }
