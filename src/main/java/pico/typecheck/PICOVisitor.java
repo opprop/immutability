@@ -376,30 +376,6 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     }
 
     @Override
-    public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
-        super.visitMethodInvocation(node, p);
-        ParameterizedExecutableType mfuPair =
-                atypeFactory.methodFromUse(node);
-        AnnotatedExecutableType invokedMethod = mfuPair.executableType;
-        ExecutableElement invokedMethodElement = invokedMethod.getElement();
-        // Only check invocability if it's super call, as non-super call is already checked
-        // by super implementation(of course in both cases, invocability is not checked when
-        // invoking static methods)
-        if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperCall(node)) {
-            checkMethodInvocability(invokedMethod, node);
-        }
-        return null;
-    }
-
-    private void saveFbcViolatedMethods(ExecutableElement method, String actualReceiver, String declaredReceiver) {
-        if (actualReceiver.contains("@UnderInitialization") && declaredReceiver.contains("@Initialized")) {
-            String key = ElementUtils.enclosingClass(method) + "#" + method;
-            Integer times = fbcViolatedMethods.get(key) == null ? 1 : fbcViolatedMethods.get(key) + 1;
-            fbcViolatedMethods.put(key, times);
-        }
-    }
-
-    @Override
     protected void checkFieldsInitialized(Tree blockNode, boolean staticFields, PICOStore store, List<? extends AnnotationMirror> receiverAnnotations) {
         // If a class doesn't have constructor, it cannot be initialized as @Immutable, therefore no need to check uninitialized fields
         if (TreeUtils.isClassTree(blockNode)) return;
