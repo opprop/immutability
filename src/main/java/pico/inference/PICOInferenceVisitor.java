@@ -642,7 +642,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 // , otherwise it will cause inference result not typecheck
                 checker.report(
                         Result.failure(
-                                "super.constructor.invocation.incompatible", subClassConstructorReturnType, superClassConstructorReturnType), node);
+                                "super.invocation.invalid", subClassConstructorReturnType, superClassConstructorReturnType), node);
             }
         }
         super.checkMethodInvocability(method, node);

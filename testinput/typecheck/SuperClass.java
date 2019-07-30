@@ -20,7 +20,7 @@ public class SuperClass{
 
 class SubClass extends SuperClass{
     @Mutable SubClass(){
-        // :: error: (super.constructor.invocation.incompatible)
+        // :: error: (super.invocation.invalid)
         super(new @Immutable Date(1L));
     }
 
@@ -33,7 +33,7 @@ class SubClass extends SuperClass{
 @ReceiverDependantMutable
 class AnotherSubClass extends SuperClass{
     @ReceiverDependantMutable AnotherSubClass(){
-        // :: error: (super.constructor.invocation.incompatible)
+        // :: error: (super.invocation.invalid)
         super(new @Immutable Date(1L));
     }
 
