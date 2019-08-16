@@ -43,10 +43,10 @@ abstract class O implements CharSequence {}
 
 @Immutable interface ImmutableInterface<E extends @ReceiverDependantMutable Object> {}
 
-// :: error: (declaration.inconsistent.with.implements.clause)
+// :: error: (declaration.inconsistent.with.implements.clause) :: error: (type.argument.type.incompatible)
 @Mutable abstract class P implements ImmutableInterface<@Mutable Object> {}
 
 @Immutable abstract class Q implements ImmutableInterface<@Immutable Object> {}
 
-// :: error: (declaration.inconsistent.with.implements.clause)
+// :: error: (declaration.inconsistent.with.implements.clause) :: error: (type.argument.type.incompatible)
 @ReceiverDependantMutable abstract class R implements ImmutableInterface<@ReceiverDependantMutable Object> {}
