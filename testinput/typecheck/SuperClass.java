@@ -26,7 +26,7 @@ class SubClass extends SuperClass{
 
     public static void main(String[] args) {
         @Mutable SubClass victim = new @Mutable SubClass();
-        victim.maliciouslyModifyDate();;
+        victim.maliciouslyModifyDate();
     }
 }
 
@@ -39,6 +39,6 @@ class AnotherSubClass extends SuperClass{
 
     public static void main(String[] args) {
         @Mutable SubClass victim = new @Mutable SubClass();
-        victim.maliciouslyModifyDate();;
+        victim.maliciouslyModifyDate();
     }
 }

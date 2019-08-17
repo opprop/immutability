@@ -86,7 +86,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 //        if (AnnotationUtils.areSame(declared, atypeFactory.READONLY)) {
 //            // Special case for java.lang.Object. Usually @Readonly is never used as a bound annotation for a
 //            // TypeElement. But we want to have @Readonly as the default for java.lang.Object. There is no way
-//            // of doing this using any exsisting family of @DefaultFor qualifiers, but @ImplicitFor annotation
+//            // of doing this using any existing family of @DefaultFor qualifiers, but @ImplicitFor annotation
 //            // does the trick. But the side effect is, we can't write @ReceiverDependantMutable, which is the
 //            // correct bound for Object element, in jdk.astub, because otherwise it makes all java.lang.Object
 //            // to be @ReceiverDependantMutable; Another side effect is here @Readonly is passed into here as
@@ -101,7 +101,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return true;
         }
         // At this point, element type can only be @Mutable or @Immutable. Otherwise, it's a problem in
-        // PICOVisitor#processorClassTree(ClassTree)
+        // PICOVisitor#processClassTree(ClassTree)
         assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
 
         AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
