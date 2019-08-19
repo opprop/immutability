@@ -498,7 +498,8 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     /**
      * The invoked constructor’s return type adapted to the invoking constructor’s return type must
-     * be a supertype of the invoking constructor’s return type.
+     * be a supertype of the invoking constructor’s return type. Since InitializationChecker does not
+     * apply any type rules at here, only READONLY hierarchy is checked.
      *
      * @param superCall the super invocation, e.g., "super()"
      * @param errorKey the error key, e.g., "super.invocation.invalid"
@@ -506,8 +507,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     protected void checkThisOrSuperConstructorCall(
             MethodInvocationTree superCall, @CompilerMessageKey String errorKey) {
-        TreePath path = atypeFactory.getPath(superCall);
-        MethodTree enclosingMethod = TreeUtils.enclosingMethod(path);
+        MethodTree enclosingMethod = visitorState.getMethodTree();
         AnnotatedTypeMirror superType = atypeFactory.getAnnotatedType(superCall);
         AnnotatedExecutableType constructorType = atypeFactory.getAnnotatedType(enclosingMethod);
         AnnotationMirror superTypeMirror = superType.getAnnotationInHierarchy(READONLY);
