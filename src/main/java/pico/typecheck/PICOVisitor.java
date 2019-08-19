@@ -58,13 +58,8 @@ import com.sun.source.tree.VariableTree;
  */
 public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory, PICOValue, PICOStore> {
 
-    private final boolean shouldOutputFbcError;
-    final Map<String, Integer> fbcViolatedMethods;
-
     public PICOVisitor(BaseTypeChecker checker) {
         super(checker);
-        shouldOutputFbcError = checker.hasOption("printFbcErrors");
-        fbcViolatedMethods = shouldOutputFbcError ? new HashMap<>() : null;
     }
 
     @Override
