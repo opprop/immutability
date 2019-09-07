@@ -16,7 +16,7 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
+import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator;
@@ -81,7 +81,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
     protected TreeAnnotator createTreeAnnotator() {
         return new ListTreeAnnotator(
                 new PICOPropagationTreeAnnotator(this),
-                new ImplicitsTreeAnnotator(this),
+                new LiteralTreeAnnotator(this),
                 new PICOTreeAnnotator(this));
     }
 
@@ -125,19 +125,19 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     // Copied from PICOAnnotatedTypeFactory
-    @Override
-    protected void annotateInheritedFromClass(AnnotatedTypeMirror type, Set<AnnotationMirror> fromClass) {
-        // If interitted from class element is @Mutable or @Immutable, then apply this annotation to the usage type
-        if (fromClass.contains(MUTABLE) || fromClass.contains(IMMUTABLE)) {
-            super.annotateInheritedFromClass(type, fromClass);
-            return;
-        }
-        // If interitted from class element is @ReceiverDependantMutable, then don't apply and wait for @Mutable
-        // (default qualifier in hierarchy to be applied to the usage type). This is to avoid having @ReceiverDependantMutable
-        // on type usages as a default behaviour. By default, @Mutable is better used as the type for usages that
-        // don't have explicit annotation.
-        return;// Don't add annotations from class element
-    }
+//    @Override
+//    protected void annotateInheritedFromClass(AnnotatedTypeMirror type, Set<AnnotationMirror> fromClass) {
+//        // If interitted from class element is @Mutable or @Immutable, then apply this annotation to the usage type
+//        if (fromClass.contains(MUTABLE) || fromClass.contains(IMMUTABLE)) {
+//            super.annotateInheritedFromClass(type, fromClass);
+//            return;
+//        }
+//        // If interitted from class element is @ReceiverDependantMutable, then don't apply and wait for @Mutable
+//        // (default qualifier in hierarchy to be applied to the usage type). This is to avoid having @ReceiverDependantMutable
+//        // on type usages as a default behaviour. By default, @Mutable is better used as the type for usages that
+//        // don't have explicit annotation.
+//        return;// Don't add annotations from class element
+//    }
 
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
