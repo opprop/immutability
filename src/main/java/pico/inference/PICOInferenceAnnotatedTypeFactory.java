@@ -28,7 +28,7 @@ import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
+import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -69,10 +69,10 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
 
     @Override
     protected TypeAnnotator createTypeAnnotator() {
-        // Reuse PICOImplicitsTypeAnnotator even in inference mode. Because the type annotator's implementation
+        // Reuse PICODefaultTypeAnnotator even in inference mode. Because the type annotator's implementation
         // are the same. The only drawback is that naming is not good(doesn't include "Inference"), thus may be
         // hard to debug
-        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICOImplicitsTypeAnnotator(this));
+        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICODefaultTypeAnnotator(this));
     }
 
     @Override
