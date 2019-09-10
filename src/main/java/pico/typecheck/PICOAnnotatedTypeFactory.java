@@ -2,7 +2,6 @@ package pico.typecheck;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.COMMITED;
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import static pico.typecheck.PICOAnnotationMirrorHolder.SUBSTITUTABLE_POLY_MUTABLE;
@@ -138,7 +137,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         // method, so if one annotator already applied the annotations, the others won't apply twice at the
         // same location
         typeAnnotators.add(new PICOTypeAnnotator(this));
-        typeAnnotators.add(new PICOImplicitsTypeAnnotator(this));
+        typeAnnotators.add(new PICODefaultTypeAnnotator(this));
         typeAnnotators.add(new CommitmentTypeAnnotator(this));
         return new ListTypeAnnotator(typeAnnotators);
     }
@@ -463,7 +462,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     public static class PICOImplicitsTypeAnnotator extends ImplicitsTypeAnnotator {
 
-        public PICOImplicitsTypeAnnotator(AnnotatedTypeFactory typeFactory) {
+        public PICODefaultTypeAnnotator(AnnotatedTypeFactory typeFactory) {
             super(typeFactory);
         }
 

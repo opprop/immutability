@@ -1,7 +1,5 @@
 package pico.inference;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 
 import java.lang.annotation.Annotation;
@@ -11,7 +9,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
@@ -31,7 +28,7 @@ import org.checkerframework.javacutil.TreeUtils;
 
 import com.sun.source.tree.Tree;
 
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
+import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultTypeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOTreeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOTypeAnnotator;
@@ -109,7 +106,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         // method, so if one annotator already applied the annotations, the others won't apply twice at the
         // same location
         typeAnnotators.add(new PICOTypeAnnotator(this));
-        typeAnnotators.add(new PICOImplicitsTypeAnnotator(this));
+        typeAnnotators.add(new PICODefaultTypeAnnotator(this));
         return new ListTypeAnnotator(typeAnnotators);
     }
 
