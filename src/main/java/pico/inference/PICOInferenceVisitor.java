@@ -553,7 +553,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
 
         MethodTree enclosingMethod = TreeUtils.enclosingMethod(treePath);
-        // No possibility of initialiazing object if the assignment is not within constructor or method(both MethodTree)
+        // No possibility of initializing object if the assignment is not within constructor or method(both MethodTree)
         if (enclosingMethod == null) return false;
         // At this point, we already know that this assignment is field assignment within a method
         if (TreeUtils.isConstructor(enclosingMethod) || hasUnderInitializationDeclaredReceiver(enclosingMethod)) {
