@@ -535,7 +535,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
      * 2) In constructor
      * 3) In instance method, declared receiver is @UnderInitialized
      *
-     * @param node assignment tree that might be initializing an object
+     * @param variable assignment tree that might be initializing an object
      * @return true if the assignment tree is initializing an object
      *
      * @see #hasUnderInitializationDeclaredReceiver(MethodTree)
@@ -621,7 +621,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // Only check invocability if it's super call, as non-super call is already checked
         // by super implementation(of course in both cases, invocability is not checked when
         // invoking static methods)
-        if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperCall(node)) {
+        if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperConstructorCall(node)) {
             checkMethodInvocability(invokedMethod, node);
         }
         return null;
