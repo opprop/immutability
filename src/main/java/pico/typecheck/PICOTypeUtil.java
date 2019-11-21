@@ -14,7 +14,7 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import org.checkerframework.framework.qual.ImplicitFor;
+import org.checkerframework.framework.qual.DefaultFor;
 import org.checkerframework.framework.qual.TypeKind;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -65,23 +65,23 @@ public class PICOTypeUtil {
     }
 
     private static boolean isInTypesOfImplicitForOfImmutable(AnnotatedTypeMirror atm) {
-        ImplicitFor implicitFor = Immutable.class.getAnnotation(ImplicitFor.class);
-        assert implicitFor != null;
-        assert implicitFor.types() != null;
-        for (TypeKind typeKind : implicitFor.types()) {
-            if (typeKind.name() == atm.getKind().name()) return true;
+        DefaultFor defaultFor = Immutable.class.getAnnotation(DefaultFor.class);
+        assert defaultFor != null;
+        assert defaultFor.typeKinds() != null;
+        for (TypeKind typeKind : defaultFor.typeKinds()) {
+            if (typeKind.name().equals(atm.getKind().name())) return true;
         }
         return false;
     }
 
     private static boolean isInTypeNamesOfImplicitForOfImmutable(AnnotatedTypeMirror atm) {
-        if (atm.getKind().name() != TypeKind.DECLARED.name()) {
+        if (!atm.getKind().name().equals(TypeKind.DECLARED.name())) {
             return false;
         }
-        ImplicitFor implicitFor = Immutable.class.getAnnotation(ImplicitFor.class);
+        DefaultFor implicitFor = Immutable.class.getAnnotation(DefaultFor.class);
         assert implicitFor != null;
-        assert implicitFor.typeNames() != null;
-        Class<?>[] typeNames = implicitFor.typeNames();
+        assert implicitFor.types() != null;
+        Class<?>[] typeNames = implicitFor.types();
         String fqn = TypesUtils.getQualifiedName((DeclaredType) atm.getUnderlyingType()).toString();
         for (int i = 0; i < typeNames.length; i++) {
             if (typeNames[i].getCanonicalName().toString().contentEquals(fqn)) return true;
