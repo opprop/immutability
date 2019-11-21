@@ -63,27 +63,27 @@ public class PICOTypeUtil {
         sideEffectingUnaryOperators.add(Tree.Kind.PREFIX_DECREMENT);
     }
 
-    private static boolean isInTypeKindsOfDefaultForOfImmutable(AnnotatedTypeMirror atm) {
+    private static boolean isInTypesOfImplicitForOfImmutable(AnnotatedTypeMirror atm) {
         DefaultFor defaultFor = Immutable.class.getAnnotation(DefaultFor.class);
         assert defaultFor != null;
+        assert defaultFor.typeKinds() != null;
         for (TypeKind typeKind : defaultFor.typeKinds()) {
-            if (typeKind.name() == atm.getKind().name()) return true;
+            if (typeKind.name().equals(atm.getKind().name())) return true;
         }
         return false;
     }
 
-    private static boolean isInTypesOfDefaultForOfImmutable(AnnotatedTypeMirror atm) {
-        if (atm.getKind().name() != TypeKind.DECLARED.name()) {
+    private static boolean isInTypeNamesOfImplicitForOfImmutable(AnnotatedTypeMirror atm) {
+        if (!atm.getKind().name().equals(TypeKind.DECLARED.name())) {
             return false;
         }
-        DefaultFor defaultFor = Immutable.class.getAnnotation(DefaultFor.class);
-        assert defaultFor != null;
-        Class<?>[] types = defaultFor.types();
+        DefaultFor implicitFor = Immutable.class.getAnnotation(DefaultFor.class);
+        assert implicitFor != null;
+        assert implicitFor.types() != null;
+        Class<?>[] typeNames = implicitFor.types();
         String fqn = TypesUtils.getQualifiedName((DeclaredType) atm.getUnderlyingType()).toString();
-        for (Class<?> type : types) {
-            if (type.getCanonicalName().contentEquals(fqn)) {
-                return true;
-            }
+        for (int i = 0; i < typeNames.length; i++) {
+            if (typeNames[i].getCanonicalName().toString().contentEquals(fqn)) return true;
         }
         return false;
     }
@@ -91,8 +91,8 @@ public class PICOTypeUtil {
     /**Method to determine if the underlying type is implicitly immutable. This method is consistent
      * with the types and typeNames that are in @ImplicitFor in the definition of @Immutable qualifier*/
     public static boolean isImplicitlyImmutableType(AnnotatedTypeMirror atm) {
-        return isInTypeKindsOfDefaultForOfImmutable(atm)
-                || isInTypesOfDefaultForOfImmutable(atm)
+        return isInTypesOfImplicitForOfImmutable(atm)
+                || isInTypeNamesOfImplicitForOfImmutable(atm)
                 || isEnumOrEnumConstant(atm);
     }
 
