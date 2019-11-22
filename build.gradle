@@ -1,9 +1,7 @@
-/// Why doesn't this work on Travis under Java 7?
-/// The same text does in Randoop's build.gradle file.
 plugins {
     // Plugin that applies Google-Java-format to the Java files in the project.
     // https://github.com/sherter/google-java-format-gradle-plugin
-    // id 'com.github.sherter.google-java-format' version '0.6'
+     id 'com.github.sherter.google-java-format' version '0.8'
 }
 
 apply plugin: 'java'
@@ -34,17 +32,19 @@ repositories {
 }
 
 dependencies {
-    compile fileTree(dir: "${cfPath}/checker/dist", include: "checker.jar")
-    compile fileTree(dir: "${cfiPath}/dist", include: "checker-framework-inference.jar")
+    implementation fileTree(dir: "${cfPath}/checker/dist", include: "checker.jar")
+    implementation fileTree(dir: "${cfiPath}/dist", include: "checker-framework-inference.jar")
     // sat4j solver dependency
-    compile 'org.ow2.sat4j:org.ow2.sat4j.core:2.3.4'
-    compile 'org.ow2.sat4j:org.ow2.sat4j.maxsat:2.3.4'
+    implementation 'org.ow2.sat4j:org.ow2.sat4j.core:2.3.4'
+    implementation 'org.ow2.sat4j:org.ow2.sat4j.maxsat:2.3.4'
     // The production code uses the SLF4J logging API at compile time
-    compile 'org.slf4j:slf4j-api:1.7.13'
+    implementation 'org.slf4j:slf4j-api:1.7.13'
+
+    implementation fileTree(dir: "${cfiPath}/dist", include: "inference-framework-test-lib.jar")
 
     // CF test lib dependency
-    testCompile fileTree(dir: "${cfPath}/framework-test/build/libs", include: "framework-test-*.jar")
-    testCompile 'junit:junit:4.12'
+    testImplementation fileTree(dir: "${cfPath}/framework-test/build/libs", include: "framework-test-*.jar")
+    testImplementation 'junit:junit:4.12'
 }
 
 sourceSets {
@@ -61,8 +61,7 @@ sourceSets {
 
     test {
         java {
-            // TODO: we shouldn't need source level dependency on CFITest
-            srcDirs = ["src/test/java", "${cfiPath}/tests/checkers/inference/test"]
+            srcDirs = ["src/test/java"]
         }
     }
 }
@@ -136,23 +135,21 @@ clean {
         fileTree("testinput") {include "**/*.class"}
 }
 
-// // Commented out because plugins section is commented out
-// /* Configuration for formatting */
-// googleJavaFormat {
-//     // toolVersion '1.3'
-//     options style: 'AOSP'
-// }
-// tasks.googleJavaFormat {
-//     group 'Formatting'
-//     description = "Reformat Java source code with Google-Java-format"
-//     exclude 'testinput'
-//     exclude 'testdata'
-//     exclude 'annotated'
-// }
-// tasks.verifyGoogleJavaFormat {
-//     group 'Formatting'
-//     description = "Check Java source code is in Google-Java-format"
-//     exclude 'testinput'
-//     exclude 'testdata'
-//     exclude 'annotated'
-// }
+/* Configuration for formatting */
+googleJavaFormat {
+    options style: 'AOSP'
+}
+tasks.googleJavaFormat {
+    group 'Formatting'
+    description = "Reformat Java source code with Google-Java-format"
+    exclude 'testinput'
+    exclude 'testdata'
+    exclude 'annotated'
+}
+tasks.verifyGoogleJavaFormat {
+    group 'Formatting'
+    description = "Check Java source code is in Google-Java-format"
+    exclude 'testinput'
+    exclude 'testdata'
+    exclude 'annotated'
+}
