@@ -8,7 +8,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @SubtypeOf({Mutable.class, Immutable.class, PolyMutable.class, ReceiverDependantMutable.class})
-@DefaultFor({ TypeUseLocation.LOWER_BOUND })
+@DefaultFor(value = { TypeUseLocation.LOWER_BOUND }, typeKinds = {TypeKind.NULL})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 // Stop allowing any explicit usage of @Bottom qualifier in source. As it causes difficulty to

@@ -89,7 +89,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             return true;
         } else {
             AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
-            if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE)) {
+            // declarationType is now upper bound. Could be READONLY
+            if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE) || AnnotationUtils.areSame(declared, READONLY)) {
                 return true;
             }
             assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
@@ -105,6 +106,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 return true;
             }
 
+            System.out.println(useType.toString() + " " + declared + " " + used);
             return false;
         }
     }

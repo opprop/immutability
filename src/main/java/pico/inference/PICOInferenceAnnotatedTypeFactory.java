@@ -24,10 +24,12 @@ import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
+import org.checkerframework.framework.type.typeannotator.DefaultQualifierForUseTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
+import pico.typecheck.PICOAnnotatedTypeFactory;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 
@@ -242,5 +244,10 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
                 PICOTypeUtil.applyConstant(type, IMMUTABLE);
             }
         }
+    }
+
+    @Override
+    protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {
+        return new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(this);
     }
 }

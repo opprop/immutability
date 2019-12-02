@@ -21,10 +21,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator;
-import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
-import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
-import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.framework.type.typeannotator.*;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
 
@@ -168,4 +165,10 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
 
         return result;
     }
+//
+//    @Override
+//    protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {
+//        return new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(this);
+//    }
+
 }

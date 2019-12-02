@@ -94,7 +94,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 //            // Object
 //            return true;
 //        }
-        if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE)) {
+        if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE) || AnnotationUtils.areSame(declared, READONLY)) {
             // Element is declared with @ReceiverDependantMutable bound, any instantiation is allowed. We don't use
             // a subtype check to validate the correct usage here. Because @Readonly is the super type of
             // @ReceiverDependantMutable, but it's still considered valid usage.

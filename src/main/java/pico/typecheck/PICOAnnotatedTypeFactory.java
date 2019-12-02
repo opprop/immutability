@@ -38,11 +38,7 @@ import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.framework.type.typeannotator.DefaultForTypeAnnotator;
-import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator;
-import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
-import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
-import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.framework.type.typeannotator.*;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
@@ -445,6 +441,46 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             return null;
         }
 
+    }
+
+//    @Override
+//    protected void addAnnotationsFromDefaultQualifierForUse(@Nullable Element element, AnnotatedTypeMirror type) {
+//        if (element != null) {
+//            if (element.getAnnotationMirrors().contains(IMMUTABLE) || element.getAnnotationMirrors().contains(MUTABLE)) {
+//                super.addAnnotationsFromDefaultQualifierForUse(element, type);
+//            }
+//        } else {
+////            super.addAnnotationsFromDefaultQualifierForUse(element, type);
+//        }
+//    }
+
+//
+
+
+    @Override
+    protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {
+        return new PICOQualifierForUseTypeAnnotator(this);
+    }
+
+    // @DefaultQFU
+    public static class PICOQualifierForUseTypeAnnotator extends DefaultQualifierForUseTypeAnnotator {
+
+        public PICOQualifierForUseTypeAnnotator(AnnotatedTypeFactory typeFactory) {
+            super(typeFactory);
+        }
+
+        @Override
+        public Void visitDeclared(AnnotatedTypeMirror.AnnotatedDeclaredType type, Void aVoid) {
+
+            Element element = type.getUnderlyingType().asElement();
+            Set<AnnotationMirror> annosToApply = getDefaultAnnosForUses(element);
+            if (annosToApply.contains(MUTABLE) || annosToApply.contains(IMMUTABLE)) {
+                type.addMissingAnnotations(annosToApply);
+            } else {
+                System.out.println("\u001B[31m" + type + " | " + annosToApply + "\u001B[0m");
+            }
+            return null;
+        }
     }
 
     public static class PICODefaultForTypeAnnotator extends DefaultForTypeAnnotator {
