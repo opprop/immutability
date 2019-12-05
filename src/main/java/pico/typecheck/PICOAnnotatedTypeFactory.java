@@ -443,20 +443,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     }
 
-//    @Override
-//    protected void addAnnotationsFromDefaultQualifierForUse(@Nullable Element element, AnnotatedTypeMirror type) {
-//        if (element != null) {
-//            if (element.getAnnotationMirrors().contains(IMMUTABLE) || element.getAnnotationMirrors().contains(MUTABLE)) {
-//                super.addAnnotationsFromDefaultQualifierForUse(element, type);
-//            }
-//        } else {
-////            super.addAnnotationsFromDefaultQualifierForUse(element, type);
-//        }
-//    }
-
-//
-
-
     @Override
     protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {
         return new PICOQualifierForUseTypeAnnotator(this);
@@ -474,10 +460,9 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
             Element element = type.getUnderlyingType().asElement();
             Set<AnnotationMirror> annosToApply = getDefaultAnnosForUses(element);
+
             if (annosToApply.contains(MUTABLE) || annosToApply.contains(IMMUTABLE)) {
                 type.addMissingAnnotations(annosToApply);
-            } else {
-                System.out.println("\u001B[31m" + type + " | " + annosToApply + "\u001B[0m");
             }
             return null;
         }
