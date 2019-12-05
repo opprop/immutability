@@ -458,6 +458,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     
     @Override
     protected void checkExtendsImplements(ClassTree classTree) {
+        PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator annotator = new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(atypeFactory);
     	if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
             // Don't check extends clause on anonymous classes.
             return;
@@ -468,7 +469,14 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     	
     	Tree extendsClause = classTree.getExtendsClause();
     	if (extendsClause != null) {
-			AnnotationMirror extAnnot = atypeFactory.fromTypeTree(extendsClause).getAnnotationInHierarchy(READONLY);
+    	    // now defaultFor annotator is not called before this
+            // TODO Lian: use CF default annotator instead of annotating manually here (default should be annotated before entry)
+            AnnotationMirror extAnnot = atypeFactory.fromTypeTree(extendsClause).getAnnotationInHierarchy(READONLY);
+            if (extAnnot == null) {
+                AnnotatedTypeMirror defaultAnnotatedExtends = atypeFactory.fromTypeTree(extendsClause).deepCopy(false); // side effect!!
+                annotator.visit(defaultAnnotatedExtends);
+                extAnnot = defaultAnnotatedExtends.getAnnotationInHierarchy(READONLY);
+            }
 			if (extAnnot != null && !AnnotationUtils.areSame(extAnnot, classAnnot)) {
 				checker.report(
                         Result.failure(
@@ -483,7 +491,14 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     	List<? extends Tree> implementsClauses = classTree.getImplementsClause();
     	if (implementsClauses != null) {
     		for (Tree impl : implementsClauses) {
-    			AnnotationMirror implAnnot = atypeFactory.fromTypeTree(impl).getAnnotationInHierarchy(READONLY);
+                // now defaultFor annotator is not called before this
+                // TODO Lian: use CF default annotator instead of annotating manually here (default should be annotated before entry)
+                AnnotationMirror implAnnot = atypeFactory.fromTypeTree(impl).getAnnotationInHierarchy(READONLY);
+                if (implAnnot == null) {
+                    AnnotatedTypeMirror defaultAnnotatedImpl = atypeFactory.fromTypeTree(impl).deepCopy(false);
+                    annotator.visit(defaultAnnotatedImpl);
+                    implAnnot = defaultAnnotatedImpl.getAnnotationInHierarchy(READONLY);
+                }
     			if (implAnnot != null && !AnnotationUtils.areSame(implAnnot, classAnnot)) {
     				checker.report(
                             Result.failure(
