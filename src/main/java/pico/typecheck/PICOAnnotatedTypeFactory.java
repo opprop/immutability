@@ -431,10 +431,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             if (!ElementUtils.isStatic(t.getElement())) {
                 if (PICOTypeUtil.isMethodOrOverridingMethod(t, "toString()", typeFactory)
                         || PICOTypeUtil.isMethodOrOverridingMethod(t, "hashCode()", typeFactory)) {
-                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+                    assert t.getReceiverType() != null;
+                    t.getReceiverType().replaceAnnotation(READONLY);
                 } else if (PICOTypeUtil.isMethodOrOverridingMethod(t, "equals(java.lang.Object)", typeFactory)) {
-                    t.getReceiverType().addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
-                    t.getParameterTypes().get(0).addMissingAnnotations(new HashSet<>(Arrays.asList(READONLY)));
+                    assert t.getReceiverType() != null;
+                    t.getReceiverType().replaceAnnotation(READONLY);
+                    t.getParameterTypes().get(0).replaceAnnotation(READONLY);
                 }
             }
 
