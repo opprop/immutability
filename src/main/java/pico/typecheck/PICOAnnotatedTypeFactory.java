@@ -466,8 +466,25 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             if (annosToApply.contains(MUTABLE) || annosToApply.contains(IMMUTABLE)) {
                 type.addMissingAnnotations(annosToApply);
             }
-            return null;
+
+            // Below copied from super.super
+            // TODO add a function to super.super visitor
+            if (!type.getTypeArguments().isEmpty()) {
+                // Only declared types with type arguments might be recursive.
+                if (visitedNodes.containsKey(type)) {
+                    return visitedNodes.get(type);
+                }
+                visitedNodes.put(type, null);
+            }
+            Void r = null;
+            if (type.getEnclosingType() != null) {
+                scan(type.getEnclosingType(), null);
+            }
+            r = scanAndReduce(type.getTypeArguments(), null, r);
+            return r;
         }
+
+
     }
 
     public static class PICODefaultForTypeAnnotator extends DefaultForTypeAnnotator {

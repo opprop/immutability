@@ -67,13 +67,13 @@ public class PICOTypeUtil {
         DefaultFor defaultFor = Immutable.class.getAnnotation(DefaultFor.class);
         assert defaultFor != null;
         for (TypeKind typeKind : defaultFor.typeKinds()) {
-            if (typeKind.name() == atm.getKind().name()) return true;
+            if (typeKind.name().equals(atm.getKind().name())) return true;
         }
         return false;
     }
 
     private static boolean isInTypesOfDefaultForOfImmutable(AnnotatedTypeMirror atm) {
-        if (atm.getKind().name() != TypeKind.DECLARED.name()) {
+        if (!atm.getKind().name().equals(TypeKind.DECLARED.name())) {
             return false;
         }
         DefaultFor defaultFor = Immutable.class.getAnnotation(DefaultFor.class);
