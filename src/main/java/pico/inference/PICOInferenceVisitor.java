@@ -64,6 +64,7 @@ import checkers.inference.model.EqualityConstraint;
 import checkers.inference.model.InequalityConstraint;
 import checkers.inference.model.Slot;
 import checkers.inference.model.SubtypeConstraint;
+import org.checkerframework.javacutil.TypesUtils;
 import pico.typecheck.PICOTypeUtil;
 
 /**
@@ -691,7 +692,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         TypeElement typeElement = TreeUtils.elementFromDeclaration(node);
         // TODO Don't process anonymous class. I'm not even sure if whether processClassTree(ClassTree) is
         // called on anonymous class tree
-        if (typeElement.toString().contains("anonymous")) {
+        if (TypesUtils.isAnonymous(TreeUtils.typeOf(node))) {
             super.processClassTree(node);
             return;
         }
@@ -726,7 +727,81 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         super.processClassTree(node);
     }
 
+    @Override
+    protected void checkExtendsImplements(ClassTree classTree) {
+        // TODO: WORKAROUND WARNING: COPIED FROM opprop/CF::BaseTypeVisitor::checkExtendsImplements
+        // TODO: REMOVE WHEN CALLBACK IN CF IS CREATED --Lian
+        if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
+            // Don't check extends clause on anonymous classes.
+            return;
+        }
+        Set<AnnotationMirror> classDefaults =  // get default instead of bound here. bound could be READONLY
+                atypeFactory.getAnnotatedType(TreeUtils.elementFromTree(classTree)).getAnnotations();
+        QualifierHierarchy qualifierHierarchy = atypeFactory.getQualifierHierarchy();
+        // If "@B class Y extends @A X {}", then enforce that @B must be a subtype of @A.
+        // classTree.getExtendsClause() is null when there is no explicitly-written extends clause,
+        // as in "class X {}". This is equivalent to writing "class X extends @Top Object {}", so
+        // there is no need to do any subtype checking.
+        if (classTree.getExtendsClause() != null) {
+            Set<AnnotationMirror> extendsAnnos =
+                    atypeFactory
+                            .getTypeOfExtendsImplements(classTree.getExtendsClause())
+                            .getAnnotations();
+            for (AnnotationMirror classAnno : classDefaults) {
+                AnnotationMirror extendsAnno =
+                        qualifierHierarchy.findAnnotationInSameHierarchy(extendsAnnos, classAnno);
+                if (!checkDeclarationConsistencyOfExtendsImplementsClause(classAnno, extendsAnno)) {
+                    checker.report(
+                            Result.failure(
+                                    "declaration.inconsistent.with.extends.clause",
+                                    classAnno,
+                                    extendsAnno),
+                            classTree.getExtendsClause());
+                }
+            }
+        }
+        // Do the same check as above for implements clauses.
+        for (Tree implementsClause : classTree.getImplementsClause()) {
+            Set<AnnotationMirror> implementsClauseAnnos =
+                    atypeFactory.getTypeOfExtendsImplements(implementsClause).getAnnotations();
 
+            for (AnnotationMirror classAnno : classDefaults) {
+                AnnotationMirror implementsAnno =
+                        qualifierHierarchy.findAnnotationInSameHierarchy(
+                                implementsClauseAnnos, classAnno);
+                if (!checkDeclarationConsistencyOfExtendsImplementsClause(classAnno, implementsAnno)) {
+                    checker.report(
+                            Result.failure(
+                                    "declaration.inconsistent.with.implements.clause",
+                                    classAnno,
+                                    implementsAnno),
+                            implementsClause);
+                }
+            }
+        }
+    }
+
+    /**
+     * Read the signature.
+     * @param classAnno annotation of current class declaration
+     * @param superAnno annotation of class in extends or implements clause
+     * @return true if the annotations are consistent, otherwise false
+     */
+    // TODO: add @Override (and rename) after this callback is created in CF --Lian
+    protected boolean checkDeclarationConsistencyOfExtendsImplementsClause
+            (AnnotationMirror classAnno, AnnotationMirror superAnno) {
+        // replace this with super call after CF callback is created
+        if (atypeFactory.getQualifierHierarchy().isSubtype(classAnno, superAnno)) {
+            return true;
+        }
+        // below adapted from checkCompatabilityBetweenBoundAndExtendsImplements
+        // TODO maybe checkCompatabilityBetweenBoundAndExtendsImplements could be removed... --Lian
+
+        // mutable and immutable could extends RDM. See Mier's thesis 4.8.3 (p.43)
+        return (AnnotationUtils.areSame(classAnno, MUTABLE) && AnnotationUtils.areSame(superAnno, RECEIVER_DEPENDANT_MUTABLE))
+                || (AnnotationUtils.areSame(classAnno, IMMUTABLE) && AnnotationUtils.areSame(superAnno, RECEIVER_DEPENDANT_MUTABLE));
+
+    }
 
     private boolean checkCompatabilityBetweenBoundAndSuperClassesBounds(ClassTree node, TypeElement typeElement, AnnotatedDeclaredType bound) {
         // Must have compatible bound annotation as the direct super types
@@ -797,8 +872,17 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                             && AnnotationUtils.areSame(implementsType.getAnnotationInHierarchy(READONLY),
                             bound.getAnnotationInHierarchy(READONLY));
                     if (!hasSame) {
-                        checker.report(Result.failure("bound.implements.incompatible"), node);
-                        return false;
+                        // mutable and immutable could extends RDM. See Mier's thesis 4.8.3 (p.43)
+                        if (!(bound.getAnnotations().size() == implementsType.getAnnotations().size()
+                                && AnnotationUtils.areSame(implementsType.getAnnotationInHierarchy(READONLY),
+                                RECEIVER_DEPENDANT_MUTABLE)
+                                && (AnnotationUtils.areSame(bound.getAnnotationInHierarchy(READONLY),
+                                MUTABLE)
+                                || AnnotationUtils.areSame(bound.getAnnotationInHierarchy(READONLY),
+                                IMMUTABLE)))) {
+                            checker.report(Result.failure("bound.implements.incompatible"), node);
+                            return false;
+                        }
                     }
                 }
             }
