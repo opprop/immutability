@@ -90,6 +90,19 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         } else {
             AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
             // declarationType is now upper bound. Could be READONLY
+            // needs adaption for constructors and enum
+            // TODO: adapt to default instead of upper-bound or repeated rules
+            if (tree instanceof MethodTree && TreeUtils.isConstructor((MethodTree) tree)) {
+                if (AnnotationUtils.areSame(declared, READONLY)) {
+                    declared = MUTABLE;
+                    if (atypeFactory.getPath(tree).getParentPath().getLeaf().getKind() == Kind.ENUM) {
+                        declared = IMMUTABLE;
+                    }
+                }
+            }
+            if (tree.getKind() == Kind.ENUM) {
+                declared = IMMUTABLE;
+            }
             if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE) || AnnotationUtils.areSame(declared, READONLY)) {
                 return true;
             }
@@ -106,7 +119,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 return true;
             }
 
-            System.out.println(useType.toString() + " " + declared + " " + used);
             return false;
         }
     }
@@ -458,6 +470,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         return super.visitUnary(node, p);
     }
 
+
+
     private void checkMutation(ExpressionTree node, ExpressionTree variable) {
         AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(variable);
         if(receiverType != null) {
@@ -712,6 +726,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         super.processClassTree(node);
     }
 
+
+
     private boolean checkCompatabilityBetweenBoundAndSuperClassesBounds(ClassTree node, TypeElement typeElement, AnnotatedDeclaredType bound) {
         // Must have compatible bound annotation as the direct super types
         List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
@@ -740,17 +756,29 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         boolean hasSame;
         Tree ext = node.getExtendsClause();
         if (ext != null) {
-            AnnotatedTypeMirror extendsType= atypeFactory.getAnnotatedType(ext);
+            // getAnnotatedType(Tree) cannot get annotations from stub
+            // TODO: why @ from stub does not present when using getAnnotatedType(Tree)?
+            // hint: however getAnnotatedType(ExpressionTree) works perfectly.
+            AnnotatedTypeMirror extendsType= atypeFactory.getAnnotatedType(TreeUtils.elementFromTree(ext));
             if (infer) {
                 ((PICOInferenceAnnotatedTypeFactory) atypeFactory).getVariableAnnotator().visit(extendsType, ext);
-                areEqual(bound, extendsType, "bound.extends.incompatabile", node);
+                areEqual(bound, extendsType, "bound.extends.incompatible", node);
             } else {
                 hasSame = bound.getAnnotations().size() == extendsType.getAnnotations().size()
                         && AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY),
                         bound.getAnnotationInHierarchy(READONLY));
                 if (!hasSame) {
-                    checker.report(Result.failure("bound.extends.incompatabile"), node);
-                    return false;
+                    // mutable and immutable could extends RDM. See Mier's thesis 4.8.3 (p.43)
+                    if (!(bound.getAnnotations().size() == extendsType.getAnnotations().size()
+                        && AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY),
+                                RECEIVER_DEPENDANT_MUTABLE)
+                        && (AnnotationUtils.areSame(bound.getAnnotationInHierarchy(READONLY),
+                                MUTABLE)
+                            || AnnotationUtils.areSame(bound.getAnnotationInHierarchy(READONLY),
+                                IMMUTABLE)))) {
+                        checker.report(Result.failure("bound.extends.incompatible"), node);
+                        return false;
+                    }
                 }
             }
         }
@@ -758,16 +786,18 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         List<? extends Tree> impls = node.getImplementsClause();
         if (impls != null) {
             for (Tree im : impls) {
-                AnnotatedTypeMirror implementsType = atypeFactory.getAnnotatedType(im);
+                // TODO: why @ from stub does not present when using getAnnotatedType(Tree)?
+                // hint: however getAnnotatedType(ExpressionTree) works perfectly.
+                AnnotatedTypeMirror implementsType = atypeFactory.getAnnotatedType(TreeUtils.elementFromTree(im));
                 if (infer) {
                     ((PICOInferenceAnnotatedTypeFactory) atypeFactory).getVariableAnnotator().visit(implementsType, im);
-                    areEqual(bound, implementsType, "bound.implements.incompatabile", node);
+                    areEqual(bound, implementsType, "bound.implements.incompatible", node);
                 } else {
                     hasSame = bound.getAnnotations().size() == implementsType.getAnnotations().size()
                             && AnnotationUtils.areSame(implementsType.getAnnotationInHierarchy(READONLY),
                             bound.getAnnotationInHierarchy(READONLY));
                     if (!hasSame) {
-                        checker.report(Result.failure("bound.implements.incompatabile"), node);
+                        checker.report(Result.failure("bound.implements.incompatible"), node);
                         return false;
                     }
                 }

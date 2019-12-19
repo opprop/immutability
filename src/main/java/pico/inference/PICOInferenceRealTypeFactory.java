@@ -27,6 +27,7 @@ import org.checkerframework.javacutil.TreeUtils;
 
 import com.sun.source.tree.Tree;
 
+import pico.typecheck.PICOAnnotatedTypeFactory;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOTypeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator;
@@ -165,10 +166,10 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
 
         return result;
     }
-//
-//    @Override
-//    protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {
-//        return new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(this);
-//    }
+
+    @Override
+    protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {
+        return new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(this);
+    }
 
 }

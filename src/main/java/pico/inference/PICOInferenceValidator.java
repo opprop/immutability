@@ -17,6 +17,8 @@ import pico.typecheck.PICOTypeUtil;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
 
+import java.util.Set;
+
 import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
@@ -37,6 +39,16 @@ public class PICOInferenceValidator extends InferenceValidator{
         checkStaticReceiverDependantMutableError(type, tree);
         checkImplicitlyImmutableTypeError(type, tree);
         checkOnlyOneAssignabilityModifierOnField(tree);
+        AnnotatedDeclaredType defaultType =
+                (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(type.getUnderlyingType().asElement());
+        // null check below may not needed
+        if (defaultType.getAnnotationInHierarchy(READONLY) == null) {
+            defaultType = defaultType.deepCopy();
+            defaultType.replaceAnnotation(MUTABLE);
+        }
+        if (!visitor.isValidUse(defaultType, type, tree)) {
+            reportInvalidAnnotationsOnUse(type, tree);
+        }
         return super.visitDeclared(type, tree);
     }
 
@@ -50,6 +62,14 @@ public class PICOInferenceValidator extends InferenceValidator{
     public Void visitPrimitive(AnnotatedPrimitiveType type, Tree tree) {
         checkImplicitlyImmutableTypeError(type, tree);
         return super.visitPrimitive(type, tree);
+    }
+
+    @Override
+    protected boolean shouldCheckTopLevelDeclaredType(AnnotatedTypeMirror type, Tree tree) {
+        if (TreeUtils.isLocalVariable(tree)) {
+            return true;
+        }
+        return super.shouldCheckTopLevelDeclaredType(type, tree);
     }
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
@@ -99,5 +119,18 @@ public class PICOInferenceValidator extends InferenceValidator{
     private void reportFieldMultipleAssignabilityModifiersError(VariableElement field) {
         checker.report(Result.failure("one.assignability.invalid", field), field);
         isValid = false;
+    }
+
+    private void checkLocalVariableDefaults(AnnotatedDeclaredType type, Tree tree) {
+        Set<AnnotationMirror> bounds =
+                atypeFactory.getTypeDeclarationBounds(type.getUnderlyingType());
+
+        AnnotatedDeclaredType elemType = type.deepCopy();
+        elemType.clearAnnotations();
+        elemType.addAnnotations(bounds);
+
+        if (!visitor.isValidUse(elemType, type, tree)) {
+            reportInvalidAnnotationsOnUse(type, tree);
+        }
     }
 }

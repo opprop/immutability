@@ -245,9 +245,4 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
             }
         }
     }
-
-    @Override
-    protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {
-        return new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(this);
-    }
 }
