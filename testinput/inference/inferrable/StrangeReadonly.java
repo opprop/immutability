@@ -1,5 +1,6 @@
 import java.util.Arrays;
 import java.util.Comparator;
+import qual.*;
 
 public class StrangeReadonly {
     @SuppressWarnings("unchecked")
@@ -18,7 +19,9 @@ public class StrangeReadonly {
             // And CF right now ignores subtype relationship check(constraint generation on inference
             // side) and always returns true, i.e. "? extends Object" <: VarAnnot(o1), so typeof(o1) :> @Readonly
             // wasn't generated and o1 is inferred to @Immutable(select any valid solution).
-            public int compare(Object o1, Object o2) {
+
+            // Lian: CF now could correctly default the upper bound. @Readonly added on parameters.
+            public int compare(@Readonly Object o1, @Readonly Object o2) {
                 // Before inference, @Mutable is casted to @Immutable; After inference, @Readonly is
                 // casted to @Immutable.
                 // :: fixable-warning: (cast.unsafe)

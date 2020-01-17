@@ -273,7 +273,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                     // Prefer declared receiver to be @Readonly
                     addDeepPreference(declaredReceiverType, READONLY, 1, node);
                 }
-                // Prefer all parametes to be @Readonly
+                // Prefer all parameters to be @Readonly
                 for (AnnotatedTypeMirror ptype : executableType.getParameterTypes()) {
                     addDeepPreference(ptype, READONLY, 1, node);
                 }
@@ -947,5 +947,19 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
 
         commonAssignmentCheck(var, valueExp, errorKey);
+    }
+
+    @Override
+    protected void commonAssignmentCheck(AnnotatedTypeMirror varType,
+                                         AnnotatedTypeMirror valueType, Tree valueTree,
+                                                 String errorKey) {
+        // TODO: WORKAROUND: anonymous class handling
+        if (TypesUtils.isAnonymous(valueType.getUnderlyingType())) {
+            AnnotatedTypeMirror newValueType = varType.deepCopy();
+            newValueType.replaceAnnotation(valueType.getAnnotationInHierarchy(READONLY));
+            valueType = newValueType;
+        }
+        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey);
+
     }
 }
