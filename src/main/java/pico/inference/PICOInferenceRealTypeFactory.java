@@ -38,6 +38,7 @@ import pico.typecheck.PICOViewpointAdapter;
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
+import qual.PolyMutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
 
@@ -64,6 +65,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
     protected Set<Class<? extends Annotation>> createSupportedTypeQualifiers() {
         return new LinkedHashSet<Class<? extends Annotation>>(
                 Arrays.asList(
+                        PolyMutable.class,
                         Readonly.class,
                         Mutable.class,
                         ReceiverDependantMutable.class,

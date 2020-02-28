@@ -21,6 +21,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
 
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationVisitor;
@@ -96,6 +97,24 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 //            // Object
 //            return true;
 //        }
+        // declarationType is now upper bound. Could be READONLY
+        // needs adaption for constructors and enum
+        // TODO: adapt to default instead of upper-bound or repeated rules
+        if (tree instanceof MethodTree && TreeUtils.isConstructor((MethodTree) tree)) {
+            if (AnnotationUtils.areSame(declared, READONLY)) {
+                declared = MUTABLE;
+                if (atypeFactory.getPath(tree).getParentPath().getLeaf().getKind() == Kind.ENUM) {
+                    declared = IMMUTABLE;
+                }
+            }
+        }
+        if (tree.getKind() == Kind.ENUM) {
+            declared = IMMUTABLE;
+        }
+        // default to implicit
+        if (PICOTypeUtil.isImplicitlyImmutableType(declarationType)) {
+            declared = IMMUTABLE;
+        }
         if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE) || AnnotationUtils.areSame(declared, READONLY)) {
             // Element is declared with @ReceiverDependantMutable bound, any instantiation is allowed. We don't use
             // a subtype check to validate the correct usage here. Because @Readonly is the super type of
@@ -108,6 +127,17 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
         AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
         assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
+
+        return isAnnoValidUse(declared, used);
+    }
+
+    static private boolean isAnnoValidUse(AnnotationMirror declared, AnnotationMirror used) {
+        if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE) || AnnotationUtils.areSame(declared, READONLY)) {
+            // Element is declared with @ReceiverDependantMutable bound, any instantiation is allowed. We don't use
+            // a subtype check to validate the correct usage here. Because @Readonly is the super type of
+            // @ReceiverDependantMutable, but it's still considered valid usage.
+            return true;
+        }
 
         if (AnnotationUtils.areSame(declared, MUTABLE) &&
                 !(AnnotationUtils.areSame(used, IMMUTABLE) || AnnotationUtils.areSame(used, RECEIVER_DEPENDANT_MUTABLE))) {
@@ -155,6 +185,8 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         commonAssignmentCheck(var, valueExp, errorKey);
     }
 
+
+
     @Override
     protected void checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
         // TODO Is the copied code really needed?
@@ -178,6 +210,16 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         }
         /*Copied Code End*/
 
+        // TODO use CF base check
+        // if no explicit anno it must inherited from class decl
+        AnnotationMirror declAnno = constructor.getReturnType().getAnnotationInHierarchy(READONLY);
+        AnnotationMirror useAnno = invocation.getAnnotationInHierarchy(READONLY);
+        declAnno = declAnno == null ? MUTABLE : declAnno;
+
+        if(useAnno != null && !AnnotationUtils.areSameByName(declAnno, POLY_MUTABLE) && !isAnnoValidUse(declAnno, useAnno)) {
+            checker.report(Result.failure("type.invalid.annotations.on.use", declAnno, useAnno), newClassTree);
+        }
+
         // The immutability return qualifier of the constructor (returnType) must be supertype of the
         // constructor invocation immutability qualifier(invocation).
         if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType, READONLY)) {
@@ -197,6 +239,10 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                 checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
                 return super.visitMethod(node, p);
             }
+            // if no explicit anno it must inherit from class decl so identical
+            // => if not the same must not inherited from class decl
+            // => no need to check the source of the anno
+
         } else {
             AnnotatedDeclaredType declareReceiverType = executableType.getReceiverType();
             if (declareReceiverType != null) {
@@ -347,13 +393,29 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     public Void visitVariable(VariableTree node, Void p) {
         VariableElement element = TreeUtils.elementFromDeclaration(node);
+        AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
         if (element != null && element.getKind() == ElementKind.FIELD) {
-            AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
             if (type.hasAnnotation(POLY_MUTABLE)) {
                 checker.report(Result.failure("field.polymutable.forbidden", element), node);
             }
         }
+        checkAndReportInvalidAnnotationOnUse(type, node);
         return super.visitVariable(node, p);
+    }
+
+    private void checkAndReportInvalidAnnotationOnUse(AnnotatedTypeMirror type, Tree node) {
+        AnnotationMirror useAnno = type.getAnnotationInHierarchy(READONLY);
+        if (useAnno != null && !PICOTypeUtil.isImplicitlyImmutableType(type) && type.getKind() != TypeKind.ARRAY) {  // TODO: annotate the use instead of using this
+            AnnotationMirror defaultAnno = MUTABLE;
+            for (AnnotationMirror anno : atypeFactory.getTypeDeclarationBounds(atypeFactory.getAnnotatedType(node).getUnderlyingType())) {
+                if (atypeFactory.getQualifierHierarchy().isSubtype(anno, READONLY) && !AnnotationUtils.areSame(anno, READONLY)) {
+                    defaultAnno = anno;
+                }
+            }
+            if (!isAnnoValidUse(defaultAnno, useAnno)) {
+                checker.report(Result.failure("type.invalid.annotations.on.use", defaultAnno, useAnno), node);
+            }
+        }
     }
 
     @Override

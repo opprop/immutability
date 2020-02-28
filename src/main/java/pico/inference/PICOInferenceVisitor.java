@@ -65,6 +65,7 @@ import checkers.inference.model.InequalityConstraint;
 import checkers.inference.model.Slot;
 import checkers.inference.model.SubtypeConstraint;
 import org.checkerframework.javacutil.TypesUtils;
+import pico.typecheck.PICOAnnotatedTypeFactory;
 import pico.typecheck.PICOTypeUtil;
 
 /**
@@ -90,20 +91,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             return true;
         } else {
             AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
-            // declarationType is now upper bound. Could be READONLY
-            // needs adaption for constructors and enum
-            // TODO: adapt to default instead of upper-bound or repeated rules
-            if (tree instanceof MethodTree && TreeUtils.isConstructor((MethodTree) tree)) {
-                if (AnnotationUtils.areSame(declared, READONLY)) {
-                    declared = MUTABLE;
-                    if (atypeFactory.getPath(tree).getParentPath().getLeaf().getKind() == Kind.ENUM) {
-                        declared = IMMUTABLE;
-                    }
-                }
-            }
-            if (tree.getKind() == Kind.ENUM) {
-                declared = IMMUTABLE;
-            }
             if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE) || AnnotationUtils.areSame(declared, READONLY)) {
                 return true;
             }
@@ -727,82 +714,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         super.processClassTree(node);
     }
 
-    @Override
-    protected void checkExtendsImplements(ClassTree classTree) {
-        // TODO: WORKAROUND WARNING: COPIED FROM opprop/CF::BaseTypeVisitor::checkExtendsImplements
-        // TODO: REMOVE WHEN CALLBACK IN CF IS CREATED --Lian
-        if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
-            // Don't check extends clause on anonymous classes.
-            return;
-        }
-        Set<AnnotationMirror> classDefaults =  // get default instead of bound here. bound could be READONLY
-                atypeFactory.getAnnotatedType(TreeUtils.elementFromTree(classTree)).getAnnotations();
-        QualifierHierarchy qualifierHierarchy = atypeFactory.getQualifierHierarchy();
-        // If "@B class Y extends @A X {}", then enforce that @B must be a subtype of @A.
-        // classTree.getExtendsClause() is null when there is no explicitly-written extends clause,
-        // as in "class X {}". This is equivalent to writing "class X extends @Top Object {}", so
-        // there is no need to do any subtype checking.
-        if (classTree.getExtendsClause() != null) {
-            Set<AnnotationMirror> extendsAnnos =
-                    atypeFactory
-                            .getTypeOfExtendsImplements(classTree.getExtendsClause())
-                            .getAnnotations();
-            for (AnnotationMirror classAnno : classDefaults) {
-                AnnotationMirror extendsAnno =
-                        qualifierHierarchy.findAnnotationInSameHierarchy(extendsAnnos, classAnno);
-                if (!checkDeclarationConsistencyOfExtendsImplementsClause(classAnno, extendsAnno)) {
-                    checker.report(
-                            Result.failure(
-                                    "declaration.inconsistent.with.extends.clause",
-                                    classAnno,
-                                    extendsAnno),
-                            classTree.getExtendsClause());
-                }
-            }
-        }
-        // Do the same check as above for implements clauses.
-        for (Tree implementsClause : classTree.getImplementsClause()) {
-            Set<AnnotationMirror> implementsClauseAnnos =
-                    atypeFactory.getTypeOfExtendsImplements(implementsClause).getAnnotations();
-
-            for (AnnotationMirror classAnno : classDefaults) {
-                AnnotationMirror implementsAnno =
-                        qualifierHierarchy.findAnnotationInSameHierarchy(
-                                implementsClauseAnnos, classAnno);
-                if (!checkDeclarationConsistencyOfExtendsImplementsClause(classAnno, implementsAnno)) {
-                    checker.report(
-                            Result.failure(
-                                    "declaration.inconsistent.with.implements.clause",
-                                    classAnno,
-                                    implementsAnno),
-                            implementsClause);
-                }
-            }
-        }
-    }
-
-    /**
-     * Read the signature.
-     * @param classAnno annotation of current class declaration
-     * @param superAnno annotation of class in extends or implements clause
-     * @return true if the annotations are consistent, otherwise false
-     */
-    // TODO: add @Override (and rename) after this callback is created in CF --Lian
-    protected boolean checkDeclarationConsistencyOfExtendsImplementsClause
-            (AnnotationMirror classAnno, AnnotationMirror superAnno) {
-        // replace this with super call after CF callback is created
-        if (atypeFactory.getQualifierHierarchy().isSubtype(classAnno, superAnno)) {
-            return true;
-        }
-        // below adapted from checkCompatabilityBetweenBoundAndExtendsImplements
-        // TODO maybe checkCompatabilityBetweenBoundAndExtendsImplements could be removed... --Lian
-
-        // mutable and immutable could extends RDM. See Mier's thesis 4.8.3 (p.43)
-        return (AnnotationUtils.areSame(classAnno, MUTABLE) && AnnotationUtils.areSame(superAnno, RECEIVER_DEPENDANT_MUTABLE))
-                || (AnnotationUtils.areSame(classAnno, IMMUTABLE) && AnnotationUtils.areSame(superAnno, RECEIVER_DEPENDANT_MUTABLE));
-
-    }
-
     private boolean checkCompatabilityBetweenBoundAndSuperClassesBounds(ClassTree node, TypeElement typeElement, AnnotatedDeclaredType bound) {
         // Must have compatible bound annotation as the direct super types
         List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
@@ -816,11 +727,66 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 if (!atypeFactory.getQualifierHierarchy().isSubtype(
                         bound.getAnnotationInHierarchy(READONLY), superBound.getAnnotationInHierarchy(READONLY))) {
                     checker.report(Result.failure("subclass.bound.incompatible", bound, superBound), node);
-                    return false;
+                    return true;
                 }
             }
         }
         return true;
+    }
+
+    @Override
+    protected void checkExtendsImplements(ClassTree classTree) {
+        PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator annotator = new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(atypeFactory);
+        if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
+            // Don't check extends clause on anonymous classes.
+            return;
+        }
+
+        AnnotationMirror classAnnot =
+                atypeFactory.getAnnotatedType(classTree).getAnnotationInHierarchy(READONLY);
+
+        Tree extendsClause = classTree.getExtendsClause();
+        if (extendsClause != null) {
+            // now defaultFor annotator is not called before this
+            // TODO Lian: use CF default annotator instead of annotating manually here (default should be annotated before entry)
+            AnnotationMirror extAnnot = atypeFactory.fromTypeTree(extendsClause).getAnnotationInHierarchy(READONLY);
+            if (extAnnot == null) {
+                AnnotatedTypeMirror defaultAnnotatedExtends = atypeFactory.fromTypeTree(extendsClause).deepCopy(false); // side effect!!
+                annotator.visit(defaultAnnotatedExtends);
+                extAnnot = defaultAnnotatedExtends.getAnnotationInHierarchy(READONLY);
+            }
+            if (extAnnot != null && !AnnotationUtils.areSame(extAnnot, classAnnot)) {
+                checker.report(
+                        Result.failure(
+                                "declaration.inconsistent.with.extends.clause",
+                                classAnnot,
+                                extAnnot),
+                        extendsClause);
+            }
+
+        }
+
+        List<? extends Tree> implementsClauses = classTree.getImplementsClause();
+        if (implementsClauses != null) {
+            for (Tree impl : implementsClauses) {
+                // now defaultFor annotator is not called before this
+                // TODO Lian: use CF default annotator instead of annotating manually here (default should be annotated before entry)
+                AnnotationMirror implAnnot = atypeFactory.fromTypeTree(impl).getAnnotationInHierarchy(READONLY);
+                if (implAnnot == null) {
+                    AnnotatedTypeMirror defaultAnnotatedImpl = atypeFactory.fromTypeTree(impl).deepCopy(false);
+                    annotator.visit(defaultAnnotatedImpl);
+                    implAnnot = defaultAnnotatedImpl.getAnnotationInHierarchy(READONLY);
+                }
+                if (implAnnot != null && !AnnotationUtils.areSame(implAnnot, classAnnot)) {
+                    checker.report(
+                            Result.failure(
+                                    "declaration.inconsistent.with.implements.clause",
+                                    classAnnot,
+                                    implAnnot),
+                            impl);
+                }
+            }
+        }
     }
 
     private boolean checkCompatabilityBetweenBoundAndExtendsImplements(ClassTree node, AnnotatedDeclaredType bound) {
@@ -831,29 +797,22 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         boolean hasSame;
         Tree ext = node.getExtendsClause();
         if (ext != null) {
-            // getAnnotatedType(Tree) cannot get annotations from stub
-            // TODO: why @ from stub does not present when using getAnnotatedType(Tree)?
-            // hint: however getAnnotatedType(ExpressionTree) works perfectly.
-            AnnotatedTypeMirror extendsType= atypeFactory.getAnnotatedType(TreeUtils.elementFromTree(ext));
+            AnnotatedTypeMirror extendsType= atypeFactory.getAnnotatedType(ext);
             if (infer) {
                 ((PICOInferenceAnnotatedTypeFactory) atypeFactory).getVariableAnnotator().visit(extendsType, ext);
                 areEqual(bound, extendsType, "bound.extends.incompatible", node);
             } else {
+                AnnotationMirror superAnnoOnUse = atypeFactory.fromTypeTree(ext).getAnnotationInHierarchy(READONLY);
+
                 hasSame = bound.getAnnotations().size() == extendsType.getAnnotations().size()
                         && AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY),
                         bound.getAnnotationInHierarchy(READONLY));
-                if (!hasSame) {
-                    // mutable and immutable could extends RDM. See Mier's thesis 4.8.3 (p.43)
-                    if (!(bound.getAnnotations().size() == extendsType.getAnnotations().size()
-                        && AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY),
-                                RECEIVER_DEPENDANT_MUTABLE)
-                        && (AnnotationUtils.areSame(bound.getAnnotationInHierarchy(READONLY),
-                                MUTABLE)
-                            || AnnotationUtils.areSame(bound.getAnnotationInHierarchy(READONLY),
-                                IMMUTABLE)))) {
+                // TODO rdm defaulting should be prevented instead of suppressing error here
+                boolean defaultedRdm = superAnnoOnUse == null &&
+                        AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY), RECEIVER_DEPENDANT_MUTABLE);
+                if (!defaultedRdm && !hasSame) {
                         checker.report(Result.failure("bound.extends.incompatible"), node);
                         return false;
-                    }
                 }
             }
         }
