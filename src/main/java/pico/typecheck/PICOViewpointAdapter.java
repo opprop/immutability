@@ -19,11 +19,12 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 
 import exceptions.UnkownImmutabilityQualifierException;
+import pico.inference.ExtendedViewpointAdapter;
 
 /**
  * Created by mier on 20/06/17.
  */
-public class PICOViewpointAdapter extends AbstractViewpointAdapter {
+public class PICOViewpointAdapter extends AbstractViewpointAdapter implements ExtendedViewpointAdapter {
 
     public PICOViewpointAdapter(AnnotatedTypeFactory atypeFactory) {
         super(atypeFactory);
@@ -60,7 +61,19 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter {
             throw new BugInCF("Unknown declared modifier: " + declaredAnnotation, new UnkownImmutabilityQualifierException());
         }
     }
-//
+
+    public AnnotatedTypeMirror rawCombineAnnotationWithType(AnnotationMirror anno, AnnotatedTypeMirror type) {
+        System.err.println("VPA: " + anno + " ->" + type);
+        return combineAnnotationWithType(anno, type);
+    }
+
+    @Override
+    public AnnotationMirror rawCombineAnnotationWithAnnotation(AnnotationMirror anno, AnnotationMirror type) {
+        System.err.println("VPA: " + anno + " ->" + type);
+        return combineAnnotationWithAnnotation(anno, type);
+    }
+
+    //
 //    @Override
 //    protected AnnotationMirror getModifier(AnnotatedTypeMirror atm, AnnotatedTypeFactory f) {
 //        return atm.getAnnotationInHierarchy(READONLY);

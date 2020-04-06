@@ -1,11 +1,13 @@
 package pico.inference;
 
+import static org.checkerframework.javacutil.TreeUtils.elementFromTree;
 import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
+import java.lang.reflect.AnnotatedType;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -85,30 +87,22 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
-        if (infer) {
-            mainIsNot(declarationType, READONLY, "type.invalid.annotations.on.use", tree);
-            addMutableImmutableRdmIncompatibleConstraints(declarationType, useType);
-            return true;
-        } else {
-            AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
-            if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE) || AnnotationUtils.areSame(declared, READONLY)) {
-                return true;
-            }
-            assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
+        return isAdaptedSubtype(useType, declarationType);
 
-            AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
-            if (AnnotationUtils.areSame(declared, MUTABLE) &&
-                    !(AnnotationUtils.areSame(used, IMMUTABLE) || AnnotationUtils.areSame(used, RECEIVER_DEPENDANT_MUTABLE))) {
-                return true;
-            }
+    }
 
-            if (AnnotationUtils.areSame(declared, IMMUTABLE) &&
-                    !(AnnotationUtils.areSame(used, MUTABLE) || AnnotationUtils.areSame(used, RECEIVER_DEPENDANT_MUTABLE))) {
-                return true;
-            }
-
-            return false;
-        }
+    /**
+     * constraint: lhs |> rhs <: lhs
+     * equal to decl:immutable => use:immutable || decl:mutable => use:mutable
+     * @param lhs left value of adaption, typically use
+     * @param rhs right value of adaption, typically declaration
+     * @return true if holds, always true during inference
+     */
+    private boolean isAdaptedSubtype(AnnotatedDeclaredType lhs, AnnotatedDeclaredType rhs) {
+        ExtendedViewpointAdapter vpa = ((PublicViewpointAdapter)atypeFactory).getViewpointAdapter();
+        AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(lhs.getAnnotationInHierarchy(READONLY),
+                rhs);
+        return mainIsSubtype(adapted, lhs.getAnnotationInHierarchy(READONLY));
     }
 
     private void addMutableImmutableRdmIncompatibleConstraints(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType) {
@@ -164,16 +158,15 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
 
         return validateType(tree, type);
+        // TODO extends clause kind = IDENTIFIER. Add case here / override getAnnotatedType / annotator?
     }
 
     // TODO This might not be correct for infer mode. Maybe returning as it is
     @Override
     public boolean validateType(Tree tree, AnnotatedTypeMirror type) {
 
-        if (!typeValidator.isValid(type, tree)) {
-            if (!infer) {
+        if (!typeValidator.isValid(type, tree)) {  // in inference, isValid never return false
                 return false;
-            }
         }
         // The initial purpose of always returning true in validateTypeOf in inference mode
         // might be that inference we want to generate constraints over all the ast location,
@@ -188,17 +181,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     @Override
     protected void checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
-        if (infer) {
-            AnnotationMirror constructorReturn = extractVarAnnot(constructor.getReturnType());
-            mainIsSubtype(invocation, constructorReturn, "constructor.invocation.invalid", newClassTree);
-        } else {
-            AnnotatedDeclaredType returnType = (AnnotatedDeclaredType) constructor.getReturnType();
-            if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType)) {
-                checker.report(Result.failure(
-                        "constructor.invocation.invalid", invocation, returnType), newClassTree);
-                return;
-            }
-        }
+        AnnotationMirror constructorReturn = extractVarAnnot(constructor.getReturnType());
+        mainIsSubtype(invocation, constructorReturn, "constructor.invocation.invalid", newClassTree);
+
         super.checkConstructorInvocation(invocation, constructor, newClassTree);
     }
 
@@ -233,9 +218,10 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             }
 
             AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
+            // Constructor return cannot be @Readonly
+            mainIsNot(constructorReturnType, READONLY, "constructor.return.invalid", node);
+
             if (infer) {
-                // Constructor return cannot be @Readonly
-                mainIsNot(constructorReturnType, READONLY, "constructor.return.invalid", node);
                 ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
                 SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
                 Slot boundSlot = slotManager.getVariableSlot(bound);
@@ -245,12 +231,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 Constraint subtypeConstraint = constraintManager.createSubtypeConstraint(consRetSlot, boundSlot);
                 // bound != @ReceiverDependantMutable -> consRet <: bound
                 constraintManager.addImplicationConstraint(Arrays.asList(inequalityConstraint), subtypeConstraint);
-            } else {
-                if (constructorReturnType.hasAnnotation(READONLY)) {
-                    checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
-                    return super.visitMethod(node, p);
-                }
+                // TODO Add typecheck for this?
             }
+
         } else {
             // Additional logic compared to PICOVisitor to prefer declared receiver and parameters
             // tp be @Readonly in inference results.
@@ -267,17 +250,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             }
             // Above is additional preference logic
             if (declaredReceiverType != null) {
-                if (infer) {
-                    addMutableImmutableRdmIncompatibleConstraints(bound, declaredReceiverType);
-                } else {
-                    if (!bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
-                            && !atypeFactory.getQualifierHierarchy().isSubtype(
-                                    declaredReceiverType.getAnnotationInHierarchy(READONLY),
-                                        bound.getAnnotationInHierarchy(READONLY))
-                            // Below three are allowed on declared receiver types of instance methods in either @Mutable class or @Immutable class
-                            && !declaredReceiverType.hasAnnotation(READONLY)) {
-                        checker.report(Result.failure("method.receiver.incompatible", declaredReceiverType), node);
-                    }
+                assert bound != null;
+                if (!isAdaptedSubtype(declaredReceiverType, bound)){
+                    checker.report(Result.failure("method.receiver.incompatible", declaredReceiverType), node);
                 }
             }
         }
@@ -488,6 +463,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 Slot receiver_dependant_mutable = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
                 Constraint receiverReadOnly = constraintManager.createEqualityConstraint(receiverSlot, readonly);
                 Constraint fieldNotRDM = constraintManager.createInequalityConstraint(fieldSlot, receiver_dependant_mutable);
+                //  receiver = READONLY
                 constraintManager.addImplicationConstraint(Arrays.asList(receiverReadOnly), fieldNotRDM);
             } else {
                 if (receiverType.hasAnnotation(READONLY) && fieldType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
@@ -498,6 +474,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     private void checkInitializingObject(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+        // TODO rm infer after mainIsNot returns bool
         if (infer) {
             // Can be anything from mutable, immutable or receiverdependantmutable
             mainIsNot(receiverType, READONLY, "illegal.field.write", node);
@@ -509,6 +486,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     private void checkMutableReceiverCase(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+        // TODO rm infer after mainIs returns bool
         if (infer) {
             mainIs(receiverType, MUTABLE, "illegal.field.write", node);
         } else {
@@ -604,14 +582,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     private void checkNewInstanceCreation(Tree node) {
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
-        if (infer) {
-            // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable are inferred on new instance creation
-            mainIsNoneOf(type, new AnnotationMirror[]{READONLY}, "pico.new.invalid", node);
-        } else {
-            if (type.hasAnnotation(READONLY)) {
-                checker.report(Result.failure("pico.new.invalid", type), node);
-            }
-        }
+        // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable are inferred on new instance creation
+        mainIsNoneOf(type, new AnnotationMirror[]{READONLY}, "pico.new.invalid", node);
     }
 
     // Completely copied from PICOVisitor
@@ -686,27 +658,37 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
         AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
 
-        if (infer) {
-            mainIsNot(bound, READONLY, "class.bound.invalid", node);
-            if (checker.hasOption("optimalSolution")) {
-                addPreference(bound, RECEIVER_DEPENDANT_MUTABLE, 2);
-                addPreference(bound, IMMUTABLE, 2);
-            }
-        } else {
-            // Has to be either @Mutable, @ReceiverDependantMutable or @Immutable, nothing else
-            if (!bound.hasAnnotation(MUTABLE) && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) && !bound.hasAnnotation(IMMUTABLE)) {
-                checker.report(Result.failure("class.bound.invalid", bound), node);
-                return;// Doesn't process the class tree anymore
-            }
+        mainIsNot(bound, READONLY, "class.bound.invalid", node);
+        if (checker.hasOption("optimalSolution")) {
+            addPreference(bound, RECEIVER_DEPENDANT_MUTABLE, 2);
+            addPreference(bound, IMMUTABLE, 2);
         }
 
         if (!checkCompatabilityBetweenBoundAndSuperClassesBounds(node, typeElement, bound)) {
             return;
         }
 
-        if (!checkCompatabilityBetweenBoundAndExtendsImplements(node, bound)) {
-            return;
+        if (node.getExtendsClause() != null) {
+            // compare extends type with its decl
+            Tree extClause = node.getExtendsClause();
+            AnnotatedTypeMirror ext = atypeFactory.getTypeOfExtendsImplements(extClause);
+            AnnotatedTypeMirror extDecl = atypeFactory.getAnnotatedType(TreeUtils.elementFromTree(extClause));
+            System.err.println("V: "+ext);
+            assert ext instanceof AnnotatedDeclaredType;
+            assert extDecl instanceof AnnotatedDeclaredType;
+
+
+            if (!isAdaptedSubtype((AnnotatedDeclaredType) ext, (AnnotatedDeclaredType) extDecl)) {
+                checker.report(
+                        Result.failure(
+                                "invalid.annotation.on.use", node.getExtendsClause()), node);
+            }
         }
+
+
+//        if (!checkCompatabilityBetweenBoundAndExtendsImplements(node, bound)) {
+//            return;
+//        }
 
         // Reach this point iff 1) bound annotation is one of mutable, rdm or immutable;
         // 2) bound is compatible with bounds on super types. Only then continue processing
@@ -734,61 +716,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         return true;
     }
 
-    @Override
-    protected void checkExtendsImplements(ClassTree classTree) {
-        PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator annotator = new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(atypeFactory);
-        if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
-            // Don't check extends clause on anonymous classes.
-            return;
-        }
-
-        AnnotationMirror classAnnot =
-                atypeFactory.getAnnotatedType(classTree).getAnnotationInHierarchy(READONLY);
-
-        Tree extendsClause = classTree.getExtendsClause();
-        if (extendsClause != null) {
-            // now defaultFor annotator is not called before this
-            // TODO Lian: use CF default annotator instead of annotating manually here (default should be annotated before entry)
-            AnnotationMirror extAnnot = atypeFactory.fromTypeTree(extendsClause).getAnnotationInHierarchy(READONLY);
-            if (extAnnot == null) {
-                AnnotatedTypeMirror defaultAnnotatedExtends = atypeFactory.fromTypeTree(extendsClause).deepCopy(false); // side effect!!
-                annotator.visit(defaultAnnotatedExtends);
-                extAnnot = defaultAnnotatedExtends.getAnnotationInHierarchy(READONLY);
-            }
-            if (extAnnot != null && !AnnotationUtils.areSame(extAnnot, classAnnot)) {
-                checker.report(
-                        Result.failure(
-                                "declaration.inconsistent.with.extends.clause",
-                                classAnnot,
-                                extAnnot),
-                        extendsClause);
-            }
-
-        }
-
-        List<? extends Tree> implementsClauses = classTree.getImplementsClause();
-        if (implementsClauses != null) {
-            for (Tree impl : implementsClauses) {
-                // now defaultFor annotator is not called before this
-                // TODO Lian: use CF default annotator instead of annotating manually here (default should be annotated before entry)
-                AnnotationMirror implAnnot = atypeFactory.fromTypeTree(impl).getAnnotationInHierarchy(READONLY);
-                if (implAnnot == null) {
-                    AnnotatedTypeMirror defaultAnnotatedImpl = atypeFactory.fromTypeTree(impl).deepCopy(false);
-                    annotator.visit(defaultAnnotatedImpl);
-                    implAnnot = defaultAnnotatedImpl.getAnnotationInHierarchy(READONLY);
-                }
-                if (implAnnot != null && !AnnotationUtils.areSame(implAnnot, classAnnot)) {
-                    checker.report(
-                            Result.failure(
-                                    "declaration.inconsistent.with.implements.clause",
-                                    classAnnot,
-                                    implAnnot),
-                            impl);
-                }
-            }
-        }
-    }
-
     private boolean checkCompatabilityBetweenBoundAndExtendsImplements(ClassTree node, AnnotatedDeclaredType bound) {
         if (infer) {
             atypeFactory.getAnnotatedType(node);
@@ -812,7 +739,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                         AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY), RECEIVER_DEPENDANT_MUTABLE);
                 if (!defaultedRdm && !hasSame) {
                         checker.report(Result.failure("bound.extends.incompatible"), node);
-                        return false;
+                        return true;
                 }
             }
         }
@@ -822,7 +749,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             for (Tree im : impls) {
                 // TODO: why @ from stub does not present when using getAnnotatedType(Tree)?
                 // hint: however getAnnotatedType(ExpressionTree) works perfectly.
-                AnnotatedTypeMirror implementsType = atypeFactory.getAnnotatedType(TreeUtils.elementFromTree(im));
+                AnnotatedTypeMirror implementsType = atypeFactory.getAnnotatedType(elementFromTree(im));
                 if (infer) {
                     ((PICOInferenceAnnotatedTypeFactory) atypeFactory).getVariableAnnotator().visit(implementsType, im);
                     areEqual(bound, implementsType, "bound.implements.incompatible", node);

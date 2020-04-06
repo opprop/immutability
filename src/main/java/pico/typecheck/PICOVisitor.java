@@ -108,9 +108,9 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                 }
             }
         }
-        if (tree.getKind() == Kind.ENUM) {
-            declared = IMMUTABLE;
-        }
+//        if (tree.getKind() == Kind.ENUM) {
+//            declared = IMMUTABLE;
+//        }
         // default to implicit
         if (PICOTypeUtil.isImplicitlyImmutableType(declarationType)) {
             declared = IMMUTABLE;

@@ -11,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
@@ -50,7 +51,7 @@ import qual.ReceiverDependantMutable;
  * to InitializationAnnotatedTypeFactory as if there is only one mutability qualifier hierarchy.
  * This class has lots of copied code from PICOAnnotatedTypeFactory. The two should be in sync.
  */
-public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
+public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory implements PublicViewpointAdapter {
 
     public PICOInferenceRealTypeFactory(BaseTypeChecker checker, boolean useFlow) {
         super(checker, useFlow);
@@ -173,5 +174,30 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
     protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {
         return new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(this);
     }
+
+    @Override
+    public AnnotatedTypeMirror getTypeOfExtendsImplements(Tree clause) {
+        // add default anno from class main qual, if no qual present
+        AnnotatedTypeMirror enclosing = getAnnotatedType(TreeUtils.enclosingClass(getPath(clause)));
+        AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
+        AnnotatedTypeMirror fromTypeTree = this.fromTypeTree(clause);
+        if (!fromTypeTree.isAnnotatedInHierarchy(READONLY)) {
+            fromTypeTree.addAnnotation(mainBound);
+        }
+
+        // for FBC quals
+//        Set<AnnotationMirror> bound = this.getTypeDeclarationBounds(fromTypeTree.getUnderlyingType());
+//        fromTypeTree.addMissingAnnotations(bound);
+        return fromTypeTree;
+    }
+
+    private PICOViewpointAdapter getPICOViewpointAdapter() {
+        return (PICOViewpointAdapter) viewpointAdapter;
+    }
+
+    public ExtendedViewpointAdapter getViewpointAdapter() {
+        return (ExtendedViewpointAdapter) viewpointAdapter;
+    }
+
 
 }

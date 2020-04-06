@@ -74,13 +74,15 @@ public class PICOInferenceValidator extends InferenceValidator{
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
         if (PICOTypeUtil.inStaticScope(visitor.getCurrentPath())) {
-            if (infer) {
-                ((PICOInferenceVisitor)visitor).mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
-            } else {
-                if (type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
-                    reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
-                }
-            }
+//            if (infer) {
+//                ((PICOInferenceVisitor)visitor).mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
+//            } else {
+//                if (type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+//                    reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
+//                }
+//            }
+            ((InferenceVisitor)visitor).mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
+            // TODO set isValid or move to visitor
         }
     }
 
