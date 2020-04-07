@@ -7,17 +7,23 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.type.TypeMirror;
 
+import com.sun.source.tree.IdentifierTree;
+import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.type.AbstractViewpointAdapter;
+import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
@@ -86,7 +92,8 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         return new ListTreeAnnotator(
                 new PICOPropagationTreeAnnotator(this),
                 new LiteralTreeAnnotator(this),
-                new PICOTreeAnnotator(this));
+                new PICOTreeAnnotator(this),
+                new PICOSuperClauseAnnotator(this));
     }
 
     // TODO Refactor super class to remove this duplicate code
@@ -199,5 +206,36 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         return (ExtendedViewpointAdapter) viewpointAdapter;
     }
 
+    @Override
+    protected Set<? extends AnnotationMirror> getDefaultTypeDeclarationBounds() {
+        return Collections.singleton(MUTABLE);
+    }
 
+    @Override
+    public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
+        if (tree.getKind() == Tree.Kind.IDENTIFIER && TreeUtils.isClassTree(getPath(tree).getParentPath().getLeaf())) {
+            System.err.println(tree);
+        }
+        return super.getAnnotatedType(tree);
+    }
+
+    public static class PICOSuperClauseAnnotator extends TreeAnnotator {
+
+        public PICOSuperClauseAnnotator(AnnotatedTypeFactory atypeFactory) {
+            super(atypeFactory);
+        }
+
+        @Override
+        public Void visitIdentifier(IdentifierTree identifierTree, AnnotatedTypeMirror annotatedTypeMirror) {
+            TreePath path = atypeFactory.getPath(identifierTree);
+            if (!annotatedTypeMirror.isAnnotatedInHierarchy(READONLY) &&
+                    TreeUtils.isClassTree(path.getParentPath().getLeaf())) {
+                AnnotatedTypeMirror enclosing = atypeFactory.getAnnotatedType(TreeUtils.enclosingClass(path));
+                AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
+                annotatedTypeMirror.addAnnotation(mainBound);
+                System.err.println("ANNOT: ADDED DEFAULT FOR:" + annotatedTypeMirror);
+            }
+            return super.visitIdentifier(identifierTree, annotatedTypeMirror);
+        }
+    }
 }
