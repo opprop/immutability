@@ -92,8 +92,8 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         return new ListTreeAnnotator(
                 new PICOPropagationTreeAnnotator(this),
                 new LiteralTreeAnnotator(this),
-                new PICOTreeAnnotator(this),
-                new PICOSuperClauseAnnotator(this));
+                new PICOSuperClauseAnnotator(this),
+                new PICOTreeAnnotator(this));
     }
 
     // TODO Refactor super class to remove this duplicate code
@@ -228,12 +228,13 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         @Override
         public Void visitIdentifier(IdentifierTree identifierTree, AnnotatedTypeMirror annotatedTypeMirror) {
             TreePath path = atypeFactory.getPath(identifierTree);
-            if (!annotatedTypeMirror.isAnnotatedInHierarchy(READONLY) &&
+
+            if ((!annotatedTypeMirror.isAnnotatedInHierarchy(READONLY) | atypeFactory.getQualifierHierarchy().findAnnotationInHierarchy(TreeUtils.typeOf(identifierTree).getAnnotationMirrors(), READONLY) == null) &&
                     TreeUtils.isClassTree(path.getParentPath().getLeaf())) {
                 AnnotatedTypeMirror enclosing = atypeFactory.getAnnotatedType(TreeUtils.enclosingClass(path));
                 AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
-                annotatedTypeMirror.addAnnotation(mainBound);
-                System.err.println("ANNOT: ADDED DEFAULT FOR:" + annotatedTypeMirror);
+                annotatedTypeMirror.replaceAnnotation(mainBound);
+                System.err.println("ANNOT: ADDED DEFAULT FOR: " + annotatedTypeMirror);
             }
             return super.visitIdentifier(identifierTree, annotatedTypeMirror);
         }
