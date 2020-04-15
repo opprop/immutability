@@ -24,9 +24,7 @@ public class StrangeReadonly {
             public int compare(@Readonly Object o1, @Readonly Object o2) {
                 // Before inference, @Mutable is casted to @Immutable; After inference, @Readonly is
                 // casted to @Immutable.
-                // :: fixable-warning: (cast.unsafe)
                 int i = (Integer) o1;
-                // :: fixable-warning: (cast.unsafe)
                 int j = (Integer) o2;
                 return 0;
             }

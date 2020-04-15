@@ -219,91 +219,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     @Override
-    protected boolean isTypeCastSafe(AnnotatedTypeMirror castType, AnnotatedTypeMirror exprType) {
-        QualifierHierarchy qualifierHierarchy = atypeFactory.getQualifierHierarchy();
-
-        final TypeKind castTypeKind = castType.getKind();
-//        if (castTypeKind == TypeKind.DECLARED) {
-//            // Don't issue an error if the annotations are equivalent to the qualifier upper bound
-//            // of the type.
-//            AnnotatedDeclaredType castDeclared = (AnnotatedDeclaredType) castType;
-//            Set<AnnotationMirror> bounds =
-//                    atypeFactory.getTypeDeclarationBounds(castDeclared.getUnderlyingType());
-//
-//            if (AnnotationUtils.areSame(castDeclared.getAnnotations(), bounds)) {
-//                return true;
-//            }
-//        }
-
-        if (checker.hasOption("checkCastElementType")) {
-            AnnotatedTypeMirror newCastType;
-            if (castTypeKind == TypeKind.TYPEVAR) {
-                newCastType = ((AnnotatedTypeMirror.AnnotatedTypeVariable) castType).getUpperBound();
-            } else {
-                newCastType = castType;
-            }
-            AnnotatedTypeMirror newExprType;
-            if (exprType.getKind() == TypeKind.TYPEVAR) {
-                newExprType = ((AnnotatedTypeMirror.AnnotatedTypeVariable) exprType).getUpperBound();
-            } else {
-                newExprType = exprType;
-            }
-
-            if (!atypeFactory.getTypeHierarchy().isSubtype(newExprType, newCastType)) {
-                return false;
-            }
-            if (newCastType.getKind() == TypeKind.ARRAY
-                    && newExprType.getKind() != TypeKind.ARRAY) {
-                // Always warn if the cast contains an array, but the expression
-                // doesn't, as in "(Object[]) o" where o is of type Object
-                return false;
-            } else if (newCastType.getKind() == TypeKind.DECLARED
-                    && newExprType.getKind() == TypeKind.DECLARED) {
-                int castSize = ((AnnotatedDeclaredType) newCastType).getTypeArguments().size();
-                int exprSize = ((AnnotatedDeclaredType) newExprType).getTypeArguments().size();
-
-                if (castSize != exprSize) {
-                    // Always warn if the cast and expression contain a different number of
-                    // type arguments, e.g. to catch a cast from "Object" to "List<@NonNull
-                    // Object>".
-                    // TODO: the same number of arguments actually doesn't guarantee anything.
-                    return false;
-                }
-            } else if (castTypeKind == TypeKind.TYPEVAR && exprType.getKind() == TypeKind.TYPEVAR) {
-                // If both the cast type and the casted expression are type variables, then check
-                // the bounds.
-                Set<AnnotationMirror> lowerBoundAnnotationsCast =
-                        AnnotatedTypes.findEffectiveLowerBoundAnnotations(
-                                qualifierHierarchy, castType);
-                Set<AnnotationMirror> lowerBoundAnnotationsExpr =
-                        AnnotatedTypes.findEffectiveLowerBoundAnnotations(
-                                qualifierHierarchy, exprType);
-                return qualifierHierarchy.isSubtype(
-                        lowerBoundAnnotationsExpr, lowerBoundAnnotationsCast)
-                        && qualifierHierarchy.isSubtype(
-                        exprType.getEffectiveAnnotations(),
-                        castType.getEffectiveAnnotations());
-            }
-            Set<AnnotationMirror> castAnnos;
-            if (castTypeKind == TypeKind.TYPEVAR) {
-                // If the cast type is a type var, but the expression is not, then check that the
-                // type of the expression is a subtype of the lower bound.
-                castAnnos =
-                        AnnotatedTypes.findEffectiveLowerBoundAnnotations(
-                                qualifierHierarchy, castType);
-            } else {
-                castAnnos = castType.getAnnotations();
-            }
-
-            return qualifierHierarchy.isSubtype(exprType.getEffectiveAnnotations(), castAnnos);
-        } else {
-            // checkCastElementType option wasn't specified, so only check effective annotations.
-            return qualifierHierarchy.isSubtype(
-                    exprType.getEffectiveAnnotations(), castType.getEffectiveAnnotations());
-        }
-    }
-
-    @Override
     public Void visitMethod(MethodTree node, Void p) {
         AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(node);
         AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(node, atypeFactory);
@@ -404,7 +319,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         return true;
     }
 
-    protected void checkTypecastSafety(TypeCastTree node, Void p) {
+    @Override
+    protected void checkTypecastSafety(TypeCastTree node) {
         if (!checker.getLintOption("cast:unsafe", true)) {
             return;
         }
@@ -442,7 +358,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             return isCompatibleCastInInfer(castType, exprType, node);
         } else {
             // Typechecking side standard implementation - warns about downcasting
-            return super.isTypeCastSafe(castType, exprType);
+            return isTypeCastSafe(castType, exprType);
         }
     }
 
@@ -548,6 +464,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     private void checkAssignableField(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         Element fieldElement = TreeUtils.elementFromUse(node);
+        assert fieldElement != null;
         if (fieldElement != null) {//TODO Can this bu null?
             AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
             assert  fieldType != null;
@@ -761,9 +678,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             addPreference(bound, IMMUTABLE, 2);
         }
 
-//        // duplicated logic - remove later
-//        checkCompatabilityBetweenBoundAndSuperClassesBounds(node, typeElement, bound);
-
         // Always reach this point. Do not suppress errors.
         super.processClassTree(node);
     }
@@ -775,66 +689,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             if (!isAdaptedSubtype(bound, superBound)) {
                 checker.report(Result.failure("subclass.bound.incompatible", bound, superBound), node);
                 return false; // do not stop processing if failed
-            }
-        }
-        return true;
-    }
-
-    private boolean checkCompatabilityBetweenBoundAndExtendsImplements(ClassTree node, AnnotatedDeclaredType bound) {
-        if (infer) {
-            atypeFactory.getAnnotatedType(node);
-        }
-
-        boolean hasSame;
-        Tree ext = node.getExtendsClause();
-        if (ext != null) {
-            AnnotatedTypeMirror extendsType= atypeFactory.getAnnotatedType(ext);
-            if (infer) {
-                ((PICOInferenceAnnotatedTypeFactory) atypeFactory).getVariableAnnotator().visit(extendsType, ext);
-                areEqual(bound, extendsType, "bound.extends.incompatible", node);
-            } else {
-                AnnotationMirror superAnnoOnUse = atypeFactory.fromTypeTree(ext).getAnnotationInHierarchy(READONLY);
-
-                hasSame = bound.getAnnotations().size() == extendsType.getAnnotations().size()
-                        && AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY),
-                        bound.getAnnotationInHierarchy(READONLY));
-                // TODO rdm defaulting should be prevented instead of suppressing error here
-                boolean defaultedRdm = superAnnoOnUse == null &&
-                        AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY), RECEIVER_DEPENDANT_MUTABLE);
-                if (!defaultedRdm && !hasSame) {
-                        checker.report(Result.failure("bound.extends.incompatible"), node);
-                        return true;
-                }
-            }
-        }
-
-        List<? extends Tree> impls = node.getImplementsClause();
-        if (impls != null) {
-            for (Tree im : impls) {
-                // TODO: why @ from stub does not present when using getAnnotatedType(Tree)?
-                // hint: however getAnnotatedType(ExpressionTree) works perfectly.
-                AnnotatedTypeMirror implementsType = atypeFactory.getAnnotatedType(elementFromTree(im));
-                if (infer) {
-                    ((PICOInferenceAnnotatedTypeFactory) atypeFactory).getVariableAnnotator().visit(implementsType, im);
-                    areEqual(bound, implementsType, "bound.implements.incompatible", node);
-                } else {
-                    hasSame = bound.getAnnotations().size() == implementsType.getAnnotations().size()
-                            && AnnotationUtils.areSame(implementsType.getAnnotationInHierarchy(READONLY),
-                            bound.getAnnotationInHierarchy(READONLY));
-                    if (!hasSame) {
-                        // mutable and immutable could extends RDM. See Mier's thesis 4.8.3 (p.43)
-                        if (!(bound.getAnnotations().size() == implementsType.getAnnotations().size()
-                                && AnnotationUtils.areSame(implementsType.getAnnotationInHierarchy(READONLY),
-                                RECEIVER_DEPENDANT_MUTABLE)
-                                && (AnnotationUtils.areSame(bound.getAnnotationInHierarchy(READONLY),
-                                MUTABLE)
-                                || AnnotationUtils.areSame(bound.getAnnotationInHierarchy(READONLY),
-                                IMMUTABLE)))) {
-                            checker.report(Result.failure("bound.implements.incompatible"), node);
-                            return false;
-                        }
-                    }
-                }
             }
         }
         return true;
