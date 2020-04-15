@@ -198,10 +198,6 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         return fromTypeTree;
     }
 
-    private PICOViewpointAdapter getPICOViewpointAdapter() {
-        return (PICOViewpointAdapter) viewpointAdapter;
-    }
-
     public ExtendedViewpointAdapter getViewpointAdapter() {
         return (ExtendedViewpointAdapter) viewpointAdapter;
     }
@@ -212,10 +208,16 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
     }
 
     @Override
-    public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
-        if (tree.getKind() == Tree.Kind.IDENTIFIER && TreeUtils.isClassTree(getPath(tree).getParentPath().getLeaf())) {
-            System.err.println(tree);
+    public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
+        // TODO too awkward. maybe overload isImplicitlyImmutableType
+        if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
+            return Collections.singleton(IMMUTABLE);
         }
+        return super.getTypeDeclarationBounds(type);
+    }
+
+    @Override
+    public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
         return super.getAnnotatedType(tree);
     }
 
@@ -229,7 +231,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         public Void visitIdentifier(IdentifierTree identifierTree, AnnotatedTypeMirror annotatedTypeMirror) {
             TreePath path = atypeFactory.getPath(identifierTree);
 
-            if ((!annotatedTypeMirror.isAnnotatedInHierarchy(READONLY) | atypeFactory.getQualifierHierarchy().findAnnotationInHierarchy(TreeUtils.typeOf(identifierTree).getAnnotationMirrors(), READONLY) == null) &&
+            if (path != null && (!annotatedTypeMirror.isAnnotatedInHierarchy(READONLY) | atypeFactory.getQualifierHierarchy().findAnnotationInHierarchy(TreeUtils.typeOf(identifierTree).getAnnotationMirrors(), READONLY) == null) &&
                     TreeUtils.isClassTree(path.getParentPath().getLeaf())) {
                 AnnotatedTypeMirror enclosing = atypeFactory.getAnnotatedType(TreeUtils.enclosingClass(path));
                 AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);

@@ -151,7 +151,7 @@ public class PICOTypeUtil {
             supertypecls = null;
         }
 
-        if (supertypecls != null && supertypecls.getKind().name() != TypeKind.NONE.name()) {
+        if (supertypecls != null && !supertypecls.getKind().name().equals(TypeKind.NONE.name())) {
             TypeElement supercls = (TypeElement) ((DeclaredType) supertypecls).asElement();
             boundsOfSupers.add(getBoundTypeOfTypeDeclaration(supercls, atypeFactory));
         }

@@ -24,7 +24,6 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 
-import com.sun.org.apache.regexp.internal.RE;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
@@ -36,7 +35,6 @@ import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 
 import com.sun.source.tree.AnnotationTree;
@@ -64,12 +62,8 @@ import checkers.inference.SlotManager;
 import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.Constraint;
 import checkers.inference.model.ConstraintManager;
-import checkers.inference.model.EqualityConstraint;
-import checkers.inference.model.InequalityConstraint;
 import checkers.inference.model.Slot;
-import checkers.inference.model.SubtypeConstraint;
 import org.checkerframework.javacutil.TypesUtils;
-import pico.typecheck.PICOAnnotatedTypeFactory;
 import pico.typecheck.PICOTypeUtil;
 
 /**
@@ -110,6 +104,15 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(lhs.getAnnotationInHierarchy(READONLY),
                 rhs);
         return mainIsSubtype(adapted, lhs.getAnnotationInHierarchy(READONLY));
+    }
+
+    @Override
+    public boolean mainIsSubtype(AnnotatedTypeMirror ty, AnnotationMirror mod) {
+        boolean s = super.mainIsSubtype(ty, mod); // execute only once to avoid side-effects
+        if (!s) {
+            return atypeFactory.getQualifierHierarchy().isSubtype(ty.getAnnotationInHierarchy(mod), mod);
+        }
+        return true;
     }
 
     private void addMutableImmutableRdmIncompatibleConstraints(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType) {
@@ -165,7 +168,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
 
         return validateType(tree, type);
-        // TODO extends clause kind = IDENTIFIER. Add case here / override getAnnotatedType / annotator?
+        // extends clause kind = IDENTIFIER. an annotator is added for defaulting
     }
 
     // TODO This might not be correct for infer mode. Maybe returning as it is
@@ -195,9 +198,11 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     private AnnotationMirror extractVarAnnot(final AnnotatedTypeMirror atm) {
-        assert infer;
-        final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
-        return slotManager.getAnnotation(slotManager.getVariableSlot(atm));
+        if (infer) {
+            final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+            return slotManager.getAnnotation(slotManager.getVariableSlot(atm));
+        }
+        return atm.getAnnotationInHierarchy(READONLY);
     }
 
     @Override
@@ -211,6 +216,91 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             addDeepPreference(type, IMMUTABLE, 3, node);
         }
         return super.visitVariable(node, p);
+    }
+
+    @Override
+    protected boolean isTypeCastSafe(AnnotatedTypeMirror castType, AnnotatedTypeMirror exprType) {
+        QualifierHierarchy qualifierHierarchy = atypeFactory.getQualifierHierarchy();
+
+        final TypeKind castTypeKind = castType.getKind();
+//        if (castTypeKind == TypeKind.DECLARED) {
+//            // Don't issue an error if the annotations are equivalent to the qualifier upper bound
+//            // of the type.
+//            AnnotatedDeclaredType castDeclared = (AnnotatedDeclaredType) castType;
+//            Set<AnnotationMirror> bounds =
+//                    atypeFactory.getTypeDeclarationBounds(castDeclared.getUnderlyingType());
+//
+//            if (AnnotationUtils.areSame(castDeclared.getAnnotations(), bounds)) {
+//                return true;
+//            }
+//        }
+
+        if (checker.hasOption("checkCastElementType")) {
+            AnnotatedTypeMirror newCastType;
+            if (castTypeKind == TypeKind.TYPEVAR) {
+                newCastType = ((AnnotatedTypeMirror.AnnotatedTypeVariable) castType).getUpperBound();
+            } else {
+                newCastType = castType;
+            }
+            AnnotatedTypeMirror newExprType;
+            if (exprType.getKind() == TypeKind.TYPEVAR) {
+                newExprType = ((AnnotatedTypeMirror.AnnotatedTypeVariable) exprType).getUpperBound();
+            } else {
+                newExprType = exprType;
+            }
+
+            if (!atypeFactory.getTypeHierarchy().isSubtype(newExprType, newCastType)) {
+                return false;
+            }
+            if (newCastType.getKind() == TypeKind.ARRAY
+                    && newExprType.getKind() != TypeKind.ARRAY) {
+                // Always warn if the cast contains an array, but the expression
+                // doesn't, as in "(Object[]) o" where o is of type Object
+                return false;
+            } else if (newCastType.getKind() == TypeKind.DECLARED
+                    && newExprType.getKind() == TypeKind.DECLARED) {
+                int castSize = ((AnnotatedDeclaredType) newCastType).getTypeArguments().size();
+                int exprSize = ((AnnotatedDeclaredType) newExprType).getTypeArguments().size();
+
+                if (castSize != exprSize) {
+                    // Always warn if the cast and expression contain a different number of
+                    // type arguments, e.g. to catch a cast from "Object" to "List<@NonNull
+                    // Object>".
+                    // TODO: the same number of arguments actually doesn't guarantee anything.
+                    return false;
+                }
+            } else if (castTypeKind == TypeKind.TYPEVAR && exprType.getKind() == TypeKind.TYPEVAR) {
+                // If both the cast type and the casted expression are type variables, then check
+                // the bounds.
+                Set<AnnotationMirror> lowerBoundAnnotationsCast =
+                        AnnotatedTypes.findEffectiveLowerBoundAnnotations(
+                                qualifierHierarchy, castType);
+                Set<AnnotationMirror> lowerBoundAnnotationsExpr =
+                        AnnotatedTypes.findEffectiveLowerBoundAnnotations(
+                                qualifierHierarchy, exprType);
+                return qualifierHierarchy.isSubtype(
+                        lowerBoundAnnotationsExpr, lowerBoundAnnotationsCast)
+                        && qualifierHierarchy.isSubtype(
+                        exprType.getEffectiveAnnotations(),
+                        castType.getEffectiveAnnotations());
+            }
+            Set<AnnotationMirror> castAnnos;
+            if (castTypeKind == TypeKind.TYPEVAR) {
+                // If the cast type is a type var, but the expression is not, then check that the
+                // type of the expression is a subtype of the lower bound.
+                castAnnos =
+                        AnnotatedTypes.findEffectiveLowerBoundAnnotations(
+                                qualifierHierarchy, castType);
+            } else {
+                castAnnos = castType.getAnnotations();
+            }
+
+            return qualifierHierarchy.isSubtype(exprType.getEffectiveAnnotations(), castAnnos);
+        } else {
+            // checkCastElementType option wasn't specified, so only check effective annotations.
+            return qualifierHierarchy.isSubtype(
+                    exprType.getEffectiveAnnotations(), castType.getEffectiveAnnotations());
+        }
     }
 
     @Override
@@ -325,6 +415,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // the input types to be subtypes according to Java
         if (!isTypeCastSafe(castType, exprType, node)) {
             // This is only warning message, so even though enterred this line, it doesn't cause PICOInfer to exit.
+            // Even if that was an error, PICOInfer would also not exit.
             checker.report(
                     Result.warning("cast.unsafe", exprType.toString(true), castType.toString(true)),
                     node);
@@ -656,8 +747,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     @Override
     public void processClassTree(ClassTree node) {
         TypeElement typeElement = TreeUtils.elementFromDeclaration(node);
-        // TODO Don't process anonymous class. I'm not even sure if whether processClassTree(ClassTree) is
-        // called on anonymous class tree
+        // Don't process anonymous class.
         if (TypesUtils.isAnonymous(TreeUtils.typeOf(node))) {
             super.processClassTree(node);
             return;
@@ -671,35 +761,10 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             addPreference(bound, IMMUTABLE, 2);
         }
 
-        if (!checkCompatabilityBetweenBoundAndSuperClassesBounds(node, typeElement, bound)) {
-//            return;
-        }
+//        // duplicated logic - remove later
+//        checkCompatabilityBetweenBoundAndSuperClassesBounds(node, typeElement, bound);
 
-//        if (node.getExtendsClause() != null) {
-//            // compare extends type with its decl
-//            Tree extClause = node.getExtendsClause();
-//            AnnotatedTypeMirror ext = atypeFactory.getTypeOfExtendsImplements(extClause);
-//            AnnotatedTypeMirror extDecl = atypeFactory.getAnnotatedType(TreeUtils.elementFromTree(extClause));
-//            System.err.println("V: "+ext);
-//            assert ext instanceof AnnotatedDeclaredType;
-//            assert extDecl instanceof AnnotatedDeclaredType;
-//
-//
-//            if (!isAdaptedSubtype((AnnotatedDeclaredType) ext, (AnnotatedDeclaredType) extDecl)) {
-//                checker.report(
-//                        Result.failure(
-//                                "invalid.annotation.on.use", node.getExtendsClause()), node);
-//            }
-//        }
-
-
-//        if (!checkCompatabilityBetweenBoundAndExtendsImplements(node, bound)) {
-//            return;
-//        }
-
-        // Reach this point iff 1) bound annotation is one of mutable, rdm or immutable;
-        // 2) bound is compatible with bounds on super types. Only then continue processing
-        // the class tree
+        // Always reach this point. Do not suppress errors.
         super.processClassTree(node);
     }
 
@@ -709,7 +774,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         for (AnnotatedDeclaredType superBound : superBounds) {
             if (!isAdaptedSubtype(bound, superBound)) {
                 checker.report(Result.failure("subclass.bound.incompatible", bound, superBound), node);
-                return false; // TODO stop here?
+                return false; // do not stop processing if failed
             }
         }
         return true;
