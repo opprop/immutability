@@ -83,11 +83,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
-//        if (declarationType.hasAnnotation(READONLY)) {
-//            // upper bound is always @Readonly
-//            // only needed in typechecking
-//            return true;
-//        }
         return isAdaptedSubtype(useType, declarationType);
 
     }
@@ -99,7 +94,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
      * @param rhs right value of adaption, typically declaration
      * @return true if holds, always true during inference
      */
-    private boolean isAdaptedSubtype(AnnotatedDeclaredType lhs, AnnotatedDeclaredType rhs) {
+    private boolean isAdaptedSubtype(AnnotatedTypeMirror lhs, AnnotatedTypeMirror rhs) {
         ExtendedViewpointAdapter vpa = ((PublicViewpointAdapter)atypeFactory).getViewpointAdapter();
         AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(lhs.getAnnotationInHierarchy(READONLY),
                 rhs);
@@ -108,6 +103,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     @Override
     public boolean mainIsSubtype(AnnotatedTypeMirror ty, AnnotationMirror mod) {
+        // TODO push change to cfi
         boolean s = super.mainIsSubtype(ty, mod); // execute only once to avoid side-effects
         if (!s) {
             return atypeFactory.getQualifierHierarchy().isSubtype(ty.getAnnotationInHierarchy(mod), mod);

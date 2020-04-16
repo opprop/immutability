@@ -15,6 +15,7 @@ import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 import com.sun.source.tree.IdentifierTree;
@@ -212,6 +213,9 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         // TODO too awkward. maybe overload isImplicitlyImmutableType
         if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
             return Collections.singleton(IMMUTABLE);
+        }
+        if (type.getKind() == TypeKind.ARRAY) {
+            return Collections.singleton(READONLY); // if decided to use vpa for array, return RDM.
         }
         return super.getTypeDeclarationBounds(type);
     }
