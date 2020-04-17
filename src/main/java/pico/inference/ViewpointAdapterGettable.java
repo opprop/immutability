@@ -1,5 +1,5 @@
 package pico.inference;
 
-public interface PublicViewpointAdapter {
+public interface ViewpointAdapterGettable {
     ExtendedViewpointAdapter getViewpointAdapter();
 }

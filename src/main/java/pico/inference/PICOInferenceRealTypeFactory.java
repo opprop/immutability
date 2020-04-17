@@ -8,7 +8,6 @@ import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -19,6 +18,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -40,7 +40,6 @@ import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOTypeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICOTreeAnnotator;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 import pico.typecheck.PICOViewpointAdapter;
 import qual.Bottom;
@@ -58,7 +57,7 @@ import qual.ReceiverDependantMutable;
  * to InitializationAnnotatedTypeFactory as if there is only one mutability qualifier hierarchy.
  * This class has lots of copied code from PICOAnnotatedTypeFactory. The two should be in sync.
  */
-public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory implements PublicViewpointAdapter {
+public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory implements ViewpointAdapterGettable {
 
     public PICOInferenceRealTypeFactory(BaseTypeChecker checker, boolean useFlow) {
         super(checker, useFlow);
@@ -231,18 +230,41 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
             super(atypeFactory);
         }
 
-        @Override
-        public Void visitIdentifier(IdentifierTree identifierTree, AnnotatedTypeMirror annotatedTypeMirror) {
-            TreePath path = atypeFactory.getPath(identifierTree);
+        private static boolean isSuperClause(TreePath path) {
+            if (path == null) {
+                return false;
+            }
+            return TreeUtils.isClassTree(path.getParentPath().getLeaf());
+        }
 
-            if (path != null && (!annotatedTypeMirror.isAnnotatedInHierarchy(READONLY) | atypeFactory.getQualifierHierarchy().findAnnotationInHierarchy(TreeUtils.typeOf(identifierTree).getAnnotationMirrors(), READONLY) == null) &&
-                    TreeUtils.isClassTree(path.getParentPath().getLeaf())) {
+        private void addDefaultFromMain(Tree tree, AnnotatedTypeMirror mirror) {
+            TreePath path = atypeFactory.getPath(tree);
+
+            // only annotates when:
+            // 1. it's a super clause, AND
+            // 2. atm OR tree is not annotated
+            if (isSuperClause(path) &&
+                    (!mirror.isAnnotatedInHierarchy(READONLY) ||
+                    atypeFactory.getQualifierHierarchy().findAnnotationInHierarchy(TreeUtils.typeOf(tree).getAnnotationMirrors(), READONLY) == null)) {
                 AnnotatedTypeMirror enclosing = atypeFactory.getAnnotatedType(TreeUtils.enclosingClass(path));
                 AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
-                annotatedTypeMirror.replaceAnnotation(mainBound);
-                System.err.println("ANNOT: ADDED DEFAULT FOR: " + annotatedTypeMirror);
+                mirror.replaceAnnotation(mainBound);
+                System.err.println("ANNOT: ADDED DEFAULT FOR: " + mirror);
             }
+        }
+
+        @Override
+        public Void visitIdentifier(IdentifierTree identifierTree, AnnotatedTypeMirror annotatedTypeMirror) {
+            // super clauses without type param use this
+            addDefaultFromMain(identifierTree, annotatedTypeMirror);
             return super.visitIdentifier(identifierTree, annotatedTypeMirror);
+        }
+
+        @Override
+        public Void visitParameterizedType(ParameterizedTypeTree parameterizedTypeTree, AnnotatedTypeMirror annotatedTypeMirror) {
+            // super clauses with type param use this
+            addDefaultFromMain(parameterizedTypeTree, annotatedTypeMirror);
+            return super.visitParameterizedType(parameterizedTypeTree, annotatedTypeMirror);
         }
     }
 }

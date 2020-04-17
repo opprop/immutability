@@ -1,42 +1,14 @@
 package pico.inference;
 
-import static org.checkerframework.javacutil.TreeUtils.elementFromTree;
-import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
-
-import java.lang.reflect.AnnotatedType;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeKind;
-
-import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
-import org.checkerframework.framework.source.Result;
-import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
-import org.checkerframework.framework.type.QualifierHierarchy;
-import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.TreeUtils;
-
+import checkers.inference.InferenceChecker;
+import checkers.inference.InferenceMain;
+import checkers.inference.InferenceValidator;
+import checkers.inference.InferenceVisitor;
+import checkers.inference.SlotManager;
+import checkers.inference.model.ConstantSlot;
+import checkers.inference.model.Constraint;
+import checkers.inference.model.ConstraintManager;
+import checkers.inference.model.Slot;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
@@ -53,18 +25,36 @@ import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-
-import checkers.inference.InferenceChecker;
-import checkers.inference.InferenceMain;
-import checkers.inference.InferenceValidator;
-import checkers.inference.InferenceVisitor;
-import checkers.inference.SlotManager;
-import checkers.inference.model.ConstantSlot;
-import checkers.inference.model.Constraint;
-import checkers.inference.model.ConstraintManager;
-import checkers.inference.model.Slot;
+import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
+import org.checkerframework.framework.source.Result;
+import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import org.checkerframework.framework.type.QualifierHierarchy;
+import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import pico.typecheck.PICOTypeUtil;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
 /**
  * Generate constraints based on the PICO constraint-based type rules in infer mode. Has typecheck
@@ -83,8 +73,11 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
+        // FIXME workaround for typecheck BOTTOM
+        if (useType.hasAnnotation(BOTTOM)) {
+            return true;
+        }
         return isAdaptedSubtype(useType, declarationType);
-
     }
 
     /**
@@ -95,7 +88,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
      * @return true if holds, always true during inference
      */
     private boolean isAdaptedSubtype(AnnotatedTypeMirror lhs, AnnotatedTypeMirror rhs) {
-        ExtendedViewpointAdapter vpa = ((PublicViewpointAdapter)atypeFactory).getViewpointAdapter();
+        ExtendedViewpointAdapter vpa = ((ViewpointAdapterGettable)atypeFactory).getViewpointAdapter();
         AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(lhs.getAnnotationInHierarchy(READONLY),
                 rhs);
         return mainIsSubtype(adapted, lhs.getAnnotationInHierarchy(READONLY));

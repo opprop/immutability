@@ -9,7 +9,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeKind;
 
-public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter{
+public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter implements ExtendedViewpointAdapter{
 
     public PICOInferenceViewpointAdapter(AnnotatedTypeFactory atypeFactory) {
         super(atypeFactory);
@@ -29,5 +29,15 @@ public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter{
             return declared;
         }
         return super.combineAnnotationWithType(receiverAnnotation, declared);
+    }
+
+    @Override
+    public AnnotatedTypeMirror rawCombineAnnotationWithType(AnnotationMirror anno, AnnotatedTypeMirror type) {
+        return combineAnnotationWithType(anno, type);
+    }
+
+    @Override
+    public AnnotationMirror rawCombineAnnotationWithAnnotation(AnnotationMirror anno, AnnotationMirror type) {
+        return rawCombineAnnotationWithAnnotation(anno, type);
     }
 }

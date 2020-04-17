@@ -41,12 +41,14 @@ public class PICOInferenceValidator extends InferenceValidator{
         checkOnlyOneAssignabilityModifierOnField(tree);
         AnnotatedDeclaredType defaultType =
                 (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(type.getUnderlyingType().asElement());
+        // TODO for defaulted super clause: should top anno be checked? (see shouldCheckTopLevelDeclaredType())
         // null check below may not needed
         if (defaultType.getAnnotationInHierarchy(READONLY) == null) {
             defaultType = defaultType.deepCopy();
             defaultType.replaceAnnotation(MUTABLE);
         }
-        if (!visitor.isValidUse(defaultType, type, tree)) {
+        // FIXME workaround for bottom: "as internal anno, bottom accepted everywhere"
+        if (!type.hasAnnotation(BOTTOM) && !visitor.isValidUse(defaultType, type, tree)) {
             reportInvalidAnnotationsOnUse(type, tree);
         }
         return super.visitDeclared(type, tree);
@@ -95,7 +97,8 @@ public class PICOInferenceValidator extends InferenceValidator{
                         new AnnotationMirror[]{READONLY, MUTABLE, RECEIVER_DEPENDANT_MUTABLE, BOTTOM},
                         "type.invalid.annotations.on.use", tree);
             } else {
-                if (!type.hasAnnotation(IMMUTABLE)) {
+                // FIXME workaround for typecheck. How should inference handle BOTTOM?
+                if (!type.hasAnnotation(IMMUTABLE) && !type.hasAnnotation(BOTTOM)) {
                     reportInvalidAnnotationsOnUse(type, tree);
                 }
             }
