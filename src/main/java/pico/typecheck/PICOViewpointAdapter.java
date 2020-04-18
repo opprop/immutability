@@ -63,13 +63,13 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter implements Ex
     }
 
     public AnnotatedTypeMirror rawCombineAnnotationWithType(AnnotationMirror anno, AnnotatedTypeMirror type) {
-        System.err.println("VPA: " + anno + " ->" + type);
+//        System.err.println("VPA: " + anno + " ->" + type);
         return combineAnnotationWithType(anno, type);
     }
 
     @Override
     public AnnotationMirror rawCombineAnnotationWithAnnotation(AnnotationMirror anno, AnnotationMirror type) {
-        System.err.println("VPA: " + anno + " ->" + type);
+//        System.err.println("VPA: " + anno + " ->" + type);
         return combineAnnotationWithAnnotation(anno, type);
     }
 

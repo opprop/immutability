@@ -47,8 +47,8 @@ public class PICOInferenceValidator extends InferenceValidator{
             defaultType = defaultType.deepCopy();
             defaultType.replaceAnnotation(MUTABLE);
         }
-        // FIXME workaround for bottom: "as internal anno, bottom accepted everywhere"
-        if (!type.hasAnnotation(BOTTOM) && !visitor.isValidUse(defaultType, type, tree)) {
+
+        if (!visitor.isValidUse(defaultType, type, tree)) {
             reportInvalidAnnotationsOnUse(type, tree);
         }
         return super.visitDeclared(type, tree);

@@ -1,9 +1,5 @@
 package pico.inference;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +10,8 @@ import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
@@ -30,6 +28,7 @@ import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.*;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
 
@@ -48,6 +47,8 @@ import qual.Mutable;
 import qual.PolyMutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
 /**
  * PICOInferenceRealTypeFactory exists because: 1)PICOAnnotatedTypeFactory is not subtype of
@@ -215,6 +216,15 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         }
         if (type.getKind() == TypeKind.ARRAY) {
             return Collections.singleton(READONLY); // if decided to use vpa for array, return RDM.
+        }
+        if (type instanceof DeclaredType) {
+            Element ele = ((DeclaredType) type).asElement();
+            if (ele.getKind() == ElementKind.ENUM) {
+                if (!AnnotationUtils.containsSameByName(getDeclAnnotations(ele), MUTABLE) &&
+                        !AnnotationUtils.containsSameByName(getDeclAnnotations(ele), RECEIVER_DEPENDANT_MUTABLE)) { // no decl anno
+                    return Collections.singleton(IMMUTABLE);
+                }
+            }
         }
         return super.getTypeDeclarationBounds(type);
     }

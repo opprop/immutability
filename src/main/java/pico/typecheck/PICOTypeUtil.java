@@ -92,8 +92,7 @@ public class PICOTypeUtil {
      * with the types and typeNames that are in @ImplicitFor in the definition of @Immutable qualifier*/
     public static boolean isImplicitlyImmutableType(AnnotatedTypeMirror atm) {
         return isInTypeKindsOfDefaultForOfImmutable(atm)
-                || isInTypesOfDefaultForOfImmutable(atm)
-                || isEnumOrEnumConstant(atm);
+                || isInTypesOfDefaultForOfImmutable(atm);
     }
 
     /**
