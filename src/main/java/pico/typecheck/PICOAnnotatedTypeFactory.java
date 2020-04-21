@@ -409,7 +409,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         public Void visitVariable(VariableTree node, AnnotatedTypeMirror annotatedTypeMirror) {
             VariableElement element = TreeUtils.elementFromDeclaration(node);
             PICOTypeUtil.addDefaultForField(atypeFactory, annotatedTypeMirror, element);
-            PICOTypeUtil.applyImmutableToEnumAndEnumConstant(annotatedTypeMirror);
+//            PICOTypeUtil.applyImmutableToEnumAndEnumConstant(annotatedTypeMirror);
             return super.visitVariable(node, annotatedTypeMirror);
         }
     }
@@ -511,7 +511,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         @Override
         protected Void scan(AnnotatedTypeMirror type, Void p) {
             // If underlying type is enum or enum constant, appy @Immutable to type
-            PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
+//            PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
             return super.scan(type, p);
         }
     }

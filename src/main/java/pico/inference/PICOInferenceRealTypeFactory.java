@@ -119,6 +119,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         // same location
         typeAnnotators.add(new PICOTypeAnnotator(this));
         typeAnnotators.add(new PICODefaultForTypeAnnotator(this));
+        typeAnnotators.add(new PICOEnumDefaultAnnotator(this));
         return new ListTypeAnnotator(typeAnnotators);
     }
 
@@ -217,6 +218,8 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         if (type.getKind() == TypeKind.ARRAY) {
             return Collections.singleton(READONLY); // if decided to use vpa for array, return RDM.
         }
+
+        // IMMUTABLE for enum w/o decl anno
         if (type instanceof DeclaredType) {
             Element ele = ((DeclaredType) type).asElement();
             if (ele.getKind() == ElementKind.ENUM) {
@@ -275,6 +278,23 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
             // super clauses with type param use this
             addDefaultFromMain(parameterizedTypeTree, annotatedTypeMirror);
             return super.visitParameterizedType(parameterizedTypeTree, annotatedTypeMirror);
+        }
+    }
+
+    public static class PICOEnumDefaultAnnotator extends TypeAnnotator {
+        // Defaulting only applies the same annotation to all class declarations
+        // We need this to "only default enums" to immutable
+
+        public PICOEnumDefaultAnnotator(AnnotatedTypeFactory typeFactory) {
+            super(typeFactory);
+        }
+
+        @Override
+        public Void visitDeclared(AnnotatedTypeMirror.AnnotatedDeclaredType type, Void aVoid) {
+            if (PICOTypeUtil.isEnumOrEnumConstant(type)) {
+                type.addMissingAnnotations(Collections.singleton(IMMUTABLE));
+            }
+            return super.visitDeclared(type, aVoid);
         }
     }
 }

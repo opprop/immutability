@@ -2,6 +2,7 @@ package pico.inference;
 
 import checkers.inference.InferenceValidator;
 import checkers.inference.InferenceVisitor;
+import com.sun.org.apache.regexp.internal.RE;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -42,8 +43,7 @@ public class PICOInferenceValidator extends InferenceValidator{
         AnnotatedDeclaredType defaultType =
                 (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(type.getUnderlyingType().asElement());
         // TODO for defaulted super clause: should top anno be checked? (see shouldCheckTopLevelDeclaredType())
-        // null check below may not needed
-        if (defaultType.getAnnotationInHierarchy(READONLY) == null) {
+        if (defaultType.isAnnotatedInHierarchy(READONLY) && !PICOTypeUtil.isEnumOrEnumConstant(defaultType)) {
             defaultType = defaultType.deepCopy();
             defaultType.replaceAnnotation(MUTABLE);
         }
