@@ -256,6 +256,8 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
             // only annotates when:
             // 1. it's a super clause, AND
             // 2. atm OR tree is not annotated
+            // Note: TreeUtils.typeOf returns no stub or default annotations, but in this scenario they are not needed
+            // Here only explicit annotation on super clause have effect because framework default rule is overriden
             if (isSuperClause(path) &&
                     (!mirror.isAnnotatedInHierarchy(READONLY) ||
                     atypeFactory.getQualifierHierarchy().findAnnotationInHierarchy(TreeUtils.typeOf(tree).getAnnotationMirrors(), READONLY) == null)) {
