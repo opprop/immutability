@@ -1,4 +1,4 @@
-package pico.inference;
+package pico.common;
 
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.ViewpointAdapter;

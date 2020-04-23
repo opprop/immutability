@@ -3,13 +3,14 @@ package pico.inference;
 import checkers.inference.util.InferenceViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import pico.common.ExtendedViewpointAdapter;
 import pico.typecheck.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeKind;
 
-public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter implements ExtendedViewpointAdapter{
+public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter implements ExtendedViewpointAdapter {
 
     public PICOInferenceViewpointAdapter(AnnotatedTypeFactory atypeFactory) {
         super(atypeFactory);

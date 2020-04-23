@@ -37,6 +37,8 @@ import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import pico.common.ExtendedViewpointAdapter;
+import pico.common.ViewpointAdapterGettable;
 import pico.typecheck.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;

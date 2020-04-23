@@ -1,8 +1,8 @@
 package pico.inference;
 
-import com.sun.source.tree.Tree;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import pico.common.ExtendedViewpointAdapter;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;

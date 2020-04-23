@@ -19,7 +19,7 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 
 import exceptions.UnkownImmutabilityQualifierException;
-import pico.inference.ExtendedViewpointAdapter;
+import pico.common.ExtendedViewpointAdapter;
 
 /**
  * Created by mier on 20/06/17.

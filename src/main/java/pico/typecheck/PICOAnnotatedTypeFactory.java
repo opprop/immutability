@@ -11,6 +11,7 @@ import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -22,6 +23,9 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 
+import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.ParameterizedTypeTree;
+import com.sun.source.util.TreePath;
 import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.qual.FBCBottom;
 import org.checkerframework.checker.initialization.qual.Initialized;
@@ -54,6 +58,8 @@ import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 
+import pico.common.ExtendedViewpointAdapter;
+import pico.common.ViewpointAdapterGettable;
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
@@ -71,7 +77,7 @@ import qual.SubstitutablePolyMutable;
 //TODO Use @Immutable for classes that extends those predefined immutable classess like String or Number
     // and explicitly annotated classes with @Immutable on its declaration
 public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory<PICOValue,
-        PICOStore, PICOTransfer, PICOAnalysis> {
+        PICOStore, PICOTransfer, PICOAnalysis> implements ViewpointAdapterGettable {
 
     public PICOAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
@@ -110,6 +116,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                 new PICOPropagationTreeAnnotator(this),
                 new LiteralTreeAnnotator(this),
                 new CommitmentTreeAnnotator(this),
+                new PICOSuperClauseAnnotator(this),
                 new PICOTreeAnnotator(this));
     }
 
@@ -135,6 +142,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         // same location
         typeAnnotators.add(new PICOTypeAnnotator(this));
         typeAnnotators.add(new PICODefaultForTypeAnnotator(this));
+        typeAnnotators.add(new PICOEnumDefaultAnnotator(this));
         typeAnnotators.add(new CommitmentTypeAnnotator(this));
         return new ListTypeAnnotator(typeAnnotators);
     }
@@ -387,6 +395,10 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         }
     }
 
+    public ExtendedViewpointAdapter getViewpointAdapter() {
+        return (ExtendedViewpointAdapter) viewpointAdapter;
+    }
+
     /**Apply defaults for static fields with non-implicitly immutable types*/
     public static class PICOTreeAnnotator extends TreeAnnotator {
         public PICOTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
@@ -524,4 +536,67 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     // to the declared receiver type of instance methods. To view the details, look at ImmutableClass1.java
     // testcase.
     // class PICOInheritedFromClassAnnotator extends InheritedFromClassAnnotator {}
+
+    public static class PICOSuperClauseAnnotator extends TreeAnnotator {
+
+        public PICOSuperClauseAnnotator(AnnotatedTypeFactory atypeFactory) {
+            super(atypeFactory);
+        }
+
+        private static boolean isSuperClause(TreePath path) {
+            if (path == null) {
+                return false;
+            }
+            return TreeUtils.isClassTree(path.getParentPath().getLeaf());
+        }
+
+        private void addDefaultFromMain(Tree tree, AnnotatedTypeMirror mirror) {
+            TreePath path = atypeFactory.getPath(tree);
+
+            // only annotates when:
+            // 1. it's a super clause, AND
+            // 2. atm OR tree is not annotated
+            // Note: TreeUtils.typeOf returns no stub or default annotations, but in this scenario they are not needed
+            // Here only explicit annotation on super clause have effect because framework default rule is overriden
+            if (isSuperClause(path) &&
+                    (!mirror.isAnnotatedInHierarchy(READONLY) ||
+                            atypeFactory.getQualifierHierarchy().findAnnotationInHierarchy(TreeUtils.typeOf(tree).getAnnotationMirrors(), READONLY) == null)) {
+                AnnotatedTypeMirror enclosing = atypeFactory.getAnnotatedType(TreeUtils.enclosingClass(path));
+                AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
+                mirror.replaceAnnotation(mainBound);
+                System.err.println("ANNOT: ADDED DEFAULT FOR: " + mirror);
+            }
+        }
+
+        @Override
+        public Void visitIdentifier(IdentifierTree identifierTree, AnnotatedTypeMirror annotatedTypeMirror) {
+            // super clauses without type param use this
+            addDefaultFromMain(identifierTree, annotatedTypeMirror);
+            return super.visitIdentifier(identifierTree, annotatedTypeMirror);
+        }
+
+        @Override
+        public Void visitParameterizedType(ParameterizedTypeTree parameterizedTypeTree, AnnotatedTypeMirror annotatedTypeMirror) {
+            // super clauses with type param use this
+            addDefaultFromMain(parameterizedTypeTree, annotatedTypeMirror);
+            return super.visitParameterizedType(parameterizedTypeTree, annotatedTypeMirror);
+        }
+    }
+
+    public static class PICOEnumDefaultAnnotator extends TypeAnnotator {
+        // Defaulting only applies the same annotation to all class declarations
+        // We need this to "only default enums" to immutable
+
+        public PICOEnumDefaultAnnotator(AnnotatedTypeFactory typeFactory) {
+            super(typeFactory);
+        }
+
+        @Override
+        public Void visitDeclared(AnnotatedTypeMirror.AnnotatedDeclaredType type, Void aVoid) {
+            if (PICOTypeUtil.isEnumOrEnumConstant(type)) {
+                type.addMissingAnnotations(Collections.singleton(IMMUTABLE));
+            }
+            return super.visitDeclared(type, aVoid);
+        }
+    }
 }

@@ -15,14 +15,10 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
-import com.sun.source.tree.IdentifierTree;
-import com.sun.source.tree.ParameterizedTypeTree;
-import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.type.AbstractViewpointAdapter;
-import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
@@ -34,11 +30,9 @@ import org.checkerframework.javacutil.TreeUtils;
 
 import com.sun.source.tree.Tree;
 
+import pico.common.ExtendedViewpointAdapter;
+import pico.common.ViewpointAdapterGettable;
 import pico.typecheck.PICOAnnotatedTypeFactory;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOTypeAnnotator;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOTreeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 import pico.typecheck.PICOViewpointAdapter;
 import qual.Bottom;
@@ -91,10 +85,10 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
     @Override
     protected TreeAnnotator createTreeAnnotator() {
         return new ListTreeAnnotator(
-                new PICOPropagationTreeAnnotator(this),
+                new PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator(this),
                 new LiteralTreeAnnotator(this),
-                new PICOSuperClauseAnnotator(this),
-                new PICOTreeAnnotator(this));
+                new PICOAnnotatedTypeFactory.PICOSuperClauseAnnotator(this),
+                new PICOAnnotatedTypeFactory.PICOTreeAnnotator(this));
     }
 
     // TODO Refactor super class to remove this duplicate code
@@ -117,9 +111,9 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         // Adding order is important here. Because internally type annotators are using addMissingAnnotations()
         // method, so if one annotator already applied the annotations, the others won't apply twice at the
         // same location
-        typeAnnotators.add(new PICOTypeAnnotator(this));
-        typeAnnotators.add(new PICODefaultForTypeAnnotator(this));
-        typeAnnotators.add(new PICOEnumDefaultAnnotator(this));
+        typeAnnotators.add(new PICOAnnotatedTypeFactory.PICOTypeAnnotator(this));
+        typeAnnotators.add(new PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator(this));
+        typeAnnotators.add(new PICOAnnotatedTypeFactory.PICOEnumDefaultAnnotator(this));
         return new ListTypeAnnotator(typeAnnotators);
     }
 
@@ -186,6 +180,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
 
     @Override
     public AnnotatedTypeMirror getTypeOfExtendsImplements(Tree clause) {
+        // TODO is this still needed with PICOSuperClauseAnnotator?
         // add default anno from class main qual, if no qual present
         AnnotatedTypeMirror enclosing = getAnnotatedType(TreeUtils.enclosingClass(getPath(clause)));
         AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
@@ -230,73 +225,5 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
             }
         }
         return super.getTypeDeclarationBounds(type);
-    }
-
-    @Override
-    public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
-        return super.getAnnotatedType(tree);
-    }
-
-    public static class PICOSuperClauseAnnotator extends TreeAnnotator {
-
-        public PICOSuperClauseAnnotator(AnnotatedTypeFactory atypeFactory) {
-            super(atypeFactory);
-        }
-
-        private static boolean isSuperClause(TreePath path) {
-            if (path == null) {
-                return false;
-            }
-            return TreeUtils.isClassTree(path.getParentPath().getLeaf());
-        }
-
-        private void addDefaultFromMain(Tree tree, AnnotatedTypeMirror mirror) {
-            TreePath path = atypeFactory.getPath(tree);
-
-            // only annotates when:
-            // 1. it's a super clause, AND
-            // 2. atm OR tree is not annotated
-            // Note: TreeUtils.typeOf returns no stub or default annotations, but in this scenario they are not needed
-            // Here only explicit annotation on super clause have effect because framework default rule is overriden
-            if (isSuperClause(path) &&
-                    (!mirror.isAnnotatedInHierarchy(READONLY) ||
-                    atypeFactory.getQualifierHierarchy().findAnnotationInHierarchy(TreeUtils.typeOf(tree).getAnnotationMirrors(), READONLY) == null)) {
-                AnnotatedTypeMirror enclosing = atypeFactory.getAnnotatedType(TreeUtils.enclosingClass(path));
-                AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
-                mirror.replaceAnnotation(mainBound);
-                System.err.println("ANNOT: ADDED DEFAULT FOR: " + mirror);
-            }
-        }
-
-        @Override
-        public Void visitIdentifier(IdentifierTree identifierTree, AnnotatedTypeMirror annotatedTypeMirror) {
-            // super clauses without type param use this
-            addDefaultFromMain(identifierTree, annotatedTypeMirror);
-            return super.visitIdentifier(identifierTree, annotatedTypeMirror);
-        }
-
-        @Override
-        public Void visitParameterizedType(ParameterizedTypeTree parameterizedTypeTree, AnnotatedTypeMirror annotatedTypeMirror) {
-            // super clauses with type param use this
-            addDefaultFromMain(parameterizedTypeTree, annotatedTypeMirror);
-            return super.visitParameterizedType(parameterizedTypeTree, annotatedTypeMirror);
-        }
-    }
-
-    public static class PICOEnumDefaultAnnotator extends TypeAnnotator {
-        // Defaulting only applies the same annotation to all class declarations
-        // We need this to "only default enums" to immutable
-
-        public PICOEnumDefaultAnnotator(AnnotatedTypeFactory typeFactory) {
-            super(typeFactory);
-        }
-
-        @Override
-        public Void visitDeclared(AnnotatedTypeMirror.AnnotatedDeclaredType type, Void aVoid) {
-            if (PICOTypeUtil.isEnumOrEnumConstant(type)) {
-                type.addMissingAnnotations(Collections.singleton(IMMUTABLE));
-            }
-            return super.visitDeclared(type, aVoid);
-        }
     }
 }
