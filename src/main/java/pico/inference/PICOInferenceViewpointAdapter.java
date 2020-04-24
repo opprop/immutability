@@ -4,7 +4,7 @@ import checkers.inference.util.InferenceViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import pico.common.ExtendedViewpointAdapter;
-import pico.typecheck.PICOTypeUtil;
+import pico.common.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;

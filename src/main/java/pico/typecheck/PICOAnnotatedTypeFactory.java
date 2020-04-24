@@ -1,12 +1,5 @@
 package pico.typecheck;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.COMMITED;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-import static pico.typecheck.PICOAnnotationMirrorHolder.SUBSTITUTABLE_POLY_MUTABLE;
-
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,9 +12,12 @@ import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ParameterizedTypeTree;
@@ -44,6 +40,7 @@ import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotato
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.*;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
@@ -59,6 +56,7 @@ import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 
 import pico.common.ExtendedViewpointAdapter;
+import pico.common.PICOTypeUtil;
 import pico.common.ViewpointAdapterGettable;
 import qual.Bottom;
 import qual.Immutable;
@@ -67,6 +65,8 @@ import qual.PolyMutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
 import qual.SubstitutablePolyMutable;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
 /**
  * AnnotatedTypeFactory for PICO. In addition to getting atms, it also propagates and applies mutability
@@ -397,6 +397,54 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     public ExtendedViewpointAdapter getViewpointAdapter() {
         return (ExtendedViewpointAdapter) viewpointAdapter;
+    }
+
+    @Override
+    protected Set<AnnotationMirror> getDefaultTypeDeclarationBounds() {
+        @SuppressWarnings("unchecked")
+        Set<AnnotationMirror> frameworkDefault = (Set<AnnotationMirror>) super.getDefaultTypeDeclarationBounds();
+        return replaceAnnotationInHierarchy(frameworkDefault, MUTABLE);
+    }
+
+    @Override
+    public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
+        AnnotationMirror mut = getTypeDeclarationBoundForMutability(type);
+        Set<AnnotationMirror> frameworkDefault = super.getTypeDeclarationBounds(type);
+        if (mut != null) {
+            replaceAnnotationInHierarchy(frameworkDefault, mut);
+        }
+        return frameworkDefault;
+    }
+
+    private Set<AnnotationMirror> replaceAnnotationInHierarchy(Set<AnnotationMirror> set, AnnotationMirror mirror) {
+        Set<AnnotationMirror> result = new HashSet<>(set);
+        AnnotationMirror removeThis = getQualifierHierarchy().findAnnotationInSameHierarchy(set, mirror);
+        result.remove(removeThis);
+        result.add(mirror);
+        return result;
+    }
+
+    private AnnotationMirror getTypeDeclarationBoundForMutability(TypeMirror type) {
+        // copied from inference real type factory with minor modification
+        // TODO too awkward. maybe overload isImplicitlyImmutableType
+        if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
+            return IMMUTABLE;
+        }
+        if (type.getKind() == TypeKind.ARRAY) {
+            return READONLY; // if decided to use vpa for array, return RDM.
+        }
+
+        // IMMUTABLE for enum w/o decl anno
+        if (type instanceof DeclaredType) {
+            Element ele = ((DeclaredType) type).asElement();
+            if (ele.getKind() == ElementKind.ENUM) {
+                if (!AnnotationUtils.containsSameByName(getDeclAnnotations(ele), MUTABLE) &&
+                        !AnnotationUtils.containsSameByName(getDeclAnnotations(ele), RECEIVER_DEPENDANT_MUTABLE)) { // no decl anno
+                    return IMMUTABLE;
+                }
+            }
+        }
+        return null;
     }
 
     /**Apply defaults for static fields with non-implicitly immutable types*/

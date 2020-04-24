@@ -33,7 +33,7 @@ import com.sun.source.tree.Tree;
 import pico.common.ExtendedViewpointAdapter;
 import pico.common.ViewpointAdapterGettable;
 import pico.typecheck.PICOAnnotatedTypeFactory;
-import pico.typecheck.PICOTypeUtil;
+import pico.common.PICOTypeUtil;
 import pico.typecheck.PICOViewpointAdapter;
 import qual.Bottom;
 import qual.Immutable;

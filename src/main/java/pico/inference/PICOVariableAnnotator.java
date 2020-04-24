@@ -31,7 +31,7 @@ import checkers.inference.model.AnnotationLocation;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.VariableSlot;
 import checkers.inference.model.tree.ArtificialExtendsBoundTree;
-import pico.typecheck.PICOTypeUtil;
+import pico.common.PICOTypeUtil;
 
 public class PICOVariableAnnotator extends VariableAnnotator {
 

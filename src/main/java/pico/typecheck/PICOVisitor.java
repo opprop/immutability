@@ -8,7 +8,6 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
-import com.sun.source.util.TreePath;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -37,7 +36,6 @@ import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 
@@ -54,6 +52,7 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
+import pico.common.PICOTypeUtil;
 
 /**
  * Created by mier on 20/06/17.
@@ -86,18 +85,6 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
         AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
         // No need to have special case for java.lang.Object, as it's not by default @Readonly anymore
-//        if (AnnotationUtils.areSame(declared, atypeFactory.READONLY)) {
-//            // Special case for java.lang.Object. Usually @Readonly is never used as a bound annotation for a
-//            // TypeElement. But we want to have @Readonly as the default for java.lang.Object. There is no way
-//            // of doing this using any existing family of @DefaultFor qualifiers, but @ImplicitFor annotation
-//            // does the trick. But the side effect is, we can't write @ReceiverDependantMutable, which is the
-//            // correct bound for Object element, in jdk.astub, because otherwise it makes all java.lang.Object
-//            // to be @ReceiverDependantMutable; Another side effect is here @Readonly is passed into here as
-//            // the element type for java.lang.Object. So we have to have this special case only for java.lang.
-//            // Object
-//            return true;
-//        }
-        // declarationType is now upper bound. Could be READONLY
         // needs adaption for constructors and enum
         // TODO: adapt to default instead of upper-bound or repeated rules
         if (tree instanceof MethodTree && TreeUtils.isConstructor((MethodTree) tree)) {

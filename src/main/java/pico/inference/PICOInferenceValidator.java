@@ -2,7 +2,6 @@ package pico.inference;
 
 import checkers.inference.InferenceValidator;
 import checkers.inference.InferenceVisitor;
-import com.sun.org.apache.regexp.internal.RE;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -13,7 +12,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayTyp
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
 import org.checkerframework.javacutil.TreeUtils;
-import pico.typecheck.PICOTypeUtil;
+import pico.common.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;

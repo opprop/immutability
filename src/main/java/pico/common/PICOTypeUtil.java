@@ -1,4 +1,4 @@
-package pico.typecheck;
+package pico.common;
 
 import checkers.inference.InferenceMain;
 import checkers.inference.SlotManager;
@@ -25,6 +25,7 @@ import org.checkerframework.javacutil.AnnotationProvider;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import pico.typecheck.PICOVisitor;
 import qual.Assignable;
 import qual.Immutable;
 import qual.ObjectIdentityMethod;

@@ -11,7 +11,7 @@ import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
-import qual.Assignable;
+import pico.common.PICOTypeUtil;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
