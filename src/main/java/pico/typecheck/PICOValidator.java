@@ -40,6 +40,16 @@ public class PICOValidator extends BaseTypeValidator {
     }
 
     @Override
+    protected boolean shouldCheckTopLevelDeclaredType(AnnotatedTypeMirror type, Tree tree) {
+        // check top annotations in extends/implements clauses
+        if ((tree.getKind() == Kind.IDENTIFIER || tree.getKind() == Kind.PARAMETERIZED_TYPE) &&
+                PICOAnnotatedTypeFactory.PICOSuperClauseAnnotator.isSuperClause(atypeFactory.getPath(tree))) {
+            return true;
+        }
+        return super.shouldCheckTopLevelDeclaredType(type, tree);
+    }
+
+    @Override
     public Void visitArray(AnnotatedArrayType type, Tree tree) {
         checkStaticReceiverDependantMutableError(type, tree);
         // Array can not be implicitly immutable

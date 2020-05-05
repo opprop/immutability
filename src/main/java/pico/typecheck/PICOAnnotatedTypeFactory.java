@@ -183,7 +183,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
         PICOTypeUtil.addDefaultForField(this, type, elt);
         PICOTypeUtil.defaultConstructorReturnToClassBound(this, elt, type);
-        PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
+//        PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
         super.addComputedTypeAnnotations(elt, type);
     }
 
@@ -411,7 +411,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         AnnotationMirror mut = getTypeDeclarationBoundForMutability(type);
         Set<AnnotationMirror> frameworkDefault = super.getTypeDeclarationBounds(type);
         if (mut != null) {
-            replaceAnnotationInHierarchy(frameworkDefault, mut);
+            frameworkDefault = replaceAnnotationInHierarchy(frameworkDefault, mut);
         }
         return frameworkDefault;
     }
@@ -445,6 +445,24 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             }
         }
         return null;
+    }
+
+    @Override
+    public AnnotatedTypeMirror getTypeOfExtendsImplements(Tree clause) {
+        // this is still needed with PICOSuperClauseAnnotator.
+        // maybe just use getAnnotatedType
+        // add default anno from class main qual, if no qual present
+        AnnotatedTypeMirror enclosing = getAnnotatedType(TreeUtils.enclosingClass(getPath(clause)));
+        AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
+        AnnotatedTypeMirror fromTypeTree = this.fromTypeTree(clause);
+        if (!fromTypeTree.isAnnotatedInHierarchy(READONLY)) {
+            fromTypeTree.addAnnotation(mainBound);
+        }
+
+        // for FBC quals
+        Set<AnnotationMirror> bound = this.getTypeDeclarationBounds(fromTypeTree.getUnderlyingType());
+        fromTypeTree.addMissingAnnotations(bound);
+        return fromTypeTree;
     }
 
     /**Apply defaults for static fields with non-implicitly immutable types*/
@@ -591,7 +609,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             super(atypeFactory);
         }
 
-        private static boolean isSuperClause(TreePath path) {
+        public static boolean isSuperClause(TreePath path) {
             if (path == null) {
                 return false;
             }
@@ -612,7 +630,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                 AnnotatedTypeMirror enclosing = atypeFactory.getAnnotatedType(TreeUtils.enclosingClass(path));
                 AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
                 mirror.replaceAnnotation(mainBound);
-                System.err.println("ANNOT: ADDED DEFAULT FOR: " + mirror);
+//                System.err.println("ANNOT: ADDED DEFAULT FOR: " + mirror);
             }
         }
 

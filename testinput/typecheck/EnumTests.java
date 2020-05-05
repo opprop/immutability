@@ -15,11 +15,13 @@ public class EnumTests{
 
     /*immutable*/
     private static enum MyEnum {
-        T1, T2;
+        T1,
+        T2;
     }
 
     @Mutable
     private static enum MutableEnum {
-        M1, M2;
+        M1,
+        M2;
     }
 }

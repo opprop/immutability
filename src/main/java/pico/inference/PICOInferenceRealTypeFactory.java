@@ -180,7 +180,6 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
 
     @Override
     public AnnotatedTypeMirror getTypeOfExtendsImplements(Tree clause) {
-        // TODO is this still needed with PICOSuperClauseAnnotator?
         // add default anno from class main qual, if no qual present
         AnnotatedTypeMirror enclosing = getAnnotatedType(TreeUtils.enclosingClass(getPath(clause)));
         AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);

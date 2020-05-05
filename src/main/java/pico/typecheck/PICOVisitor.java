@@ -52,7 +52,9 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
+import pico.common.ExtendedViewpointAdapter;
 import pico.common.PICOTypeUtil;
+import pico.common.ViewpointAdapterGettable;
 
 /**
  * Created by mier on 20/06/17.
@@ -83,39 +85,15 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     // (at least for types other than java.lang.Object)
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
-        AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
-        // No need to have special case for java.lang.Object, as it's not by default @Readonly anymore
-        // needs adaption for constructors and enum
-        // TODO: adapt to default instead of upper-bound or repeated rules
-        if (tree instanceof MethodTree && TreeUtils.isConstructor((MethodTree) tree)) {
-            if (AnnotationUtils.areSame(declared, READONLY)) {
-                declared = MUTABLE;
-                if (atypeFactory.getPath(tree).getParentPath().getLeaf().getKind() == Kind.ENUM) {
-                    declared = IMMUTABLE;
-                }
-            }
-        }
-//        if (tree.getKind() == Kind.ENUM) {
-//            declared = IMMUTABLE;
-//        }
-        // default to implicit
-        if (PICOTypeUtil.isImplicitlyImmutableType(declarationType)) {
-            declared = IMMUTABLE;
-        }
-        if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE) || AnnotationUtils.areSame(declared, READONLY)) {
-            // Element is declared with @ReceiverDependantMutable bound, any instantiation is allowed. We don't use
-            // a subtype check to validate the correct usage here. Because @Readonly is the super type of
-            // @ReceiverDependantMutable, but it's still considered valid usage.
+        // FIXME workaround for typecheck BOTTOM
+        if (useType.hasAnnotation(BOTTOM)) {
             return true;
         }
-        // At this point, element type can only be @Mutable or @Immutable. Otherwise, it's a problem in
-        // PICOVisitor#processClassTree(ClassTree)
-        assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
 
+        AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
         AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
-        assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
 
-        return isAnnoValidUse(declared, used);
+        return isAdaptedSubtype(used, declared);
     }
 
     static private boolean isAnnoValidUse(AnnotationMirror declared, AnnotationMirror used) {
@@ -138,6 +116,12 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
         // All valid cases are listed above. So returns false here.
         return false;
+    }
+
+    private boolean isAdaptedSubtype(AnnotationMirror lhs, AnnotationMirror rhs) {
+        ExtendedViewpointAdapter vpa = ((ViewpointAdapterGettable)atypeFactory).getViewpointAdapter();
+        AnnotationMirror adapted = vpa.rawCombineAnnotationWithAnnotation(lhs, rhs);
+        return atypeFactory.getQualifierHierarchy().isSubtype(adapted, lhs);
     }
 
     @Override
@@ -197,15 +181,16 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         }
         /*Copied Code End*/
 
-        // TODO use CF base check
-        // if no explicit anno it must inherited from class decl
-        AnnotationMirror declAnno = constructor.getReturnType().getAnnotationInHierarchy(READONLY);
-        AnnotationMirror useAnno = invocation.getAnnotationInHierarchy(READONLY);
-        declAnno = declAnno == null ? MUTABLE : declAnno;
-
-        if(useAnno != null && !AnnotationUtils.areSameByName(declAnno, POLY_MUTABLE) && !isAnnoValidUse(declAnno, useAnno)) {
-            checker.report(Result.failure("type.invalid.annotations.on.use", declAnno, useAnno), newClassTree);
-        }
+        // TODO fix inference counterpart, not here
+//        // CF base check disabled by InitializationVisitor
+//        // if no explicit anno it must inherited from class decl
+//        AnnotationMirror declAnno = constructor.getReturnType().getAnnotationInHierarchy(READONLY);
+//        AnnotationMirror useAnno = invocation.getAnnotationInHierarchy(READONLY);
+//        declAnno = declAnno == null ? MUTABLE : declAnno;
+//
+//        if(useAnno != null && !AnnotationUtils.areSameByName(declAnno, POLY_MUTABLE) && !isAdaptedSubtype(useAnno, declAnno)) {
+//            checker.report(Result.failure("type.invalid.annotations.on.use", declAnno, useAnno), newClassTree);
+//        }
 
         // The immutability return qualifier of the constructor (returnType) must be supertype of the
         // constructor invocation immutability qualifier(invocation).
@@ -381,7 +366,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     public Void visitVariable(VariableTree node, Void p) {
         VariableElement element = TreeUtils.elementFromDeclaration(node);
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
-        if (element != null && element.getKind() == ElementKind.FIELD) {
+        if (element.getKind() == ElementKind.FIELD) {
             if (type.hasAnnotation(POLY_MUTABLE)) {
                 checker.report(Result.failure("field.polymutable.forbidden", element), node);
             }
@@ -399,7 +384,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                     defaultAnno = anno;
                 }
             }
-            if (!isAnnoValidUse(defaultAnno, useAnno)) {
+            if (!isAdaptedSubtype(useAnno, defaultAnno)) {
                 checker.report(Result.failure("type.invalid.annotations.on.use", defaultAnno, useAnno), node);
             }
         }
@@ -507,55 +492,22 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     
     @Override
     protected void checkExtendsImplements(ClassTree classTree) {
+        // validateTypeOf does not check super trees
         PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator annotator = new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(atypeFactory);
     	if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
             // Don't check extends clause on anonymous classes.
             return;
         }
-    	
-    	AnnotationMirror classAnnot =
-    			atypeFactory.getAnnotatedType(classTree).getAnnotationInHierarchy(READONLY);
-    	
+
     	Tree extendsClause = classTree.getExtendsClause();
     	if (extendsClause != null) {
-    	    // now defaultFor annotator is not called before this
-            // TODO Lian: use CF default annotator instead of annotating manually here (default should be annotated before entry)
-            AnnotationMirror extAnnot = atypeFactory.fromTypeTree(extendsClause).getAnnotationInHierarchy(READONLY);
-            if (extAnnot == null) {
-                AnnotatedTypeMirror defaultAnnotatedExtends = atypeFactory.fromTypeTree(extendsClause).deepCopy(false); // side effect!!
-                annotator.visit(defaultAnnotatedExtends);
-                extAnnot = defaultAnnotatedExtends.getAnnotationInHierarchy(READONLY);
-            }
-			if (extAnnot != null && !AnnotationUtils.areSame(extAnnot, classAnnot)) {
-				checker.report(
-                        Result.failure(
-                                "declaration.inconsistent.with.extends.clause",
-                                classAnnot,
-                                extAnnot),
-                        extendsClause);
-			}
-    		
+
     	}
-    	
+
     	List<? extends Tree> implementsClauses = classTree.getImplementsClause();
     	if (implementsClauses != null) {
     		for (Tree impl : implementsClauses) {
-                // now defaultFor annotator is not called before this
-                // TODO Lian: use CF default annotator instead of annotating manually here (default should be annotated before entry)
-                AnnotationMirror implAnnot = atypeFactory.fromTypeTree(impl).getAnnotationInHierarchy(READONLY);
-                if (implAnnot == null) {
-                    AnnotatedTypeMirror defaultAnnotatedImpl = atypeFactory.fromTypeTree(impl).deepCopy(false);
-                    annotator.visit(defaultAnnotatedImpl);
-                    implAnnot = defaultAnnotatedImpl.getAnnotationInHierarchy(READONLY);
-                }
-    			if (implAnnot != null && !AnnotationUtils.areSame(implAnnot, classAnnot)) {
-    				checker.report(
-                            Result.failure(
-                                    "declaration.inconsistent.with.implements.clause",
-                                    classAnnot,
-                                    implAnnot),
-                            impl);
-    			}
+
     		}
     	}
     }
