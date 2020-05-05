@@ -490,27 +490,27 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         super.processClassTree(node);
     }
     
-    @Override
-    protected void checkExtendsImplements(ClassTree classTree) {
-        // validateTypeOf does not check super trees
-        PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator annotator = new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(atypeFactory);
-    	if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
-            // Don't check extends clause on anonymous classes.
-            return;
-        }
-
-    	Tree extendsClause = classTree.getExtendsClause();
-    	if (extendsClause != null) {
-
-    	}
-
-    	List<? extends Tree> implementsClauses = classTree.getImplementsClause();
-    	if (implementsClauses != null) {
-    		for (Tree impl : implementsClauses) {
-
-    		}
-    	}
-    }
+//    @Override
+//    protected void checkExtendsImplements(ClassTree classTree) {
+//        // validateTypeOf does not check super trees
+//        PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator annotator = new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(atypeFactory);
+//    	if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
+//            // Don't check extends clause on anonymous classes.
+//            return;
+//        }
+//
+//    	Tree extendsClause = classTree.getExtendsClause();
+//    	if (extendsClause != null) {
+//
+//    	}
+//
+//    	List<? extends Tree> implementsClauses = classTree.getImplementsClause();
+//    	if (implementsClauses != null) {
+//    		for (Tree impl : implementsClauses) {
+//
+//    		}
+//    	}
+//    }
 
     /**
      * The invoked constructor’s return type adapted to the invoking constructor’s return type must

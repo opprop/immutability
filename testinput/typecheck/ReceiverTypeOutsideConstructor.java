@@ -31,13 +31,13 @@ class A {
 
 @Immutable class AIMS extends A {}
 
-// :: error: (declaration.inconsistent.with.extends.clause) :: error: (super.invocation.invalid)
+// :: error: (type.invalid.annotations.on.use) :: error: (super.invocation.invalid)
 @ReceiverDependantMutable class ARDMS extends A {}
 
-// :: error: (declaration.inconsistent.with.extends.clause) :: error: (super.invocation.invalid)
+// :: error: (type.invalid.annotations.on.use) :: error: (super.invocation.invalid)
 @Mutable class AMS extends A {}
 
-// :: error: (declaration.inconsistent.with.extends.clause) :: error: (super.invocation.invalid)
+// :: error: (type.invalid.annotations.on.use) :: error: (super.invocation.invalid)
 class AUNKS extends A {}
 
 // ReceiverDependantMutable class
@@ -103,10 +103,10 @@ class C {
     }
 }
 
-// :: error: (declaration.inconsistent.with.extends.clause)
+// :: error: (type.invalid.annotations.on.use)
 @Immutable class CIMS extends C {}
 
-// :: error: (declaration.inconsistent.with.extends.clause) :: error: (super.invocation.invalid)
+// :: error: (type.invalid.annotations.on.use) :: error: (super.invocation.invalid)
 @ReceiverDependantMutable class CRDMS extends C {}
 
 // :: error: (super.invocation.invalid)
