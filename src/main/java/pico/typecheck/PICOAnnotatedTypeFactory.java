@@ -400,9 +400,8 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     }
 
     @Override
-    protected Set<AnnotationMirror> getDefaultTypeDeclarationBounds() {
-        @SuppressWarnings("unchecked")
-        Set<AnnotationMirror> frameworkDefault = (Set<AnnotationMirror>) super.getDefaultTypeDeclarationBounds();
+    protected Set<? extends AnnotationMirror> getDefaultTypeDeclarationBounds() {
+        Set<AnnotationMirror> frameworkDefault = new HashSet<>(super.getDefaultTypeDeclarationBounds());
         return replaceAnnotationInHierarchy(frameworkDefault, MUTABLE);
     }
 
