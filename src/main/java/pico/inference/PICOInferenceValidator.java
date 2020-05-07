@@ -43,7 +43,7 @@ public class PICOInferenceValidator extends InferenceValidator{
         AnnotatedDeclaredType defaultType =
                 (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(type.getUnderlyingType().asElement());
         // TODO for defaulted super clause: should top anno be checked? (see shouldCheckTopLevelDeclaredType())
-        if (defaultType.isAnnotatedInHierarchy(READONLY) && !PICOTypeUtil.isEnumOrEnumConstant(defaultType)) {
+        if (defaultType.getAnnotationInHierarchy(READONLY) == null && !PICOTypeUtil.isEnumOrEnumConstant(defaultType)) {
             defaultType = defaultType.deepCopy();
             defaultType.replaceAnnotation(MUTABLE);
         }
