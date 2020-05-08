@@ -89,6 +89,10 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (useType.hasAnnotation(BOTTOM)) {
             return true;
         }
+        // FIXME workaround for poly anno, remove after fix substitutable poly and add poly vp rules
+        if (useType.hasAnnotation(POLY_MUTABLE)) {
+            return true;
+        }
 
         AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
         AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
@@ -371,12 +375,17 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                 checker.report(Result.failure("field.polymutable.forbidden", element), node);
             }
         }
+        // TODO use base cf check methods
         checkAndReportInvalidAnnotationOnUse(type, node);
         return super.visitVariable(node, p);
     }
 
     private void checkAndReportInvalidAnnotationOnUse(AnnotatedTypeMirror type, Tree node) {
         AnnotationMirror useAnno = type.getAnnotationInHierarchy(READONLY);
+        // FIXME rm after poly vp
+        if (useAnno != null && AnnotationUtils.areSame(useAnno, POLY_MUTABLE)) {
+            return;
+        }
         if (useAnno != null && !PICOTypeUtil.isImplicitlyImmutableType(type) && type.getKind() != TypeKind.ARRAY) {  // TODO: annotate the use instead of using this
             AnnotationMirror defaultAnno = MUTABLE;
             for (AnnotationMirror anno : atypeFactory.getTypeDeclarationBounds(atypeFactory.getAnnotatedType(node).getUnderlyingType())) {
@@ -489,28 +498,6 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
         super.processClassTree(node);
     }
-    
-//    @Override
-//    protected void checkExtendsImplements(ClassTree classTree) {
-//        // validateTypeOf does not check super trees
-//        PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator annotator = new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(atypeFactory);
-//    	if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
-//            // Don't check extends clause on anonymous classes.
-//            return;
-//        }
-//
-//    	Tree extendsClause = classTree.getExtendsClause();
-//    	if (extendsClause != null) {
-//
-//    	}
-//
-//    	List<? extends Tree> implementsClauses = classTree.getImplementsClause();
-//    	if (implementsClauses != null) {
-//    		for (Tree impl : implementsClauses) {
-//
-//    		}
-//    	}
-//    }
 
     /**
      * The invoked constructor’s return type adapted to the invoking constructor’s return type must
