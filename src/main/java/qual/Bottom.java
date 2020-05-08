@@ -18,5 +18,4 @@ import java.lang.annotation.Target;
 // qualifier than @Bottom explicitly on explicit lower bound to have different-than-default type.
 @Target({})
 @TargetLocations({})
-@DefaultInUncheckedCodeFor({TypeUseLocation.RETURN})
 public @interface Bottom {}
