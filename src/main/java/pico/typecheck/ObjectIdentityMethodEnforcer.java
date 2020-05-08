@@ -53,7 +53,7 @@ public class ObjectIdentityMethodEnforcer extends TreePathScanner<Void, Void> {
         if (!PICOTypeUtil.isObjectIdentityMethod((ExecutableElement) elt, typeFactory)) {
             // Report warning since invoked method is not only dependant on abstract state fields, but we
             // don't know whether this method invocation's result flows into the hashcode or not.
-            checker.report(Result.warning("object.identity.method.invocation.invalid", elt), node);
+            checker.reportWarning(node, "object.identity.method.invocation.invalid", elt);
         }
     }
 
@@ -78,11 +78,11 @@ public class ObjectIdentityMethodEnforcer extends TreePathScanner<Void, Void> {
         }
         if (elt.getKind() == ElementKind.FIELD) {
             if (ElementUtils.isStatic(elt)) {
-                checker.report(Result.warning("object.identity.static.field.access.forbidden", elt), node);
+                checker.reportWarning(node, "object.identity.static.field.access.forbidden", elt);
             } else {
                 if (!isInAbstractState(elt, typeFactory)) {
                     // Report warning since accessed field is not within abstract state
-                    checker.report(Result.warning("object.identity.field.access.invalid", elt), node);
+                    checker.reportWarning(node, "object.identity.field.access.invalid", elt);
                 }
             }
         }

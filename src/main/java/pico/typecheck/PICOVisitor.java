@@ -193,14 +193,13 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 //        declAnno = declAnno == null ? MUTABLE : declAnno;
 //
 //        if(useAnno != null && !AnnotationUtils.areSameByName(declAnno, POLY_MUTABLE) && !isAdaptedSubtype(useAnno, declAnno)) {
-//            checker.report(Result.failure("type.invalid.annotations.on.use", declAnno, useAnno), newClassTree);
+//            checker.reportError(newClassTree, "type.invalid.annotations.on.use", declAnno, useAnno);
 //        }
 
         // The immutability return qualifier of the constructor (returnType) must be supertype of the
         // constructor invocation immutability qualifier(invocation).
         if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType, READONLY)) {
-            checker.report(Result.failure(
-                    "constructor.invocation.invalid", invocation, returnType), newClassTree);
+            checker.reportError(newClassTree, "constructor.invocation.invalid", invocation, returnType);
         }
     }
 
@@ -212,7 +211,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (TreeUtils.isConstructor(node)) {
             AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
             if (constructorReturnType.hasAnnotation(READONLY) || constructorReturnType.hasAnnotation(POLY_MUTABLE)) {
-                checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
+                checker.reportError(node, "constructor.return.invalid", constructorReturnType);
                 return super.visitMethod(node, p);
             }
             // if no explicit anno it must inherit from class decl so identical
@@ -230,7 +229,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                         // Below three are allowed on declared receiver types of instance methods in either @Mutable class or @Immutable class
                         && !declareReceiverType.hasAnnotation(READONLY)
                         && !declareReceiverType.hasAnnotation(POLY_MUTABLE)) {
-                    checker.report(Result.failure("method.receiver.incompatible", declareReceiverType), node);
+                    checker.reportError(node,"method.receiver.incompatible", declareReceiverType);
                 }
             }
         }
@@ -356,11 +355,11 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     private void reportFieldOrArrayWriteError(Tree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (variable.getKind() == Kind.MEMBER_SELECT) {
-            checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
+            checker.reportError(TreeUtils.getReceiverTree(variable), "illegal.field.write", receiverType);
         } else if (variable.getKind() == Kind.IDENTIFIER) {
-            checker.report(Result.failure("illegal.field.write", receiverType), node);
+            checker.reportError(node, "illegal.field.write", receiverType);
         } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
-            checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
+            checker.reportError(((ArrayAccessTree)variable).getExpression(), "illegal.array.write", receiverType);
         } else {
             throw new BugInCF("Unknown assignment variable at: ", node);
         }
@@ -372,7 +371,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
         if (element.getKind() == ElementKind.FIELD) {
             if (type.hasAnnotation(POLY_MUTABLE)) {
-                checker.report(Result.failure("field.polymutable.forbidden", element), node);
+                checker.reportError(node, "field.polymutable.forbidden", element);
             }
         }
         // TODO use base cf check methods
@@ -394,7 +393,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                 }
             }
             if (!isAdaptedSubtype(useAnno, defaultAnno)) {
-                checker.report(Result.failure("type.invalid.annotations.on.use", defaultAnno, useAnno), node);
+                checker.reportError(node, "type.invalid.annotations.on.use", defaultAnno, useAnno);
             }
         }
     }
@@ -416,7 +415,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
         if (!(type.hasAnnotation(IMMUTABLE) || type.hasAnnotation(MUTABLE) ||
         type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) || type.hasAnnotation(POLY_MUTABLE))) {
-            checker.report(Result.failure("pico.new.invalid", type), node);
+            checker.reportError(node, "pico.new.invalid", type);
         }
     }
 
@@ -492,7 +491,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
         // Has to be either @Mutable, @ReceiverDependantMutable or @Immutable, nothing else
         if (!bound.hasAnnotation(MUTABLE) && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) && !bound.hasAnnotation(IMMUTABLE)) {
-            checker.report(Result.failure("class.bound.invalid", bound), node);
+            checker.reportError(node, "class.bound.invalid", bound);
             return;// Doesn't process the class tree anymore
         }
 
@@ -519,9 +518,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (!atypeFactory
                 .getQualifierHierarchy()
                 .isSubtype(constructorTypeMirror, superTypeMirror)) {
-            checker.report(
-                    Result.failure(errorKey, constructorTypeMirror, superCall, superTypeMirror),
-                    superCall);
+            checker.reportError(superCall, errorKey, constructorTypeMirror, superCall, superTypeMirror);
         }
         super.checkThisOrSuperConstructorCall(superCall, errorKey);
     }

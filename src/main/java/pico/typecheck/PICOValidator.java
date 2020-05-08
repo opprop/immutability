@@ -90,7 +90,7 @@ public class PICOValidator extends BaseTypeValidator {
     }
 
     private void reportFieldMultipleAssignabilityModifiersError(VariableElement field) {
-        checker.report(Result.failure("one.assignability.invalid", field), field);
+        checker.reportError(field, "one.assignability.invalid", field);
         isValid = false;
     }
 }
