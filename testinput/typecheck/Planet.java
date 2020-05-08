@@ -84,8 +84,10 @@ public class Planet {
 
     public static void main(String[] args) {
         @Immutable Date discoveryDate = new @Immutable Date();
+        // :: error: (type.invalid.annotations.on.use)
+        @Mutable Planet mPlanet;
         // :: error: (constructor.invocation.invalid)
-        @Mutable Planet mPlanet = new @Mutable Planet(1, "Earth", discoveryDate);
+        mPlanet = new @Mutable Planet(1, "Earth", discoveryDate);
         @Immutable Planet imPlanet = new @Immutable Planet(1, "Earth", discoveryDate);
         // None of the fields are allowed to be modified on an immutable object
         // :: error: (illegal.field.write)
