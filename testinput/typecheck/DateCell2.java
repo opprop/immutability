@@ -22,6 +22,6 @@ import java.util.Date;
 
     void test2(@Immutable DateCell2 this) {
         @Immutable DateCell2 waht = new @Immutable DateCell2();
-        @Immutable Date imd = this.getImmutableDate();
+        @Immutable Date imd = this();
     }
 }
