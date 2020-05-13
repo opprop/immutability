@@ -13,6 +13,7 @@ import java.util.Set;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
@@ -63,6 +64,7 @@ import qual.Mutable;
 import qual.PolyMutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
+import qual.SubstitutablePolyMutable;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
@@ -93,6 +95,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                         Mutable.class,
                         PolyMutable.class,
                         ReceiverDependantMutable.class,
+                        SubstitutablePolyMutable.class,
                         Immutable.class,
                         Bottom.class,
                         Initialized.class,
@@ -223,28 +226,28 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         return result;
     }
 
-//    /**Handles invoking static methods with polymutable on its declaration*/
-//    @Override
-//    public ParameterizedExecutableType methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
-//        ParameterizedExecutableType pair = super.methodFromUse(tree, methodElt, receiverType);
-//        // We want to replace polymutable with substitutablepolymutable when we invoke static methods
-//        if (ElementUtils.isStatic(methodElt)) {
-//            AnnotatedExecutableType methodType = pair.executableType;
-//            AnnotatedTypeMirror returnType = methodType.getReturnType();
-//            if (returnType.hasAnnotation(POLY_MUTABLE)) {
-//                // Only substitute polymutable but not other qualifiers! Missing the if statement
-//                // caused bugs before!
-//                returnType.replaceAnnotation(SUBSTITUTABLE_POLY_MUTABLE);
-//            }
-//            List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
-//            for (AnnotatedTypeMirror p : parameterTypes) {
-//                if (returnType.hasAnnotation(POLY_MUTABLE)) {
-//                    p.replaceAnnotation(SUBSTITUTABLE_POLY_MUTABLE);
-//                }
-//            }
-//        }
-//        return pair;
-//    }
+    /**Handles invoking static methods with polymutable on its declaration*/
+    @Override
+    public ParameterizedExecutableType methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
+        ParameterizedExecutableType pair = super.methodFromUse(tree, methodElt, receiverType);
+        // We want to replace polymutable with substitutablepolymutable when we invoke static methods
+        if (ElementUtils.isStatic(methodElt)) {
+            AnnotatedExecutableType methodType = pair.executableType;
+            AnnotatedTypeMirror returnType = methodType.getReturnType();
+            if (returnType.hasAnnotation(POLY_MUTABLE)) {
+                // Only substitute polymutable but not other qualifiers! Missing the if statement
+                // caused bugs before!
+                returnType.replaceAnnotation(SUBSTITUTABLE_POLY_MUTABLE);
+            }
+            List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
+            for (AnnotatedTypeMirror p : parameterTypes) {
+                if (returnType.hasAnnotation(POLY_MUTABLE)) {
+                    p.replaceAnnotation(SUBSTITUTABLE_POLY_MUTABLE);
+                }
+            }
+        }
+        return pair;
+    }
 
     protected class PICOQualifierHierarchy extends InitializationQualifierHierarchy {
 
