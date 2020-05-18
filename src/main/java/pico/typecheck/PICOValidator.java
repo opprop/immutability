@@ -6,7 +6,6 @@ import com.sun.source.tree.VariableTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
-import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
@@ -16,6 +15,8 @@ import org.checkerframework.javacutil.TreeUtils;
 import pico.common.PICOTypeUtil;
 
 import javax.lang.model.element.VariableElement;
+
+import java.util.Objects;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
@@ -63,9 +64,9 @@ public class PICOValidator extends BaseTypeValidator {
     }
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
-        if (!type.isDeclaration()   // variables in static contexts and static fields use class decl as enclosing type
+        if (!type.isDeclaration()  // variables in static contexts and static fields use class decl as enclosing type
                 && PICOTypeUtil.inStaticScope(visitor.getCurrentPath())
-                && !"".contentEquals(TreeUtils.enclosingClass(visitor.getCurrentPath()).getSimpleName())// Exclude @RDM usages in anonymous classes
+                && !"".contentEquals(Objects.requireNonNull(TreeUtils.enclosingClass(visitor.getCurrentPath())).getSimpleName())  // Exclude @RDM usages in anonymous classes
                 && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
             reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
         }
