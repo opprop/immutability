@@ -27,11 +27,11 @@ import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
-import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
@@ -521,5 +521,29 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             checker.reportError(superCall, errorKey, constructorTypeMirror, superCall, superTypeMirror);
         }
         super.checkThisOrSuperConstructorCall(superCall, errorKey);
+    }
+
+    @Override
+    protected boolean isTypeCastSafe(AnnotatedTypeMirror castType, AnnotatedTypeMirror exprType) {
+        QualifierHierarchy qualifierHierarchy = atypeFactory.getQualifierHierarchy();
+
+        final TypeKind castTypeKind = castType.getKind();
+        if (castTypeKind == TypeKind.DECLARED) {
+            // Don't issue an error if the mutability annotations are equivalent to the qualifier upper bound
+            // of the type.
+            // BaseTypeVisitor#isTypeCastSafe is not used, to be consistent with inference which only have mutability qualifiers
+            // if inference is supporting FBC in the future, this overridden method can be removed.
+            AnnotatedDeclaredType castDeclared = (AnnotatedDeclaredType) castType;
+
+            AnnotationMirror bound = qualifierHierarchy.findAnnotationInHierarchy(
+                    atypeFactory.getTypeDeclarationBounds(castDeclared.getUnderlyingType()), READONLY);
+            assert bound != null;
+
+            if (AnnotationUtils.areSame(castDeclared.getAnnotationInHierarchy(READONLY), bound)) {
+                return true;
+            }
+        }
+
+        return super.isTypeCastSafe(castType, exprType);
     }
 }

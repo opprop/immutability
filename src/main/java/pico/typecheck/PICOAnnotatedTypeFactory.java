@@ -150,7 +150,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     @Override
     public QualifierHierarchy createQualifierHierarchy(MultiGraphFactory factory) {
-        return new PICOQualifierHierarchy(factory, (Object[]) null);
+        return new PICOQualifierHierarchy(factory, null);
     }
 
     /**Just to transfer the method from super class to package*/
@@ -196,7 +196,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         boolean oldComputingAnnotatedTypeMirrorOfLHS = computingAnnotatedTypeMirrorOfLHS;
         computingAnnotatedTypeMirrorOfLHS = true;
 
-        AnnotatedTypeMirror result = null;
+        AnnotatedTypeMirror result;
         boolean oldShouldCache = shouldCache;
         // Don't cache the result because getAnnotatedType(lhsTree) could
         // be called from elsewhere and would expect flow-sensitive type refinements.
@@ -256,15 +256,15 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             MethodInvocationTree methodInvocationTree = (MethodInvocationTree) tree;
             ExecutableElement methodElt = TreeUtils.elementFromUse(methodInvocationTree);
 
+            assert methodElt != null;
             if (ElementUtils.isStatic(methodElt)) {
-                AnnotatedExecutableType methodType = type;
-                AnnotatedTypeMirror returnType = methodType.getReturnType();
+                AnnotatedTypeMirror returnType = type.getReturnType();
                 if (returnType.hasAnnotation(POLY_MUTABLE)) {
                     // Only substitute polymutable but not other qualifiers! Missing the if statement
                     // caused bugs before!
                     returnType.replaceAnnotation(SUBSTITUTABLE_POLY_MUTABLE);
                 }
-                List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
+                List<AnnotatedTypeMirror> parameterTypes = type.getParameterTypes();
                 for (AnnotatedTypeMirror p : parameterTypes) {
                     if (returnType.hasAnnotation(POLY_MUTABLE)) {
                         p.replaceAnnotation(SUBSTITUTABLE_POLY_MUTABLE);
@@ -411,7 +411,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
          addMissingAnnotations because we want to respect existing annotation on type*/
         private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
             if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
-                type.addMissingAnnotations(new HashSet<>(Arrays.asList(IMMUTABLE)));
+                type.addMissingAnnotations(new HashSet<>(Collections.singletonList(IMMUTABLE)));
             }
         }
 
@@ -450,7 +450,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         return result;
     }
 
-    private AnnotationMirror getTypeDeclarationBoundForMutability(TypeMirror type) {
+    public AnnotationMirror getTypeDeclarationBoundForMutability(TypeMirror type) {
         // copied from inference real type factory with minor modification
         // TODO too awkward. maybe overload isImplicitlyImmutableType
         if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
