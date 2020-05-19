@@ -546,4 +546,18 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
         return super.isTypeCastSafe(castType, exprType);
     }
+
+    @Override
+    protected void commonAssignmentCheck(AnnotatedTypeMirror varType,
+                                         AnnotatedTypeMirror valueType, Tree valueTree,
+                                         String errorKey) {
+        // TODO: WORKAROUND: anonymous class handling
+        if (TypesUtils.isAnonymous(valueType.getUnderlyingType())) {
+            AnnotatedTypeMirror newValueType = varType.deepCopy();
+            newValueType.replaceAnnotation(valueType.getAnnotationInHierarchy(READONLY));
+            valueType = newValueType;
+        }
+        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey);
+
+    }
 }
