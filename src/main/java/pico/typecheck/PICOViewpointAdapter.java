@@ -6,7 +6,6 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.SUBSTITUTABLE_POLY_MUTABLE;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -54,7 +53,7 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter implements Ex
         } else if (AnnotationUtils.areSame(declaredAnnotation, BOTTOM)) {
             return BOTTOM;
         } else if (AnnotationUtils.areSame(declaredAnnotation, POLY_MUTABLE)) {
-            return SUBSTITUTABLE_POLY_MUTABLE;
+            return POLY_MUTABLE;
         } else if (AnnotationUtils.areSame(declaredAnnotation, RECEIVER_DEPENDANT_MUTABLE)) {
             return receiverAnnotation;
         } else {

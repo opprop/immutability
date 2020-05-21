@@ -7,7 +7,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@SubtypeOf({Mutable.class, Immutable.class, PolyMutable.class, ReceiverDependantMutable.class})
+@SubtypeOf({Mutable.class, Immutable.class, ReceiverDependantMutable.class})
 @DefaultFor(value = { TypeUseLocation.LOWER_BOUND }, typeKinds = {TypeKind.NULL})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

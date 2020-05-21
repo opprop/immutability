@@ -13,7 +13,6 @@ import java.util.Set;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
@@ -65,7 +64,6 @@ import qual.Mutable;
 import qual.PolyMutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
-import qual.SubstitutablePolyMutable;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
@@ -96,7 +94,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                         Mutable.class,
                         PolyMutable.class,
                         ReceiverDependantMutable.class,
-                        SubstitutablePolyMutable.class,
                         Immutable.class,
                         Bottom.class,
                         Initialized.class,
@@ -249,32 +246,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 //        }
 //        return pair;
 //    }
-
-    @Override
-    public void methodFromUsePreSubstitution(ExpressionTree tree, AnnotatedExecutableType type) {
-        if (tree instanceof MethodInvocationTree) {
-            MethodInvocationTree methodInvocationTree = (MethodInvocationTree) tree;
-            ExecutableElement methodElt = TreeUtils.elementFromUse(methodInvocationTree);
-
-            assert methodElt != null;
-            if (ElementUtils.isStatic(methodElt)) {
-                AnnotatedTypeMirror returnType = type.getReturnType();
-                if (returnType.hasAnnotation(POLY_MUTABLE)) {
-                    // Only substitute polymutable but not other qualifiers! Missing the if statement
-                    // caused bugs before!
-                    returnType.replaceAnnotation(SUBSTITUTABLE_POLY_MUTABLE);
-                }
-                List<AnnotatedTypeMirror> parameterTypes = type.getParameterTypes();
-                for (AnnotatedTypeMirror p : parameterTypes) {
-                    if (returnType.hasAnnotation(POLY_MUTABLE)) {
-                        p.replaceAnnotation(SUBSTITUTABLE_POLY_MUTABLE);
-                    }
-                }
-            }
-        }
-
-        super.methodFromUsePreSubstitution(tree, type);
-    }
 
     protected class PICOQualifierHierarchy extends InitializationQualifierHierarchy {
 
