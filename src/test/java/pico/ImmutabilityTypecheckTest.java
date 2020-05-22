@@ -17,8 +17,6 @@ public class ImmutabilityTypecheckTest extends CheckerFrameworkPerFileTest {
 
     @Parameters
     public static List<File> getTestFiles(){
-        List<File> testfiles = new ArrayList<>();
-        testfiles.addAll(TestUtilities.findRelativeNestedJavaFiles("testinput", "typecheck"));
-        return testfiles;
+        return new ArrayList<>(TestUtilities.findRelativeNestedJavaFiles("testinput", "typecheck"));
     }
 }

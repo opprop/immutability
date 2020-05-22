@@ -17,8 +17,7 @@ public class ImmutabilityTypecheckBaseAllSystemsTest extends CheckerFrameworkPer
 
     @Parameters
     public static List<File> getTestFiles(){
-        List<File> testfiles = new ArrayList<>(TestUtilities.findRelativeNestedJavaFiles(
+        return new ArrayList<>(TestUtilities.findRelativeNestedJavaFiles(
                 "../checker-framework/checker/tests", "all-systems"));
-        return testfiles;
     }
 }
