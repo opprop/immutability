@@ -20,6 +20,7 @@ import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
+import org.checkerframework.framework.type.ViewpointAdapter;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
@@ -28,6 +29,8 @@ import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
+import pico.common.ExtendedViewpointAdapter;
+import pico.common.ViewpointAdapterGettable;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator;
 import pico.common.PICOTypeUtil;
 
@@ -47,7 +50,7 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
  * type on that type. This ensures that that VariableSlot doesn't enter solver and solver doesn't
  * give solution to the VariableSlot, and there won't be annotations inserted to implicit locations.
  */
-public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFactory {
+public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFactory implements ViewpointAdapterGettable {
     public PICOInferenceAnnotatedTypeFactory(InferenceChecker inferenceChecker, boolean withCombineConstraints, BaseAnnotatedTypeFactory realTypeFactory, InferrableChecker realChecker, SlotManager slotManager, ConstraintManager constraintManager) {
         super(inferenceChecker, withCombineConstraints, realTypeFactory, realChecker, slotManager, constraintManager);
         // Always call postInit() at the end of ATF constructor!
@@ -127,6 +130,11 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         }
         // Only by this, bound VarAnnot isn't side-effectively altered to be replaced with annotations from "methodReceiver"
         return type;
+    }
+
+    @Override
+    public ExtendedViewpointAdapter getViewpointAdapter() {
+        return (ExtendedViewpointAdapter) viewpointAdapter;
     }
 
     class PICOInferencePropagationTreeAnnotator extends PropagationTreeAnnotator {

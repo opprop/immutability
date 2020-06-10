@@ -308,13 +308,13 @@ public class PICOTypeUtil {
 
     /**Check if a field is final or not.*/
     public static boolean isFinalField(Element variableElement) {
-        assert variableElement instanceof VariableElement;
+        assert variableElement instanceof VariableElement;  // FIXME consider rm
         return ElementUtils.isFinal(variableElement);
     }
 
     /**Check if a field is assignable or not.*/
     public static boolean isAssignableField(Element variableElement, AnnotationProvider provider) {
-        if (!(variableElement instanceof VariableElement)) {
+        if (!(variableElement instanceof VariableElement)) {  // FIXME consider rm
             return false;
         }
         boolean hasExplicitAssignableAnnotation = provider.getDeclAnnotation(variableElement, Assignable.class) != null;
