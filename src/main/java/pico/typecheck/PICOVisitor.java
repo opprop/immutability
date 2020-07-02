@@ -198,7 +198,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
         // The immutability return qualifier of the constructor (returnType) must be supertype of the
         // constructor invocation immutability qualifier(invocation).
-        if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType, READONLY)) {
+        if (!atypeFactory.getQualifierHierarchy().isSubtype(invocation.getAnnotationInHierarchy(READONLY), returnType.getAnnotationInHierarchy(READONLY))) {
             checker.reportError(newClassTree, "constructor.invocation.invalid", invocation, returnType);
         }
     }
