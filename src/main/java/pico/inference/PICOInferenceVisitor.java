@@ -91,9 +91,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
      */
     private boolean isAdaptedSubtype(AnnotatedTypeMirror lhs, AnnotatedTypeMirror rhs) {
         ExtendedViewpointAdapter vpa = ((ViewpointAdapterGettable)atypeFactory).getViewpointAdapter();
-        AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(lhs.getAnnotationInHierarchy(READONLY),
+        AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(extractVarAnnot(lhs),
                 rhs);
-        return mainIsSubtype(adapted, lhs.getAnnotationInHierarchy(READONLY));
+        return mainIsSubtype(adapted, extractVarAnnot(lhs));
     }
 
     @Override

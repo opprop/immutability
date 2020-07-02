@@ -5,6 +5,7 @@ import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import pico.common.ExtendedViewpointAdapter;
 import pico.common.PICOTypeUtil;
+import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -40,5 +41,15 @@ public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter imp
     @Override
     public AnnotationMirror rawCombineAnnotationWithAnnotation(AnnotationMirror anno, AnnotationMirror type) {
         return rawCombineAnnotationWithAnnotation(anno, type);
+    }
+
+    @Override
+    protected AnnotationMirror extractAnnotationMirror(AnnotatedTypeMirror atm) {
+        // since the introduction of vp-is-valid rules, real am may be used?
+        AnnotationMirror am = super.extractAnnotationMirror(atm);
+        if (am == null) {  // if failed, try to get real am
+            am =  atm.getAnnotationInHierarchy(READONLY);
+        }
+        return am;
     }
 }
