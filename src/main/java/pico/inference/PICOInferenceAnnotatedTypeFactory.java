@@ -27,6 +27,7 @@ import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotato
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import pico.common.ExtendedViewpointAdapter;
@@ -35,12 +36,18 @@ import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator;
 import pico.common.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
 /**
  * Propagates correct constraints on trees and types using TreeAnnotators and TypeAnnotators.
@@ -135,6 +142,34 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     @Override
     public ExtendedViewpointAdapter getViewpointAdapter() {
         return (ExtendedViewpointAdapter) viewpointAdapter;
+    }
+
+    @Override
+    protected Set<? extends AnnotationMirror> getDefaultTypeDeclarationBounds() {
+        return Collections.singleton(MUTABLE);
+    }
+
+    @Override
+    public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
+        // TODO too awkward. maybe overload isImplicitlyImmutableType
+        if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
+            return Collections.singleton(IMMUTABLE);
+        }
+        if (type.getKind() == TypeKind.ARRAY) {
+            return Collections.singleton(READONLY); // if decided to use vpa for array, return RDM.
+        }
+
+        // IMMUTABLE for enum w/o decl anno
+        if (type instanceof DeclaredType) {
+            Element ele = ((DeclaredType) type).asElement();
+            if (ele.getKind() == ElementKind.ENUM) {
+                if (!AnnotationUtils.containsSameByName(getDeclAnnotations(ele), MUTABLE) &&
+                        !AnnotationUtils.containsSameByName(getDeclAnnotations(ele), RECEIVER_DEPENDANT_MUTABLE)) { // no decl anno
+                    return Collections.singleton(IMMUTABLE);
+                }
+            }
+        }
+        return super.getTypeDeclarationBounds(type);
     }
 
     class PICOInferencePropagationTreeAnnotator extends PropagationTreeAnnotator {
