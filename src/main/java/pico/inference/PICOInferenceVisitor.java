@@ -505,11 +505,11 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     // Completely copied from PICOVisitor
     private void reportFieldOrArrayWriteError(Tree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (variable.getKind() == Kind.MEMBER_SELECT) {
-            checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
+            checker.reportError(TreeUtils.getReceiverTree(variable), "illegal.field.write", receiverType);
         } else if (variable.getKind() == Kind.IDENTIFIER) {
-            checker.report(Result.failure("illegal.field.write", receiverType), node);
+            checker.reportError(node, "illegal.field.write", receiverType);
         } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
-            checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
+            checker.reportError(((ArrayAccessTree)variable).getExpression(), "illegal.array.write", receiverType);
         } else {
             throw new BugInCF("Unknown assignment variable at: ", node);
         }
