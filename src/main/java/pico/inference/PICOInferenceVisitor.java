@@ -622,9 +622,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 // then this unsatisfiable constraint is captured by ConstraintManager and ConstraintManager early exits. But
                 // now for two ConstantSlot case, no subtype constraint is generated any more. So we have to report the error
                 // , otherwise it will cause inference result not typecheck
-                checker.report(
-                        Result.failure(
-                                "super.invocation.invalid", subClassConstructorReturnType, superClassConstructorReturnType), node);
+                checker.reportError(node, "super.invocation.invalid", subClassConstructorReturnType, superClassConstructorReturnType);
             }
         }
         super.checkMethodInvocability(method, node);
@@ -678,7 +676,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
         for (AnnotatedDeclaredType superBound : superBounds) {
             if (!isAdaptedSubtype(bound, superBound)) {
-                checker.report(Result.failure("subclass.bound.incompatible", bound, superBound), node);
+                checker.reportError(node, "subclass.bound.incompatible", bound, superBound);
                 return false; // do not stop processing if failed
             }
         }
