@@ -44,7 +44,7 @@ dependencies {
 
     // CF test lib dependency
     testCompile fileTree(dir: "${cfPath}/framework-test/build/libs", include: "framework-test-*.jar")
-    testCompile 'junit:junit:4.13'
+    testCompile 'junit:junit:4.13.1'
 }
 
 sourceSets {
