@@ -14,6 +14,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiv
 import org.checkerframework.javacutil.TreeUtils;
 import pico.common.PICOTypeUtil;
 
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.VariableElement;
 
 import java.util.Objects;
@@ -37,7 +38,13 @@ public class PICOValidator extends BaseTypeValidator {
         checkStaticReceiverDependantMutableError(type, tree);
         checkImplicitlyImmutableTypeError(type, tree);
         checkOnlyOneAssignabilityModifierOnField(tree);
-        return super.visitDeclared(type, tree);
+
+        boolean oldCheck = checkTopLevelDeclaredType;
+        if(tree instanceof VariableTree && TreeUtils.elementFromDeclaration((VariableTree) tree).getKind() == ElementKind.FIELD)
+            checkTopLevelDeclaredType = false;
+        super.visitDeclared(type, tree);
+        checkTopLevelDeclaredType = oldCheck;
+        return null;
     }
 
     @Override

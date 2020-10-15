@@ -375,7 +375,9 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             }
         }
         // TODO use base cf check methods
-        checkAndReportInvalidAnnotationOnUse(type, node);
+        if (element.getKind() != ElementKind.FIELD || !type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+            checkAndReportInvalidAnnotationOnUse(type, node);
+        }
         return super.visitVariable(node, p);
     }
 
