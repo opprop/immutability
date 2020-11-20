@@ -55,6 +55,7 @@ import com.sun.source.tree.VariableTree;
 import pico.common.ExtendedViewpointAdapter;
 import pico.common.PICOTypeUtil;
 import pico.common.ViewpointAdapterGettable;
+import qual.Immutable;
 
 /**
  * Created by mier on 20/06/17.
@@ -374,8 +375,15 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                 checker.reportError(node, "field.polymutable.forbidden", element);
             }
         }
+        // When to check:
+        // bound == Immutable, OR
+        // not FIELD, OR
+        // top anno not RDM
         // TODO use base cf check methods
-        if (element.getKind() != ElementKind.FIELD || !type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+        AnnotationMirror declAnno = atypeFactory.getTypeDeclarationBoundForMutability(type.getUnderlyingType());
+        if (declAnno != null && AnnotationUtils.areSameByName(declAnno, IMMUTABLE) ||
+                element.getKind() != ElementKind.FIELD ||
+                !type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
             checkAndReportInvalidAnnotationOnUse(type, node);
         }
         return super.visitVariable(node, p);
@@ -496,6 +504,25 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             checker.reportError(node, "class.bound.invalid", bound);
             return;// Doesn't process the class tree anymore
         }
+
+        // field of mutable class cannot use RDM in immutable class
+        // Condition:
+        //  * Class decl == Immutable
+        //  * Member is field (variable)
+        //  * Member's declared bound == Mutable
+        //  * Member's use anno == RDM
+        if (bound.hasAnnotation(IMMUTABLE)) {
+            for(Tree member : node.getMembers()) {
+                if(member.getKind() == Kind.VARIABLE) {
+                    AnnotatedTypeMirror fieldAtm = atypeFactory.getAnnotatedType(member);
+                    if (fieldAtm.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) &&
+                            AnnotationUtils.containsSameByName(atypeFactory.getTypeDeclarationBounds(fieldAtm.getUnderlyingType()), MUTABLE)) {
+                        checker.reportError(member, "test-key-1");
+                    }
+                }
+            }
+        }
+
 
         super.processClassTree(node);
     }
