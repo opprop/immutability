@@ -63,8 +63,10 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter implements Ex
 
     @Override
     protected AnnotatedTypeMirror combineAnnotationWithType(AnnotationMirror receiverAnnotation, AnnotatedTypeMirror declared) {
+        boolean prevRdm = declared.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE);
         AnnotatedTypeMirror raw =  super.combineAnnotationWithType(receiverAnnotation, declared);
-        if(AnnotationUtils.containsSameByName(atypeFactory.getTypeDeclarationBounds(declared.getUnderlyingType()), MUTABLE)
+        if(prevRdm &&
+                AnnotationUtils.containsSameByName(atypeFactory.getTypeDeclarationBounds(declared.getUnderlyingType()), MUTABLE)
                 && (raw.hasAnnotation(IMMUTABLE) || raw.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE))) {
             raw.replaceAnnotation(MUTABLE);
         }
