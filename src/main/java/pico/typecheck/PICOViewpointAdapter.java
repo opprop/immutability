@@ -60,18 +60,18 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter implements Ex
             throw new BugInCF("Unknown declared modifier: " + declaredAnnotation, new UnkownImmutabilityQualifierException());
         }
     }
-
-    @Override
-    protected AnnotatedTypeMirror combineAnnotationWithType(AnnotationMirror receiverAnnotation, AnnotatedTypeMirror declared) {
-        boolean prevRdm = declared.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE);
-        AnnotatedTypeMirror raw =  super.combineAnnotationWithType(receiverAnnotation, declared);
-        if(prevRdm &&
-                AnnotationUtils.containsSameByName(atypeFactory.getTypeDeclarationBounds(declared.getUnderlyingType()), MUTABLE)
-                && (raw.hasAnnotation(IMMUTABLE) || raw.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE))) {
-            raw.replaceAnnotation(MUTABLE);
-        }
-        return raw;
-    }
+//
+//    @Override
+//    protected AnnotatedTypeMirror combineAnnotationWithType(AnnotationMirror receiverAnnotation, AnnotatedTypeMirror declared) {
+//        boolean prevRdm = declared.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE);
+//        AnnotatedTypeMirror raw =  super.combineAnnotationWithType(receiverAnnotation, declared);
+//        if(prevRdm &&
+//                AnnotationUtils.containsSameByName(atypeFactory.getTypeDeclarationBounds(declared.getUnderlyingType()), MUTABLE)
+//                && (raw.hasAnnotation(IMMUTABLE) || raw.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE))) {
+//            raw.replaceAnnotation(MUTABLE);
+//        }
+//        return raw;
+//    }
 
     public AnnotatedTypeMirror rawCombineAnnotationWithType(AnnotationMirror anno, AnnotatedTypeMirror type) {
 //        System.err.println("VPA: " + anno + " ->" + type);

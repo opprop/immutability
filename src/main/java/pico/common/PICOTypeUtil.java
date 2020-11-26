@@ -22,6 +22,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclared
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationProvider;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
@@ -41,10 +42,12 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
@@ -243,6 +246,17 @@ public class PICOTypeUtil {
                    if (explicitATM instanceof AnnotatedDeclaredType) {
                        AnnotatedDeclaredType adt = (AnnotatedDeclaredType) explicitATM;
                        Element typeElement = adt.getUnderlyingType().asElement();
+
+                       // add RDM if bound=M and enclosingBound=M/RDM
+                       Set<AnnotationMirror> enclosingBound = annotatedTypeFactory.getTypeDeclarationBounds(
+                               Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType());
+                       Set<AnnotationMirror> declBound = annotatedTypeFactory.getTypeDeclarationBounds(element.asType());
+                       if (AnnotationUtils.containsSameByName(declBound, MUTABLE)) {
+                           if (AnnotationUtils.containsSameByName(enclosingBound, RECEIVER_DEPENDANT_MUTABLE) ||
+                                   AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
+                               annotatedTypeMirror.replaceAnnotation(RECEIVER_DEPENDANT_MUTABLE);
+                           }
+                       }
                        if (typeElement instanceof TypeElement) {
                            AnnotatedDeclaredType bound = getBoundTypeOfTypeDeclaration((TypeElement) typeElement, annotatedTypeFactory);
                            if (bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
