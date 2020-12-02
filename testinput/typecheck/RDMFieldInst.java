@@ -13,7 +13,7 @@ public class RDMFieldInst{
     @Immutable
     // :: error: (initialization.fields.uninitialized)
     private static class ImmutableClass {
-        // :: error: (test-key-1)
+        // :: error: (type.invalid.annotations.on.use)
         @ReceiverDependantMutable MutableBox mutableBoxInRDM;
     }
 
@@ -26,7 +26,7 @@ public class RDMFieldInst{
         @ReceiverDependantMutable RDMBox rdmBoxInRDMnewI = new @Immutable RDMBox();
         // :: error: (assignment.type.incompatible)
         @ReceiverDependantMutable RDMBox rdmBoxInRDMnewRDM = new @ReceiverDependantMutable RDMBox();
-        // :: error: (assignment.type.incompatible)
+        // :: error: (type.invalid.annotations.on.use)
         @ReceiverDependantMutable ImmutableBox immutableBoxInRDM = new ImmutableBox();
     }
 
