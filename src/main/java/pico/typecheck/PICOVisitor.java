@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -94,6 +95,23 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (useType.hasAnnotation(POLY_MUTABLE)) {
             return true;
         }
+
+//        // allow RDM on mutable fields with enclosing class bounded with mutable
+//        if (tree instanceof VariableTree && useType.isDeclaration()) {
+//            VariableElement element = TreeUtils.elementFromDeclaration((VariableTree)tree);
+//            if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingClass(element) != null) {
+//                Set<AnnotationMirror> enclosingBound =
+//                        atypeFactory.getTypeDeclarationBounds(
+//                                Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType());
+//
+//                if(declarationType.hasAnnotation(MUTABLE)
+//                && useType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
+//                && AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
+//                    return true;
+//                }
+//            }
+//
+//        }
 
         AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
         AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
@@ -505,25 +523,23 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return;// Doesn't process the class tree anymore
         }
 
-        // field of mutable class cannot use RDM in immutable class
-        // Condition:
-        //  * Class decl == Immutable
-        //  * Member is field (variable)
-        //  * Member's declared bound == Mutable
-        //  * Member's use anno == RDM
-        if (bound.hasAnnotation(IMMUTABLE)) {
-            for(Tree member : node.getMembers()) {
-                if(member.getKind() == Kind.VARIABLE) {
-                    AnnotatedTypeMirror fieldAtm = atypeFactory.getAnnotatedType(member);
-                    if (fieldAtm.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) &&
-                            AnnotationUtils.containsSameByName(atypeFactory.getTypeDeclarationBounds(fieldAtm.getUnderlyingType()), MUTABLE)) {
-                        checker.reportError(member, "test-key-1");
-                    }
-                }
-            }
-        }
-
-
+//        // field of mutable class cannot use RDM in immutable class
+//        // Condition:
+//        //  * Class decl == Immutable
+//        //  * Member is field (variable)
+//        //  * Member's declared bound == Mutable
+//        //  * Member's use anno == RDM
+//        if (bound.hasAnnotation(IMMUTABLE)) {
+//            for(Tree member : node.getMembers()) {
+//                if(member.getKind() == Kind.VARIABLE) {
+//                    AnnotatedTypeMirror fieldAtm = atypeFactory.getAnnotatedType(member);
+//                    if (fieldAtm.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) &&
+//                            AnnotationUtils.containsSameByName(atypeFactory.getTypeDeclarationBounds(fieldAtm.getUnderlyingType()), MUTABLE)) {
+//                        checker.reportError(member, "test-key-1");
+//                    }
+//                }
+//            }
+//        }
         super.processClassTree(node);
     }
 

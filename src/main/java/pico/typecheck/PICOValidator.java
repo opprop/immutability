@@ -11,17 +11,21 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import pico.common.PICOTypeUtil;
 
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.VariableElement;
 
 import java.util.Objects;
+import java.util.Set;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 
 /**
  * Created by mier on 29/09/17.
@@ -39,12 +43,8 @@ public class PICOValidator extends BaseTypeValidator {
         checkImplicitlyImmutableTypeError(type, tree);
         checkOnlyOneAssignabilityModifierOnField(tree);
 
-        boolean oldCheck = checkTopLevelDeclaredType;
-        if(tree instanceof VariableTree && TreeUtils.elementFromDeclaration((VariableTree) tree).getKind() == ElementKind.FIELD)
-            checkTopLevelDeclaredType = false;
-        super.visitDeclared(type, tree);
-        checkTopLevelDeclaredType = oldCheck;
-        return null;
+        return super.visitDeclared(type, tree);
+
     }
 
     @Override
@@ -54,6 +54,28 @@ public class PICOValidator extends BaseTypeValidator {
                 PICOAnnotatedTypeFactory.PICOSuperClauseAnnotator.isSuperClause(atypeFactory.getPath(tree))) {
             return true;
         }
+        // allow RDM on mutable fields with enclosing class bounded with mutable
+        if (tree instanceof VariableTree) {
+            VariableElement element = TreeUtils.elementFromDeclaration((VariableTree)tree);
+            if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingClass(element) != null) {
+                Set<AnnotationMirror> enclosingBound =
+                        atypeFactory.getTypeDeclarationBounds(
+                                Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType());
+
+                Set<AnnotationMirror> declaredBound =
+                        atypeFactory.getTypeDeclarationBounds(type.getUnderlyingType());
+
+                if(AnnotationUtils.containsSameByName(declaredBound, MUTABLE)
+                        && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
+                        && AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
+                    return false;
+                }
+            }
+        }
+//        if (TreeUtils.isLocalVariable(tree)) {
+//            return true;
+//        }
+
         return super.shouldCheckTopLevelDeclaredType(type, tree);
     }
 
