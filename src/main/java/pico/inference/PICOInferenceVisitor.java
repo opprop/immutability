@@ -8,6 +8,7 @@ import checkers.inference.SlotManager;
 import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.Constraint;
 import checkers.inference.model.ConstraintManager;
+import checkers.inference.model.ImplicationConstraint;
 import checkers.inference.model.Slot;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
@@ -33,6 +34,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclared
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
@@ -54,7 +56,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
@@ -79,6 +83,52 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (useType.hasAnnotation(BOTTOM)) {
             return true;
         }
+        // allow RDM on mutable fields with enclosing class bounded with mutable
+        if (tree instanceof VariableTree && !useType.isDeclaration()) {
+            VariableElement element = TreeUtils.elementFromDeclaration((VariableTree)tree);
+            if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingClass(element) != null) {
+                // assert only 1 bound exists
+                AnnotationMirror enclosingBound =
+                        atypeFactory.getTypeDeclarationBounds(
+                                Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType()).iterator().next();
+
+                // if enclosing bound == mutable -> (RDM or Mutable usable on mutable-bounded fields)
+                // else -> adaptedSubtype
+                // would be helpful if the solver is SMT and supports "ite" operation
+                if (infer) {
+                    final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+                    final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+
+                    // cannot use RDM on mutable-bounded fields in immutable classes
+                    // for mutable enclosing class: allow RDM/Mutable on mutable-bounded fields
+                    constraintManager.addImplicationConstraint(
+                            Collections.singletonList(  // if decl bound is mutable
+                                    constraintManager.createEqualityConstraint(slotManager.getSlot(enclosingBound),
+                                            slotManager.getSlot(MUTABLE))
+                            ),
+                            createRDMOnMutableFieldConstraint(useType, extractVarAnnot(declarationType)));
+                    // for other enclosing class: use adaptedSubtype
+                    constraintManager.addImplicationConstraint(
+                            Collections.singletonList(  // if decl bound is mutable
+                                    constraintManager.createInequalityConstraint(slotManager.getSlot(enclosingBound),
+                                            slotManager.getSlot(MUTABLE))
+                            ),
+                            createAdaptedSubtypeConstraint(useType, declarationType));
+                    return true;  // always proceed on inference
+                }
+                // type-check
+                return AnnotationUtils.areSame(enclosingBound, MUTABLE) ?
+                        ifAnnoIsThenMainIsOneOf(extractVarAnnot(declarationType), MUTABLE, useType,
+                                new AnnotationMirror[]{MUTABLE, RECEIVER_DEPENDANT_MUTABLE}) :
+                        isAdaptedSubtype(useType, declarationType);
+//                if(declarationType.hasAnnotation(MUTABLE)
+//                && useType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
+//                && AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
+//                    return true;
+//                }
+            }
+
+        }
         return isAdaptedSubtype(useType, declarationType);
     }
 
@@ -94,6 +144,19 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(extractVarAnnot(lhs),
                 rhs);
         return mainIsSubtype(adapted, extractVarAnnot(lhs));
+    }
+
+    private Constraint createAdaptedSubtypeConstraint(AnnotatedTypeMirror lhs, AnnotatedTypeMirror rhs) {
+        assert infer;
+        final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+        final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+
+        ExtendedViewpointAdapter vpa = ((ViewpointAdapterGettable)atypeFactory).getViewpointAdapter();
+        AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(extractVarAnnot(lhs), rhs);
+        return constraintManager.createSubtypeConstraint(
+                slotManager.getVariableSlot(adapted),
+                slotManager.getVariableSlot(lhs)
+        );
     }
 
     @Override
@@ -196,6 +259,12 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         return atm.getAnnotationInHierarchy(READONLY);
     }
 
+    private AnnotationMirror extractBoundAnno(final AnnotatedTypeMirror atm) {
+        // assertion: inference only deal with 1 hierarchy, so only 1 anno in bounds
+        assert atypeFactory.getTypeDeclarationBounds(atm.getUnderlyingType()).size() == 1 : "bound size != 1";
+        return atypeFactory.getTypeDeclarationBounds(atm.getUnderlyingType()).iterator().next();
+    }
+
     @Override
     public Void visitVariable(VariableTree node, Void p) {
         VariableElement element = TreeUtils.elementFromDeclaration(node);
@@ -206,8 +275,92 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             addDeepPreference(type, RECEIVER_DEPENDANT_MUTABLE, 3, node);
             addDeepPreference(type, IMMUTABLE, 3, node);
         }
+
+        if (element != null && element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
+            AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
+            ifBoundContainsThenMainIsOneOf(type, MUTABLE,
+                    new AnnotationMirror[]{MUTABLE, RECEIVER_DEPENDANT_MUTABLE});
+
+
+        }
         return super.visitVariable(node, p);
     }
+
+    /**
+     *
+     * @param mainAtm a field atm
+     * @param mutBound declaration bound of mutability
+     * @return (mutBound == RDM) -> (anno(atm) == RDM | anno(atm) == Mutable)
+     */
+    private Constraint createRDMOnMutableFieldConstraint(AnnotatedTypeMirror mainAtm, AnnotationMirror mutBound) {
+        final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+        final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+        // A || B <-> !A -> B
+        Constraint oneOfConst = constraintManager.createImplicationConstraint(
+                Collections.singletonList(constraintManager.createInequalityConstraint(
+                        slotManager.getSlot(MUTABLE),
+                        slotManager.getVariableSlot(mainAtm))),
+                constraintManager.createEqualityConstraint(
+                        slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE),
+                        slotManager.getVariableSlot(mainAtm)
+                )
+        );
+
+        return constraintManager.createImplicationConstraint(
+                Collections.singletonList(constraintManager.createEqualityConstraint(
+                        slotManager.getSlot(mutBound),
+                        slotManager.getSlot(MUTABLE))),
+                oneOfConst
+        );
+    }
+
+    /**
+     *
+     * @param atm
+     * @param contains
+     * @param oneOf
+     */
+    public boolean ifBoundContainsThenMainIsOneOf(AnnotatedTypeMirror atm, AnnotationMirror contains,
+                                AnnotationMirror[] oneOf) {
+
+        AnnotationMirror boundAnno = extractBoundAnno(atm);
+        return ifAnnoIsThenMainIsOneOf(boundAnno, contains, atm, oneOf);
+
+    }
+
+    public boolean ifAnnoIsThenMainIsOneOf(AnnotationMirror annotation, AnnotationMirror is,
+                                           AnnotatedTypeMirror mainAtm, AnnotationMirror[] oneOf) {
+        // TODO support more annotations
+        assert oneOf.length == 2: "oneOf.length should be 2";
+        if (this.infer) {
+            final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+            final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+            Constraint oneOfConst = constraintManager.createImplicationConstraint(
+                    Collections.singletonList(constraintManager.createInequalityConstraint(
+                            slotManager.getSlot(oneOf[0]),
+                            slotManager.getVariableSlot(mainAtm))),
+                    constraintManager.createEqualityConstraint(
+                            slotManager.getSlot(oneOf[1]),
+                            slotManager.getVariableSlot(mainAtm)
+                    )
+            );
+
+            constraintManager.addImplicationConstraint(
+                    Collections.singletonList(constraintManager.createEqualityConstraint(
+                            slotManager.getSlot(annotation),
+                            slotManager.getSlot(is))),
+                    oneOfConst
+            );
+            return true;  // always return true on inference
+        } else {
+            if (AnnotationUtils.areSameByName(annotation, is)) {
+                return AnnotationUtils.containsSameByName(Arrays.asList(oneOf),
+                        mainAtm.getAnnotationInHierarchy(READONLY));
+            }
+        }
+        return true;
+    }
+
 
     @Override
     public Void visitMethod(MethodTree node, Void p) {
