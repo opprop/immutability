@@ -366,6 +366,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     public Void visitMethod(MethodTree node, Void p) {
         AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(node);
         AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(node, atypeFactory);
+        assert bound != null;
+        assert !bound.hasAnnotation(POLY_MUTABLE) : "BOUND CANNOT BE POLY";
 
         if (TreeUtils.isConstructor(node)) {
             // Doesn't check anonymous constructor case
@@ -815,6 +817,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
 
         mainIsNot(bound, READONLY, "class.bound.invalid", node);
+        mainIsNot(bound, POLY_MUTABLE, "class.bound.invalid", node);
         if (checker.hasOption("optimalSolution")) {
             addPreference(bound, RECEIVER_DEPENDANT_MUTABLE, 2);
             addPreference(bound, IMMUTABLE, 2);
