@@ -68,12 +68,12 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         VariableSlot boundSlot;
 
         // Insert @Immutable VarAnnot directly to enum bound
-        if (PICOTypeUtil.isEnumOrEnumConstant(bound)) {
-            boundSlot = slotManager.createConstantSlot(IMMUTABLE);
-            classType.addAnnotation(slotManager.getAnnotation(boundSlot));
-            classDeclAnnos.put(classElement, boundSlot);
-            return;
-        }
+//        if (PICOTypeUtil.isEnumOrEnumConstant(bound)) {
+//            boundSlot = slotManager.createConstantSlot(IMMUTABLE);
+//            classType.addAnnotation(slotManager.getAnnotation(boundSlot));
+//            classDeclAnnos.put(classElement, boundSlot);
+//            return;
+//        }
 
         Tree classTree = inferenceTypeFactory.declarationFromElement(classElement);
         if (classTree != null) {
@@ -113,10 +113,10 @@ public class PICOVariableAnnotator extends VariableAnnotator {
 
     @Override
     protected VariableSlot addPrimaryVariable(AnnotatedTypeMirror atm, Tree tree) {
-        if (PICOTypeUtil.isEnumOrEnumConstant(atm)) {
-            // Don't add new VarAnnot to type use of enum type
-            PICOTypeUtil.applyConstant(atm, IMMUTABLE);
-        }
+//        if (PICOTypeUtil.isEnumOrEnumConstant(atm)) {
+//            // Don't add new VarAnnot to type use of enum type
+//            PICOTypeUtil.applyConstant(atm, IMMUTABLE);
+//        }
         return super.addPrimaryVariable(atm, tree);
     }
 
