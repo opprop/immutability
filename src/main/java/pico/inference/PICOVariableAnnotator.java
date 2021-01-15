@@ -8,10 +8,14 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 
+import checkers.inference.model.ExistentialVariableSlot;
+import checkers.inference.model.Slot;
+import com.sun.tools.javac.code.Symbol;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -103,6 +107,19 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         }
         classType.addAnnotation(slotManager.getAnnotation(boundSlot));
         classDeclAnnos.put(classElement, boundSlot);
+    }
+
+    @Override
+    public void storeElementType(Element element, AnnotatedTypeMirror atm) {
+        Slot slot = slotManager.getVariableSlot(atm);
+        // do not use potential slot generated on the class decl annotation
+        // PICO always have a annotation on the class bound, so Existential should always exist
+        // TODO make VariableAnnotator::getOrCreateDeclBound protected and override that instead of this method
+        if (element instanceof Symbol.ClassSymbol && slot instanceof ExistentialVariableSlot) {
+            AnnotationMirror potential = slotManager.getAnnotation(((ExistentialVariableSlot) slot).getPotentialSlot());
+            atm.replaceAnnotation(potential);
+        }
+        super.storeElementType(element, atm);
     }
 
     // Don't generate subtype constraint between use type and bound type
