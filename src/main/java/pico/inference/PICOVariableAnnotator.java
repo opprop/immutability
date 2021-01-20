@@ -110,7 +110,24 @@ public class PICOVariableAnnotator extends VariableAnnotator {
     }
 
     @Override
+    protected VariableSlot getOrCreateDeclBound(AnnotatedDeclaredType type) {
+        // if a explicit annotation presents on the class decl, use that directly
+        if (type.isAnnotatedInHierarchy(READONLY)) {
+            VariableSlot constantSlot = (VariableSlot) slotManager.getSlot(type.getAnnotationInHierarchy(READONLY));
+            TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
+            classDeclAnnos.put(classDecl, constantSlot);
+            // avoid duplicate annos
+            type.removeAnnotationInHierarchy(READONLY);
+            return constantSlot;
+        }
+        return super.getOrCreateDeclBound(type);
+    }
+
+    @Override
     public void storeElementType(Element element, AnnotatedTypeMirror atm) {
+        // this method is override the behavior of super.handleClassDeclaration before storing
+        // find a better way
+
         Slot slot = slotManager.getVariableSlot(atm);
         // do not use potential slot generated on the class decl annotation
         // PICO always have a annotation on the class bound, so Existential should always exist
