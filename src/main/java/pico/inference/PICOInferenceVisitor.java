@@ -259,10 +259,16 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         return atm.getAnnotationInHierarchy(READONLY);
     }
 
-    private AnnotationMirror extractBoundAnno(final AnnotatedTypeMirror atm) {
-        // assertion: inference only deal with 1 hierarchy, so only 1 anno in bounds
-        assert atypeFactory.getTypeDeclarationBounds(atm.getUnderlyingType()).size() == 1 : "bound size != 1";
-        return atypeFactory.getTypeDeclarationBounds(atm.getUnderlyingType()).iterator().next();
+    /**
+     * Extract the declaration initialization bound of a certain atm.
+     * Return the slot generated during inference.
+     * @param atm any AnnotatedDeclaredType
+     * @return the initialization bound on the class declaration of the type (actual or slot annotation)
+     */
+    private AnnotationMirror extractInitBoundAnno(final AnnotatedDeclaredType atm) {
+        Element tm = atypeFactory.getProcessingEnv().getTypeUtils().asElement(atm.getUnderlyingType());
+        assert tm instanceof TypeElement;
+        return extractVarAnnot(PICOTypeUtil.getBoundTypeOfTypeDeclaration((TypeElement) tm, atypeFactory));
     }
 
     @Override
