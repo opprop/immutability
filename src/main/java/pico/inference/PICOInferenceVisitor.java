@@ -367,6 +367,29 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         return true;
     }
 
+    /**
+     * Make the main annotation on {@code atm} cannot infer to given {@code anno}.
+     * But the written annotation still have effect.
+     * <p>
+     *     A notable use could be poly annotations which could be used by inference if explicitly present,
+     *     but new poly cannot be inferred.
+     * </p>
+     * @param atm the type which should not inferred to given anno
+     * @param anno the anno that cannot be inferred to
+     * @param errorKey this will show only if things goes wrong and result into a error message in type-check.
+     * @param tree this will show only if things goes wrong and result into a error message in type-check.
+     */
+    public void mainCannotInferTo(AnnotatedTypeMirror atm, AnnotationMirror anno, String errorKey, Tree tree) {
+        if (infer) {
+            SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+            // should be constant slot if written explicitly in code
+            if (!(slotManager.getVariableSlot(atm) instanceof ConstantSlot)) {
+                mainIsNot(atm, anno, errorKey, tree);
+            }
+
+        }
+    }
+
 
     @Override
     public Void visitMethod(MethodTree node, Void p) {
@@ -374,6 +397,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(node, atypeFactory);
         assert bound != null;
         assert !bound.hasAnnotation(POLY_MUTABLE) : "BOUND CANNOT BE POLY";
+
+        // cannot infer poly, but can use it for type-check.
+        mainCannotInferTo(executableType.getReturnType(), POLY_MUTABLE, "cannot.infer.poly", node);
 
         if (TreeUtils.isConstructor(node)) {
             // Doesn't check anonymous constructor case
@@ -751,7 +777,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     private void checkNewInstanceCreation(Tree node) {
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
         // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable are inferred on new instance creation
-        mainIsNoneOf(type, new AnnotationMirror[]{READONLY}, "pico.new.invalid", node);
+        mainIsNoneOf(type, new AnnotationMirror[]{READONLY, POLY_MUTABLE}, "pico.new.invalid", node);
     }
 
     // Completely copied from PICOVisitor
