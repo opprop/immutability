@@ -326,10 +326,10 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
      * @param contains
      * @param oneOf
      */
-    public boolean ifBoundContainsThenMainIsOneOf(AnnotatedTypeMirror atm, AnnotationMirror contains,
+    public boolean ifBoundContainsThenMainIsOneOf(AnnotatedDeclaredType atm, AnnotationMirror contains,
                                 AnnotationMirror[] oneOf) {
 
-        AnnotationMirror boundAnno = extractBoundAnno(atm);
+        AnnotationMirror boundAnno = extractInitBoundAnno(atm);
         return ifAnnoIsThenMainIsOneOf(boundAnno, contains, atm, oneOf);
 
     }
