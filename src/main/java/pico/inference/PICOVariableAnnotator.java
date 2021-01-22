@@ -15,6 +15,7 @@ import javax.lang.model.type.TypeKind;
 
 import checkers.inference.model.ExistentialVariableSlot;
 import checkers.inference.model.Slot;
+import checkers.inference.qual.VarAnnot;
 import com.sun.tools.javac.code.Symbol;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -35,6 +36,7 @@ import checkers.inference.model.AnnotationLocation;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.VariableSlot;
 import checkers.inference.model.tree.ArtificialExtendsBoundTree;
+import org.checkerframework.javacutil.TypesUtils;
 import pico.common.PICOTypeUtil;
 
 public class PICOVariableAnnotator extends VariableAnnotator {
@@ -119,6 +121,16 @@ public class PICOVariableAnnotator extends VariableAnnotator {
             // avoid duplicate annos
             type.removeAnnotationInHierarchy(READONLY);
             return constantSlot;
+        }
+
+        // new class tree of an anonymous class is always visited before (enclosing tree).
+        // slot should be generated then.
+        // use that slot and avoid generating a new slot.
+        // push this change to inference IFF the slot on new class have same requirement with class bound
+        // e.g. existence slot on new class tree?
+        if (TypesUtils.isAnonymous(type.getUnderlyingType())) {
+            assert type.hasAnnotation(VarAnnot.class);
+            return (VariableSlot) slotManager.getSlot(type.getAnnotation(VarAnnot.class));
         }
         return super.getOrCreateDeclBound(type);
     }
