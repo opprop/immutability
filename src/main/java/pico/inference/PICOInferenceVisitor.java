@@ -921,7 +921,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // TODO: WORKAROUND: anonymous class handling
         if (TypesUtils.isAnonymous(valueType.getUnderlyingType())) {
             AnnotatedTypeMirror newValueType = varType.deepCopy();
-            newValueType.replaceAnnotation(valueType.getAnnotationInHierarchy(READONLY));
+            newValueType.clearAnnotations();
+            newValueType.addAnnotation(extractVarAnnot(valueType));
+
             valueType = newValueType;
         }
         super.commonAssignmentCheck(varType, valueType, valueTree, errorKey);
