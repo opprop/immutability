@@ -15,6 +15,7 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
+import com.sun.tools.javac.tree.JCTree;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
@@ -182,6 +183,13 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
     public AnnotatedTypeMirror getTypeOfExtendsImplements(Tree clause) {
         // add default anno from class main qual, if no qual present
         AnnotatedTypeMirror enclosing = getAnnotatedType(TreeUtils.enclosingClass(getPath(clause)));
+
+        // workaround for anonymous class.
+        // TypesUtils::isAnonymous won't work when annotation presents on new class tree!
+        if(getPath(clause).getParentPath().getLeaf() instanceof JCTree.JCNewClass) {
+            enclosing = getAnnotatedType(getPath(clause).getParentPath().getLeaf());
+
+        }
         AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
         AnnotatedTypeMirror fromTypeTree = this.fromTypeTree(clause);
         if (!fromTypeTree.isAnnotatedInHierarchy(READONLY)) {
