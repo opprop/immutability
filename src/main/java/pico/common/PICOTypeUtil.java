@@ -314,7 +314,7 @@ public class PICOTypeUtil {
             // back to the original source code, BUT this ConstantSlot(representing @Immutable) will be used for constraint generation
             // that affects the solutions for other VariableSlots
             type.addAnnotation(slotManager.getAnnotation(constant));// Insert Constant VarAnnot that represents @Immutable
-            type.addAnnotation(am);// Insert real @Immutable. This should be removed if INF-FR only uses VarAnnot
+//            type.addAnnotation(am);// Insert real @Immutable. This should be removed if INF-FR only uses VarAnnot
         } else {
             constraintManager.addEqualityConstraint(shouldBeAppliedTo, constant);
         }
