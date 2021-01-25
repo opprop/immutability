@@ -301,8 +301,23 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     private Constraint createRDMOnMutableFieldConstraint(AnnotatedTypeMirror mainAtm, AnnotationMirror mutBound) {
         final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
         final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+
+        Constraint oneOfConst = createMainIsMutableOrRdmConstraint(mainAtm);
+
+        return constraintManager.createImplicationConstraint(
+                Collections.singletonList(constraintManager.createEqualityConstraint(
+                        slotManager.getSlot(mutBound),
+                        slotManager.getSlot(MUTABLE))),
+                oneOfConst
+        );
+    }
+
+    private Constraint createMainIsMutableOrRdmConstraint(AnnotatedTypeMirror mainAtm) {
+        assert infer;
+        final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+        final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
         // A || B <-> !A -> B
-        Constraint oneOfConst = constraintManager.createImplicationConstraint(
+        return constraintManager.createImplicationConstraint(
                 Collections.singletonList(constraintManager.createInequalityConstraint(
                         slotManager.getSlot(MUTABLE),
                         slotManager.getVariableSlot(mainAtm))),
@@ -310,13 +325,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                         slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE),
                         slotManager.getVariableSlot(mainAtm)
                 )
-        );
-
-        return constraintManager.createImplicationConstraint(
-                Collections.singletonList(constraintManager.createEqualityConstraint(
-                        slotManager.getSlot(mutBound),
-                        slotManager.getSlot(MUTABLE))),
-                oneOfConst
         );
     }
 
