@@ -851,6 +851,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         TypeElement typeElement = TreeUtils.elementFromDeclaration(node);
         // Don't process anonymous class.
         if (TypesUtils.isAnonymous(TreeUtils.typeOf(node))) {
+            checkAnonymousImplements(node, PICOTypeUtil.getBoundTypeOfTypeDeclaration(typeElement, atypeFactory));
             super.processClassTree(node);
             return;
         }
@@ -864,9 +865,66 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             addPreference(bound, IMMUTABLE, 2);
         }
 
+        checkSuperClauseEquals(node, bound);
         // Always reach this point. Do not suppress errors.
         super.processClassTree(node);
     }
+
+    /**
+     * The base visitor does not use inference method to check!
+     * This method is required to add the constraints for extends / implements.
+     * @param node
+     */
+    private void checkAnonymousImplements(ClassTree node, AnnotatedDeclaredType bound) {
+        // NOTE: this is a workaround for checking bound against extends/implements
+        // After inferring annotation CF cannot skip the anonymous class, thus necessary
+
+        assert TypesUtils.isAnonymous(TreeUtils.typeOf(node));
+
+        if (infer) {
+            Tree superClause;
+            if (node.getExtendsClause() != null) {
+                superClause = node.getExtendsClause();
+            } else if (node.getImplementsClause() != null) {
+                // a anonymous class cannot have both extends or implements
+                assert node.getImplementsClause().size() == 1;  // anonymous class only implement 1 interface
+                superClause = node.getImplementsClause().get(0);
+
+            } else {
+                throw new BugInCF("Anonymous class with no extending/implementing clause!");
+            }
+            AnnotationMirror superBound = extractInitBoundAnno((AnnotatedDeclaredType) atypeFactory.getAnnotatedType(superClause));
+            // anonymous cannot have implement clause, so no "use" anno of super type
+            mainIsSubtype(bound, superBound);
+        }
+    }
+
+
+    /**
+     * extends/implements clause use anno == bound anno
+     * <p> Could be subtype, but recall Readonly and Bottom is not usable on class init bound.</p>
+     * @param node
+     * @param bound
+     */
+    private void checkSuperClauseEquals(ClassTree node, AnnotatedDeclaredType bound) {
+        if (node.getExtendsClause() != null) {
+            AnnotatedTypeMirror ext = atypeFactory.getAnnotatedType(node.getExtendsClause());
+            boundVsExtImpClause(bound, ext, "extends.bound.incompatible", node.getExtendsClause());
+        }
+        for (Tree impTree : node.getImplementsClause()) {
+            AnnotatedTypeMirror impType = atypeFactory.getAnnotatedType(impTree);
+            boundVsExtImpClause(bound, impType, "implements.bound.incompatible", impTree);
+        }
+    }
+
+
+    private void boundVsExtImpClause(AnnotatedDeclaredType classBound, AnnotatedTypeMirror superType, String errorKey, Tree tree) {
+        AnnotationMirror superAnno = extractVarAnnot(superType);
+        if (superAnno != null) {
+            annoIs(classBound, extractVarAnnot(classBound), superAnno, errorKey, tree);
+        }
+    }
+
 
     private boolean checkCompatabilityBetweenBoundAndSuperClassesBounds(ClassTree node, TypeElement typeElement, AnnotatedDeclaredType bound) {
         // Must have compatible bound annotation as the direct super types
