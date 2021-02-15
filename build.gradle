@@ -38,7 +38,7 @@ dependencies {
     compile fileTree(dir: "${cfiPath}/dist", include: "checker-framework-inference.jar")
     // sat4j solver dependency
     compile 'org.ow2.sat4j:org.ow2.sat4j.core:2.3.5'
-    compile 'org.ow2.sat4j:org.ow2.sat4j.maxsat:2.3.5'
+    compile 'org.ow2.sat4j:org.ow2.sat4j.maxsat:2.3.6'
     // The production code uses the SLF4J logging API at compile time
     compile 'org.slf4j:slf4j-api:1.7.30'
 
