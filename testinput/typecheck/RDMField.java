@@ -10,6 +10,7 @@ public class RDMField{
     @ReceiverDependantMutable
     private static class RDMHolder {
 
+        // :: error: (type.invalid.annotations.on.use)
         @ReceiverDependantMutable MutableClass field = new MutableClass();
         @Mutable MutableClass mutableField = new MutableClass();
 
@@ -33,6 +34,7 @@ public class RDMField{
 
     @Immutable
     private static class ImmutableHolder {
+        // :: error: (type.invalid.annotations.on.use)
         @ReceiverDependantMutable MutableClass field = new MutableClass();
 
         public @PolyMutable MutableClass getField(@PolyMutable ImmutableHolder this) {
