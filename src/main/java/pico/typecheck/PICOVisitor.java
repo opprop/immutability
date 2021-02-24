@@ -119,6 +119,14 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         return isAdaptedSubtype(used, declared);
     }
 
+    @Override
+    public boolean isValidUse(AnnotatedTypeMirror.AnnotatedArrayType type, Tree tree) {
+        // You don't need adapted subtype if the decl bound is guaranteed to be RDM.
+        // That simply means that any use is valid except bottom.
+        AnnotationMirror used = type.getAnnotationInHierarchy(READONLY);
+        return !AnnotationUtils.areSame(used, BOTTOM);
+    }
+
     static private boolean isAnnoValidUse(AnnotationMirror declared, AnnotationMirror used) {
         if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE) || AnnotationUtils.areSame(declared, READONLY)) {
             // Element is declared with @ReceiverDependantMutable bound, any instantiation is allowed. We don't use

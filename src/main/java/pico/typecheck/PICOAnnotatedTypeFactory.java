@@ -428,7 +428,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             return IMMUTABLE;
         }
         if (type.getKind() == TypeKind.ARRAY) {
-            return READONLY; // if decided to use vpa for array, return RDM.
+            return RECEIVER_DEPENDANT_MUTABLE; // if decided to use vpa for array, return RDM.
         }
 
         // IMMUTABLE for enum w/o decl anno
