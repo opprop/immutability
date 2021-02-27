@@ -74,7 +74,9 @@ public class PICOInferenceValidator extends InferenceValidator{
     }
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
-        if (PICOTypeUtil.inStaticScope(visitor.getCurrentPath())) {
+        // Static inner class is considered within the static scope.
+        // Added condition to ensure not class decl.
+        if (PICOTypeUtil.inStaticScope(visitor.getCurrentPath()) && !type.isDeclaration()) {
 //            if (infer) {
 //                ((PICOInferenceVisitor)visitor).mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
 //            } else {
