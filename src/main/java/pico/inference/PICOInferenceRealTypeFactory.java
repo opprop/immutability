@@ -55,11 +55,16 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.*;
  */
 public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory implements ViewpointAdapterGettable {
 
+    private static final List<String> IMMUTABLE_ALIASES = Arrays.asList(
+            "com.google.errorprone.annotations.Immutable",
+            "edu.cmu.cs.glacier.qual.Immutable");
+
     public PICOInferenceRealTypeFactory(BaseTypeChecker checker, boolean useFlow) {
         super(checker, useFlow);
         if (READONLY != null) {
             addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
         }
+        IMMUTABLE_ALIASES.forEach(anno -> addAliasedAnnotation(anno, IMMUTABLE));
         postInit();
     }
 
