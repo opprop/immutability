@@ -19,11 +19,7 @@ import javax.lang.model.element.VariableElement;
 
 import java.util.Set;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
 /**
  * Generates constraints based on PICO constraint-based well-formedness rules in infer mode.
@@ -39,17 +35,19 @@ public class PICOInferenceValidator extends InferenceValidator{
         checkStaticReceiverDependantMutableError(type, tree);
         checkImplicitlyImmutableTypeError(type, tree);
         checkOnlyOneAssignabilityModifierOnField(tree);
-        AnnotatedDeclaredType defaultType =
-                (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(type.getUnderlyingType().asElement());
-        // TODO for defaulted super clause: should top anno be checked? (see shouldCheckTopLevelDeclaredType())
-        if (defaultType.getAnnotationInHierarchy(READONLY) == null && !PICOTypeUtil.isEnumOrEnumConstant(defaultType)) {
-            defaultType = defaultType.deepCopy();
-            defaultType.replaceAnnotation(MUTABLE);
-        }
-
-        if (!visitor.isValidUse(defaultType, type, tree)) {
-            reportInvalidAnnotationsOnUse(type, tree);
-        }
+//        AnnotatedDeclaredType defaultType =
+//                (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(type.getUnderlyingType().asElement());
+//        // TODO for defaulted super clause: should top anno be checked? (see shouldCheckTopLevelDeclaredType())
+//        if (defaultType.getAnnotationInHierarchy(READONLY) == null && !PICOTypeUtil.isEnumOrEnumConstant(defaultType)) {
+//            defaultType = defaultType.deepCopy();
+//            defaultType.replaceAnnotation(MUTABLE);
+//        }
+//
+//        if (!visitor.isValidUse(defaultType, type, tree)) {
+//            reportInvalidAnnotationsOnUse(type, tree);
+//        }
+        // main != READONLY -> main |> bound <: main
+        ((PICOInferenceVisitor) visitor).mainCannotInferTo(type, POLY_MUTABLE, "cannot.infer.poly", tree);
         return super.visitDeclared(type, tree);
     }
 
