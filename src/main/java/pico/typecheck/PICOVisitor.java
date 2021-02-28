@@ -22,6 +22,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationVisitor;
@@ -529,6 +530,33 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (!bound.hasAnnotation(MUTABLE) && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) && !bound.hasAnnotation(IMMUTABLE)) {
             checker.reportError(node, "class.bound.invalid", bound);
             return;// Doesn't process the class tree anymore
+        }
+
+        // Issue warnings on implicit shallow immutable:
+        // Condition:
+        // * Class decl == Immutable
+        // * Member is field
+        // * Member's declared bound == Mutable
+        // * Member's use anno == null
+        if (bound.hasAnnotation(IMMUTABLE)) {
+            for(Tree member : node.getMembers()) {
+                if(member.getKind() == Kind.VARIABLE) {
+                    Element ele = TreeUtils.elementFromTree(member);
+                    assert ele != null;
+                    // fromElement will not apply defaults, if no explicit anno exists in code, mirror have no anno
+                    AnnotatedTypeMirror noDefaultMirror = atypeFactory.fromElement(ele);
+                    TypeMirror ty = ele.asType();
+                    if (ty.getKind() == TypeKind.TYPEVAR) {
+                        ty = TypesUtils.upperBound(ty);
+                    }
+                    if (AnnotationUtils.containsSameByName(
+                            atypeFactory.getTypeDeclarationBounds(ty), MUTABLE)
+                            && !noDefaultMirror.isAnnotatedInHierarchy(READONLY)) {
+                        checker.reportWarning(member, "implicit.shallow.immutable");
+                    }
+
+                }
+            }
         }
 
 //        // field of mutable class cannot use RDM in immutable class
