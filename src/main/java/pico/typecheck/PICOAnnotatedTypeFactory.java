@@ -515,6 +515,25 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
                 }
             }
 
+            // Array decl methods
+            // Array methods are implemented as JVM native method, so we cannot add that to stubs.
+            // for now: default array in receiver, parameter and return type to RDM
+            if (t.getReceiverType() != null) {
+                if (PICOTypeUtil.isArrayType(t.getReceiverType(), typeFactory)) {
+                    switch (t.toString()) {
+                        case "Object clone(Array this)":
+                            // Receiver type will not be viewpoint adapted:
+                            // SyntheticArrays.replaceReturnType() will rollback the viewpoint adapt result.
+                            // Use readonly to allow all invocations.
+                            if (!t.getReceiverType().isAnnotatedInHierarchy(READONLY))
+                                t.getReceiverType().replaceAnnotation(READONLY);
+                            // The return type will be fixed by SyntheticArrays anyway.
+                            // Qualifiers added here will not have effect.
+                            break;
+                    }
+                }
+            }
+
             return null;
         }
 
