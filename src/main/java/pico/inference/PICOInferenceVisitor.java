@@ -794,6 +794,12 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     // Completely copied from PICOVisitor
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
+        // issues with getting super for anonymous class - do not check for anonymous classes.
+        if (TreeUtils.isSuperConstructorCall(node) &&
+                PICOTypeUtil.isAnonymousClassTree(TreeUtils.enclosingClass(atypeFactory.getPath(node)), atypeFactory)) {
+            return null;
+        }
+
         super.visitMethodInvocation(node, p);
         ParameterizedExecutableType mfuPair =
                 atypeFactory.methodFromUse(node);

@@ -9,10 +9,12 @@ import checkers.inference.util.InferenceUtil;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
+import com.sun.tools.javac.code.Symbol;
 import org.checkerframework.framework.qual.DefaultFor;
 import org.checkerframework.framework.qual.TypeKind;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
@@ -414,5 +416,42 @@ public class PICOTypeUtil {
 
     public static boolean isSideEffectingUnaryTree(final UnaryTree tree) {
         return sideEffectingUnaryOperators.contains(tree.getKind());
+    }
+
+    /**
+     * !! Experimental !!
+     * <p>
+     * CF's isAnonymous cannot recognize some anonymous classes with annotation on new clause.
+     * This one hopefully will provide a workaround when the class tree is available.
+     * <p>
+     * This will work if an anonymous class decl tree is always a child node of a {@code NewClassTree}.
+     * i.e. an anonymous class declaration is always inside a new clause.
+     *
+     * @param tree a class decl tree.
+     * @param atypeFactory used to get the path. Any factory should be ok.
+     * @return whether the class decl tree is of an anonymous class
+     */
+    public static boolean isAnonymousClassTree(ClassTree tree,  AnnotatedTypeFactory atypeFactory) {
+        TreePath path = atypeFactory.getPath(tree);
+        Tree parent = path.getParentPath().getLeaf();
+        return parent instanceof NewClassTree && ((NewClassTree) parent).getClassBody() != null;
+    }
+
+    /**
+     * !! Experimental !!
+     * Check whether the type is actually an array.
+     * @param type AnnotatedDeclaredType
+     * @param typeFactory any AnnotatedTypeFactory
+     * @return true if the type is array
+     */
+    public static boolean isArrayType(AnnotatedDeclaredType type, AnnotatedTypeFactory typeFactory) {
+        Element ele = typeFactory.getProcessingEnv().getTypeUtils().asElement(type.getUnderlyingType());
+
+        // If it is a user-declared "Array" class without package, a class / source file should be there.
+        // Otherwise, it is the java inner type.
+        return ele instanceof Symbol.ClassSymbol
+                && ElementUtils.getVerboseName(ele).equals("Array")
+                && ((Symbol.ClassSymbol) ele).classfile == null
+                && ((Symbol.ClassSymbol) ele).sourcefile == null;
     }
 }
