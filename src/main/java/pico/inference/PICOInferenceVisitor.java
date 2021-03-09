@@ -821,13 +821,14 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             AnnotatedTypeMirror superClassConstructorReturnType = method.getReturnType();
             // In infer mode, InferenceQualifierHierarchy that is internally used should generate subtype constraint between the
             // below two types GENERALLY(not always)
-            if (!atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType)) {
+            if (!PICOTypeUtil.isEnumOrEnumConstant(subClassConstructorReturnType) &&  // THIS IS A HECK: java.lang.Enum itself is considered immutable but its subclasses could be other. Update jdk.astub?
+                    !atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType)) {
                 // Usually the subtyping check returns true. If not, that means subtype constraint doesn't hold between two
                 // ConstantSlots. Previously, InferenceQualifierHierarchy also generates subtype constraint in this case,
                 // then this unsatisfiable constraint is captured by ConstraintManager and ConstraintManager early exits. But
                 // now for two ConstantSlot case, no subtype constraint is generated any more. So we have to report the error
                 // , otherwise it will cause inference result not typecheck
-                checker.reportError(node, "super.invocation.invalid", subClassConstructorReturnType, superClassConstructorReturnType);
+                checker.reportError(node, "super.invocation.invalid", subClassConstructorReturnType, node, superClassConstructorReturnType);
             }
         }
         super.checkMethodInvocability(method, node);
