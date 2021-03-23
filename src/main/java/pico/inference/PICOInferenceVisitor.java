@@ -291,6 +291,20 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                     new AnnotationMirror[]{MUTABLE, RECEIVER_DEPENDANT_MUTABLE});
 
 
+        // Base will skip the rest check if assignment (if presents) get error.
+        // Make this explicit.
+        if (element != null && element.getKind() == ElementKind.LOCAL_VARIABLE && node.getInitializer() != null) {
+            // If not use element, but use the atypeFactory.getAnnotatedTypeLhs, anno will refined to initializer's
+            // anno even if the use is invalid, such as a @Mutable Immutable local variable.
+            // This refinement is ignored only here to capture related errors.
+            AnnotatedTypeMirror useType = atypeFactory.getAnnotatedType(element);
+            if (useType instanceof AnnotatedDeclaredType) {
+                AnnotatedTypeMirror boundType =
+                        PICOTypeUtil.getBoundTypeOfTypeDeclaration(useType.getUnderlyingType(), atypeFactory);
+                if (!isAdaptedSubtype(useType, boundType)) {
+                    checker.reportError(node, "type.invalid.annotations.on.use", useType, boundType);
+                }
+            }
         }
         return super.visitVariable(node, p);
     }
