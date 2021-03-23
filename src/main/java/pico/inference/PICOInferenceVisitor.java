@@ -894,6 +894,12 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         super.processClassTree(node);
     }
 
+    @Override
+    protected void checkExtendsImplements(ClassTree classTree) {
+        // do not use CF's checkExtendsImplements which will generate subtype constraints.
+        // maybe extract a method between class bound and extends/implements annos and override that.
+    }
+
     /**
      * The base visitor does not use inference method to check!
      * This method is required to add the constraints for extends / implements.
@@ -925,7 +931,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
 
     /**
-     * extends/implements clause use anno == bound anno
+     * extends/implements clause use anno is adapted subtype of bound anno
      * <p> Could be subtype, but recall Readonly and Bottom is not usable on class init bound.</p>
      * @param node
      * @param bound
