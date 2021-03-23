@@ -419,7 +419,12 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     @Override
     public Void visitMethod(MethodTree node, Void p) {
         AnnotatedExecutableType executableType = atypeFactory.getAnnotatedType(node);
-        AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(node, atypeFactory);
+        AnnotatedDeclaredType bound;
+        if (PICOTypeUtil.isEnclosedByAnonymousClass(node, atypeFactory)) {
+            bound = PICOTypeUtil.getBoundOfEnclosingAnonymousClass(node, atypeFactory);
+        } else {
+            bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(node, atypeFactory);
+        }
         assert bound != null;
         assert !bound.hasAnnotation(POLY_MUTABLE) : "BOUND CANNOT BE POLY";
 
