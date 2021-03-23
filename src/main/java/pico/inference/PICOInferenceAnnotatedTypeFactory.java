@@ -178,6 +178,16 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         }
 
         @Override
+        public Void visitMethodInvocation(MethodInvocationTree methodInvocationTree, AnnotatedTypeMirror mirror) {
+            // This is a workaround for implicit types.
+            // Implicit types in lib method get defaulted to mutable.
+            // Implicit immutable classes cannot be annotated in stub files, annotations were ignored.
+            // Find the cause, annotate implicit immutable classes in stub, and remove this method.
+            applyImmutableIfImplicitlyImmutable(mirror);
+            return super.visitMethodInvocation(methodInvocationTree, mirror);
+        }
+
+        @Override
         public Void visitNewArray(NewArrayTree tree, AnnotatedTypeMirror type) {
             // Below is copied from super
             assert type.getKind() == TypeKind.ARRAY
