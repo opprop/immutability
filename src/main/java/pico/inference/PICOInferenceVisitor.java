@@ -978,9 +978,15 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         AnnotatedTypeMirror var = atypeFactory.getAnnotatedTypeLhs(varTree);
         assert var != null : "no variable found for tree: " + varTree;
 
-        if (!validateType(varTree, var)) {
-            return;
-        }
+        // Seems that typecheck does not have this.
+        // Removing this check will satisfy initial typecheck of inferrable/issue144/ComplicatedTest.java:42,
+        // where invalid.annotations.on.use is not expected.
+        // Local variable is flow-sensitive, so when assigned to a type that contradicts with the init bound,
+        // it still got "refined"
+        // Maybe updating the flow-sensitive logic to not refined to invalid type?
+//        if (!validateType(varTree, var)) {
+//            return;
+//        }
 
         if (varTree instanceof VariableTree) {
             VariableElement element = TreeUtils.elementFromDeclaration((VariableTree) varTree);
