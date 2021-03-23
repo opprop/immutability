@@ -943,9 +943,18 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
 
     private void boundVsExtImpClause(AnnotatedDeclaredType classBound, AnnotatedTypeMirror superType, String errorKey, Tree tree) {
-        AnnotationMirror superAnno = extractVarAnnot(superType);
-        if (superAnno != null) {
-            annoIs(classBound, extractVarAnnot(classBound), superAnno, errorKey, tree);
+        // atypeFactory.getTypeDeclarationBounds does not work correctly: getting the real annos instead of slots
+        AnnotatedTypeMirror superBound =
+                PICOTypeUtil.getBoundTypeOfTypeDeclaration(superType.getUnderlyingType(), atypeFactory);
+
+        if (!isAdaptedSubtype(superType, superBound)) {
+            checker.reportError(tree, "type.invalid.annotations.on.use", superType, superBound);
+        }
+
+        // the class bound should be a valid "use" of the super.
+        // consider replace with isValidUse?
+        if (!isAdaptedSubtype(classBound, superType)) {
+            checker.reportError(tree, errorKey, classBound, superType);
         }
     }
 

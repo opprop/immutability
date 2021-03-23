@@ -191,6 +191,10 @@ public class PICOTypeUtil {
         // places, at some time.
     }
 
+    public static AnnotatedDeclaredType getBoundTypeOfTypeDeclaration(TypeMirror typeMirror, AnnotatedTypeFactory atypeFactory) {
+        return getBoundTypeOfTypeDeclaration(TypesUtils.getTypeElement(typeMirror), atypeFactory);
+    }
+
     public static boolean isObjectIdentityMethod(MethodTree node,
                                                  AnnotatedTypeFactory annotatedTypeFactory) {
         Element element = TreeUtils.elementFromTree(node);
