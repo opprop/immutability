@@ -1,5 +1,6 @@
 package pico.inference;
 
+import checkers.inference.InferenceMain;
 import checkers.inference.util.InferenceViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -30,6 +31,13 @@ public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter imp
         if (PICOTypeUtil.isImplicitlyImmutableType(declared)) {
             return declared;
         }
+        // workaround
+        if (InferenceMain.isHackMode()) {
+            if (extractAnnotationMirror(declared) == null) {
+                return declared;
+            }
+        }
+
         return super.combineAnnotationWithType(receiverAnnotation, declared);
     }
 
