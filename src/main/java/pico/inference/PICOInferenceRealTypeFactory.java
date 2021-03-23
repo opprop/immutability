@@ -64,7 +64,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         if (READONLY != null) {
             addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
         }
-        IMMUTABLE_ALIASES.forEach(anno -> addAliasedAnnotation(anno, IMMUTABLE));
+//        IMMUTABLE_ALIASES.forEach(anno -> addAliasedAnnotation(anno, IMMUTABLE));
         postInit();
     }
 
