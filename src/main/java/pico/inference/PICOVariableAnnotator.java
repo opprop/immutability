@@ -136,6 +136,12 @@ public class PICOVariableAnnotator extends VariableAnnotator {
     }
 
     @Override
+    protected void handleExplicitExtends(Tree extendsTree) {
+        // PICO cannot use base extends handling: not simply subtype relationship because of RDM
+        // Constraints already generated in processClassTree
+    }
+
+    @Override
     public void storeElementType(Element element, AnnotatedTypeMirror atm) {
         // this method is override the behavior of super.handleClassDeclaration before storing
         // find a better way
