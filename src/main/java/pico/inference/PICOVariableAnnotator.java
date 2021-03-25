@@ -171,6 +171,9 @@ public class PICOVariableAnnotator extends VariableAnnotator {
 //            // Don't add new VarAnnot to type use of enum type
 //            PICOTypeUtil.applyConstant(atm, IMMUTABLE);
 //        }
+        if (atm instanceof AnnotatedTypeMirror.AnnotatedNullType) {
+            PICOTypeUtil.applyConstant(atm, BOTTOM);
+        }
         return super.addPrimaryVariable(atm, tree);
     }
 
