@@ -292,11 +292,15 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             addDeepPreference(type, IMMUTABLE, 3, node);
         }
 
+        // if the use is a field and not static, and the bound of the type is mutable:
+        // allow the use to be rdm or mutable
         if (element != null && element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
             AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
-            ifBoundContainsThenMainIsOneOf(type, MUTABLE,
-                    new AnnotationMirror[]{MUTABLE, RECEIVER_DEPENDANT_MUTABLE});
-
+            if (type instanceof AnnotatedDeclaredType) {
+                ifBoundContainsThenMainIsOneOf((AnnotatedDeclaredType) type, MUTABLE,
+                        new AnnotationMirror[]{MUTABLE, RECEIVER_DEPENDANT_MUTABLE});
+            }
+        }
 
         // Base will skip the rest check if assignment (if presents) get error.
         // Make this explicit.
