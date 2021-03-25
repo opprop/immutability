@@ -279,4 +279,12 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         }
         super.handleBinaryTree(atm, binaryTree);
     }
+
+    public AnnotationMirror getClassDeclAnno(Element ele) {
+        if (classDeclAnnos.get(ele) != null) {
+            return slotManager.getAnnotation(classDeclAnnos.get(ele));
+        }
+        return null;
+    }
+
 }
