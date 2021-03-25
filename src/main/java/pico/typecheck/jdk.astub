@@ -114,6 +114,11 @@ interface Collection<E> {
 }
 
 @ReceiverDependantMutable
+public abstract class AbstractCollection<E> implements Collection<E> {
+    public abstract int size(@Readonly AbstractCollection this);
+}
+
+@ReceiverDependantMutable
 class ArrayList<E> {
   @ReceiverDependantMutable ArrayList();
   @ReceiverDependantMutable ArrayList(@Readonly Collection<? extends E> var1);
@@ -214,6 +219,7 @@ class Arrays {
   static String toString(int @Readonly [] var0);
   static boolean equals(float @Readonly [] var0, float @Readonly [] var1);
   static boolean equals(double @Readonly [] var0, double @Readonly [] var1);
+  static <T> T[] copyOf(T @Readonly [] original, int newLength);
 }
 
 class Objects {
