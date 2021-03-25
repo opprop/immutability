@@ -10,6 +10,7 @@ import checkers.inference.model.Constraint;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.ImplicationConstraint;
 import checkers.inference.model.Slot;
+import checkers.inference.qual.VarAnnot;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
 import com.sun.source.tree.AssignmentTree;
@@ -83,6 +84,12 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (useType.hasAnnotation(BOTTOM)) {
             return true;
         }
+
+        // skip base check during inference
+        if (infer && !declarationType.hasAnnotation(VarAnnot.class)) {
+            return true;
+        }
+
         // allow RDM on mutable fields with enclosing class bounded with mutable
         if (tree instanceof VariableTree && !useType.isDeclaration()) {
             VariableElement element = TreeUtils.elementFromDeclaration((VariableTree)tree);
