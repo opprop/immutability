@@ -292,6 +292,10 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
 
             return null;
             // Above is copied from super
+
+            // We have a problem with the annotation.
+            // During inference it get defaulted annotation for component types inside dataflow and cache that.
+            // The assignment context have only constant slots.
         }
 
         /**Add immutable to the result type of a binary operation if the result type is implicitly immutable*/
