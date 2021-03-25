@@ -11,6 +11,7 @@ import checkers.inference.util.InferenceViewpointAdapter;
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
@@ -39,6 +40,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
@@ -151,25 +153,48 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
 
     @Override
     public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
-        // TODO too awkward. maybe overload isImplicitlyImmutableType
-        if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
-            return Collections.singleton(IMMUTABLE);
+        // Get the VarAnnot on the class decl
+        // This factory is only invoked on inference, so no need to provide concrete anno for type-check
+        if (type instanceof PrimitiveType) {
+            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
         }
         if (type.getKind() == TypeKind.ARRAY) {
-            return Collections.singleton(READONLY); // if decided to use vpa for array, return RDM.
+            // WORKAROUND: return RDM will cause issues with new clauses
+            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(READONLY)));
+        }
+//        AnnotatedTypeMirror atm = toAnnotatedType(type, true);
+//        if (atm instanceof AnnotatedDeclaredType && ((AnnotatedDeclaredType) atm).getTypeArguments().size() > 0) {
+//            // Workaround for types with type arguments.
+//            // annotateElementFromStore can only get the original type with type param.
+//            // But this method only needs the top annotation.
+//            // Note: class bound cache is a private field of annotator.
+//
+//            atm = PICOTypeUtil.getBoundTypeOfTypeDeclaration(TypesUtils.getTypeElement(type), this);
+//        } else {
+//            getVariableAnnotator().annotateElementFromStore(getProcessingEnv().getTypeUtils().asElement(type), atm);
+//        }
+//
+//        if (atm.hasAnnotation(VarAnnot.class)) {
+//            return atm.getAnnotations();
+//        }
+        AnnotationMirror am = ((PICOVariableAnnotator) variableAnnotator).getClassDeclAnno(getProcessingEnv().getTypeUtils().asElement(type));
+        if (am != null) {
+            return Collections.singleton(am);
         }
 
-        // IMMUTABLE for enum w/o decl anno
-        if (type instanceof DeclaredType) {
-            Element ele = ((DeclaredType) type).asElement();
-            if (ele.getKind() == ElementKind.ENUM) {
-                if (!AnnotationUtils.containsSameByName(getDeclAnnotations(ele), MUTABLE) &&
-                        !AnnotationUtils.containsSameByName(getDeclAnnotations(ele), RECEIVER_DEPENDANT_MUTABLE)) { // no decl anno
-                    return Collections.singleton(IMMUTABLE);
-                }
-            }
+        // if reaching this point and still no anno: not annotated from slot manager
+        // maybe should read from stub file.
+        // if implicit: return immutable slot
+
+        // implicit
+        if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
+            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
         }
-        return super.getTypeDeclarationBounds(type);
+
+        // get stub & default from element.
+//        return stubTypes.getAnnotatedTypeMirror(TypesUtils.getTypeElement(type)).getAnnotations();
+        return Collections.singleton(
+                slotManager.getAnnotation(slotManager.getSlot(super.getTypeDeclarationBounds(type).iterator().next())));
     }
 
     class PICOInferencePropagationTreeAnnotator extends PropagationTreeAnnotator {
