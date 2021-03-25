@@ -8,7 +8,6 @@ import checkers.inference.SlotManager;
 import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.Constraint;
 import checkers.inference.model.ConstraintManager;
-import checkers.inference.model.ImplicationConstraint;
 import checkers.inference.model.Slot;
 import checkers.inference.qual.VarAnnot;
 import com.sun.source.tree.AnnotationTree;
@@ -57,9 +56,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
@@ -96,8 +93,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingClass(element) != null) {
                 // assert only 1 bound exists
                 AnnotationMirror enclosingBound =
-                        atypeFactory.getTypeDeclarationBounds(
-                                Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType()).iterator().next();
+                        extractVarAnnot(PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(element, atypeFactory));
+//                        atypeFactory.getTypeDeclarationBounds(
+//                                Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType()).iterator().next();
 
                 // if enclosing bound == mutable -> (RDM or Mutable usable on mutable-bounded fields)
                 // else -> adaptedSubtype
