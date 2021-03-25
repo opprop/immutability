@@ -1,10 +1,5 @@
 package pico.inference;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -38,6 +33,8 @@ import checkers.inference.model.VariableSlot;
 import checkers.inference.model.tree.ArtificialExtendsBoundTree;
 import org.checkerframework.javacutil.TypesUtils;
 import pico.common.PICOTypeUtil;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
 public class PICOVariableAnnotator extends VariableAnnotator {
 
@@ -113,24 +110,29 @@ public class PICOVariableAnnotator extends VariableAnnotator {
 
     @Override
     protected VariableSlot getOrCreateDeclBound(AnnotatedDeclaredType type) {
-        // if a explicit annotation presents on the class decl, use that directly
-        if (type.isAnnotatedInHierarchy(READONLY)) {
-            VariableSlot constantSlot = (VariableSlot) slotManager.getSlot(type.getAnnotationInHierarchy(READONLY));
-            TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
-            classDeclAnnos.put(classDecl, constantSlot);
-            // avoid duplicate annos
-            type.removeAnnotationInHierarchy(READONLY);
-            return constantSlot;
-        }
+        TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
 
-        // new class tree of an anonymous class is always visited before (enclosing tree).
-        // slot should be generated then.
-        // use that slot and avoid generating a new slot.
-        // push this change to inference IFF the slot on new class have same requirement with class bound
-        // e.g. existence slot on new class tree?
-        if (TypesUtils.isAnonymous(type.getUnderlyingType())) {
-            assert type.hasAnnotation(VarAnnot.class);
-            return (VariableSlot) slotManager.getSlot(type.getAnnotation(VarAnnot.class));
+        VariableSlot declSlot = classDeclAnnos.get(classDecl);
+        if (declSlot == null) {
+            // if a explicit annotation presents on the class DECL, use that directly
+            if (type.isDeclaration() && type.isAnnotatedInHierarchy(READONLY) && !type.hasAnnotation(READONLY)) {
+                VariableSlot constantSlot = (VariableSlot) slotManager.getSlot(type.getAnnotationInHierarchy(READONLY));
+//                TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
+                classDeclAnnos.put(classDecl, constantSlot);
+//                // avoid duplicate annos
+//                type.removeAnnotationInHierarchy(READONLY);
+                return constantSlot;
+            }
+
+            // new class tree of an anonymous class is always visited before (enclosing tree).
+            // slot should be generated then.
+            // use that slot and avoid generating a new slot.
+            // push this change to inference IFF the slot on new class have same requirement with class bound
+            // e.g. existence slot on new class tree?
+            if (TypesUtils.isAnonymous(type.getUnderlyingType())) {
+                assert type.hasAnnotation(VarAnnot.class);
+                return (VariableSlot) slotManager.getSlot(type.getAnnotation(VarAnnot.class));
+            }
         }
         return super.getOrCreateDeclBound(type);
     }
