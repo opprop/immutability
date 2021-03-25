@@ -19,6 +19,8 @@ CHECKER=pico.inference.PICOInferenceChecker
 
 SOLVER=pico.inference.solver.PICOSolverEngine
 
+STUBS="src/main/java/pico/inference/jdk.astub"
+
 declare -a ARGS
 for i in "$@" ; do
     if [[ $i == "-ds" ]] ; then
@@ -38,4 +40,5 @@ IS_HACK=true
 # Start the inference
 $CFI/scripts/inference-dev -m ROUNDTRIP --checker "$CHECKER" --solver "$SOLVER" \
     --solverArgs="useGraph=false,collectStatistic=true" --hacks="$IS_HACK" \
+    --cfArgs="-Astubs=$STUBS" \
     -afud ./annotated "${ARGS[@]}"
