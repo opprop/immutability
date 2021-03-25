@@ -123,7 +123,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         return new ListTypeAnnotator(typeAnnotators);
     }
 
-    /** TODO If the dataflow refines the type as bottom, should we allow such a refinement? If we allow it,
+    /* TODO If the dataflow refines the type as bottom, should we allow such a refinement? If we allow it,
      PICOValidator will give an error if it begins to enforce @Bottom is not used*/
 /*    @Override
     protected void applyInferredAnnotations(AnnotatedTypeMirror type, PICOValue as) {
@@ -191,6 +191,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
 
         // workaround for anonymous class.
         // TypesUtils::isAnonymous won't work when annotation presents on new class tree!
+        // by reaching this line TypesUtils::isAnonymous is already not working: it shouldn't check anonymous class!
         if(getPath(clause).getParentPath().getLeaf() instanceof JCTree.JCNewClass) {
             enclosing = getAnnotatedType(getPath(clause).getParentPath().getLeaf());
 
