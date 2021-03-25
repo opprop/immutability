@@ -193,6 +193,7 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         // @Bottom)
         if (generateBottomInequality) {
             constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(BOTTOM));
+            constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(POLY_MUTABLE));
         }
         return varSlot;
     }
