@@ -430,6 +430,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
         // cannot infer poly, but can use it for type-check.
         mainCannotInferTo(executableType.getReturnType(), POLY_MUTABLE, "cannot.infer.poly", node);
+        if (executableType.getReceiverType() != null) {
+            mainCannotInferTo(executableType.getReceiverType(), POLY_MUTABLE, "cannot.infer.poly", node);
+        }
 
         if (TreeUtils.isConstructor(node)) {
             // Doesn't check anonymous constructor case
