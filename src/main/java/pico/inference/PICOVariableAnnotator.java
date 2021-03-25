@@ -300,4 +300,11 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         return null;
     }
 
+
+    @Override
+    protected void addDeclarationConstraints(VariableSlot declSlot, VariableSlot instanceSlot) {
+        // RDM-related constraints cannot use subtype.
+        // Necessary constraints added in visitor instead.
+    }
+
 }
