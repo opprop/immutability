@@ -156,6 +156,13 @@ public class PICOVariableAnnotator extends VariableAnnotator {
             AnnotationMirror potential = slotManager.getAnnotation(((ExistentialVariableSlot) slot).getPotentialSlot());
             atm.replaceAnnotation(potential);
         }
+
+        // If an explicit bound exists, the annotator will still place a constant slot on the bound,
+        // which will considered invalid by CF.
+        // Maybe not putting an anno at all during bound slot generation would be better?
+        if (atm.hasAnnotation(VarAnnot.class) && atm.isAnnotatedInHierarchy(READONLY)) {
+            atm.removeAnnotationInHierarchy(READONLY);
+        }
         super.storeElementType(element, atm);
     }
 
