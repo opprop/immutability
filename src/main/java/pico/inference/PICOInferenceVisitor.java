@@ -474,7 +474,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             // Above is additional preference logic
             if (declaredReceiverType != null) {
                 mainIsNot(declaredReceiverType, BOTTOM, "bottom.on.receiver", node);
-//                mainIsNot(declaredReceiverType, POLY_MUTABLE, "poly.on.receiver", node);
                 if (!isAdaptedSubtype(declaredReceiverType, bound)){
                     checker.report(Result.failure("method.receiver.incompatible", declaredReceiverType), node);
                 }
