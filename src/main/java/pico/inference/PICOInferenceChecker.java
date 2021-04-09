@@ -14,7 +14,7 @@ import pico.typecheck.PICOAnnotationMirrorHolder;
 /**
  * Main entry class
  */
-@SupportedOptions({"upcast", "anycast", "comparablecast", "optimalSolution"})
+@SupportedOptions({"upcast", "anycast", "comparablecast", "optimalSolution", "useOptimisticUncheckedDefaults"})
 public class PICOInferenceChecker extends BaseInferrableChecker {
 
     @Override

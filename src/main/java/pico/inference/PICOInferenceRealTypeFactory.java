@@ -14,17 +14,21 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Elements;
 
 import com.sun.tools.javac.tree.JCTree;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
+import org.checkerframework.framework.qual.TypeUseLocation;
 import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.*;
+import org.checkerframework.framework.util.defaults.QualifierDefaults;
+import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
@@ -65,6 +69,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
             addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
         }
 //        IMMUTABLE_ALIASES.forEach(anno -> addAliasedAnnotation(anno, IMMUTABLE));
+
         postInit();
     }
 
@@ -121,6 +126,29 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
         typeAnnotators.add(new PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator(this));
         typeAnnotators.add(new PICOAnnotatedTypeFactory.PICOEnumDefaultAnnotator(this));
         return new ListTypeAnnotator(typeAnnotators);
+    }
+
+    @Override
+    protected QualifierDefaults createQualifierDefaults() {
+        QualifierDefaults defaults = super.createQualifierDefaults();
+        Elements elements = checker.getElementUtils();
+
+        // The optimistic flag only change the rules of unchecked defaults.
+        // To enable optimistic default, the user should both enable conservative for bytecode ONLY,
+        // and pass the optimistic flag to override the default of the conservative.
+        // i.e. -AuseConservativeDefaultsForUncheckedCode=bytecode (or -AuseDefaultsForUncheckedCode=bytecode)
+        //      -AuseOptimisticUncheckedDefaults
+        if (checker.hasOption("useOptimisticUncheckedDefaults")) {
+            defaults.addUncheckedCodeDefaults(AnnotationBuilder.fromClass(elements, Bottom.class), new TypeUseLocation[]{
+                    TypeUseLocation.LOWER_BOUND, TypeUseLocation.RETURN, TypeUseLocation.FIELD
+            });
+            defaults.addUncheckedCodeDefaults(AnnotationBuilder.fromClass(elements, Readonly.class), new TypeUseLocation[]{
+                    TypeUseLocation.UPPER_BOUND, TypeUseLocation.PARAMETER
+            });
+        }
+
+        return defaults;
+
     }
 
     /* TODO If the dataflow refines the type as bottom, should we allow such a refinement? If we allow it,
