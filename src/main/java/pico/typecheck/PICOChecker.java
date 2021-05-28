@@ -14,7 +14,7 @@ import java.util.Set;
 public class PICOChecker extends InitializationChecker {
 
     public PICOChecker() {
-        super(true);
+        super();
     }
 
     @Override
