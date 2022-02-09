@@ -14,6 +14,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiv
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TreePathUtil;
 import pico.common.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -48,7 +49,7 @@ public class PICOValidator extends BaseTypeValidator {
     }
 
     @Override
-    protected boolean shouldCheckTopLevelDeclaredType(AnnotatedTypeMirror type, Tree tree) {
+    protected boolean shouldCheckTopLevelDeclaredOrPrimitiveType(AnnotatedTypeMirror type, Tree tree) {
         // check top annotations in extends/implements clauses
         if ((tree.getKind() == Kind.IDENTIFIER || tree.getKind() == Kind.PARAMETERIZED_TYPE) &&
                 PICOAnnotatedTypeFactory.PICOSuperClauseAnnotator.isSuperClause(atypeFactory.getPath(tree))) {
@@ -57,10 +58,10 @@ public class PICOValidator extends BaseTypeValidator {
         // allow RDM on mutable fields with enclosing class bounded with mutable
         if (tree instanceof VariableTree) {
             VariableElement element = TreeUtils.elementFromDeclaration((VariableTree)tree);
-            if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingClass(element) != null) {
+            if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingTypeElement(element) != null) {
                 Set<AnnotationMirror> enclosingBound =
                         atypeFactory.getTypeDeclarationBounds(
-                                Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType());
+                                Objects.requireNonNull(ElementUtils.enclosingTypeElement(element)).asType());
 
                 Set<AnnotationMirror> declaredBound =
                         atypeFactory.getTypeDeclarationBounds(type.getUnderlyingType());
@@ -76,7 +77,7 @@ public class PICOValidator extends BaseTypeValidator {
 //            return true;
 //        }
 
-        return super.shouldCheckTopLevelDeclaredType(type, tree);
+        return super.shouldCheckTopLevelDeclaredOrPrimitiveType(type, tree);
     }
 
     @Override
@@ -95,7 +96,7 @@ public class PICOValidator extends BaseTypeValidator {
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
         if (!type.isDeclaration()  // variables in static contexts and static fields use class decl as enclosing type
                 && PICOTypeUtil.inStaticScope(visitor.getCurrentPath())
-                && !"".contentEquals(Objects.requireNonNull(TreeUtils.enclosingClass(visitor.getCurrentPath())).getSimpleName())  // Exclude @RDM usages in anonymous classes
+                && !"".contentEquals(Objects.requireNonNull(TreePathUtil.enclosingClass(visitor.getCurrentPath())).getSimpleName())  // Exclude @RDM usages in anonymous classes
                 && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
             reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
         }

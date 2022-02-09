@@ -32,6 +32,7 @@ import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TreePathUtil;
 
 import com.sun.source.tree.Tree;
 
@@ -115,7 +116,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
             // annotated.
             typeAnnotators.add(
                     new IrrelevantTypeAnnotator(
-                            this, getQualifierHierarchy().getTopAnnotations(), classes));
+                            this, getQualifierHierarchy().getTopAnnotations()));
         }
         typeAnnotators.add(new PropagationTypeAnnotator(this));
         /*Copied code ends*/
@@ -215,7 +216,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
     @Override
     public AnnotatedTypeMirror getTypeOfExtendsImplements(Tree clause) {
         // add default anno from class main qual, if no qual present
-        AnnotatedTypeMirror enclosing = getAnnotatedType(TreeUtils.enclosingClass(getPath(clause)));
+        AnnotatedTypeMirror enclosing = getAnnotatedType(TreePathUtil.enclosingClass(getPath(clause)));
 
         // workaround for anonymous class.
         // TypesUtils::isAnonymous won't work when annotation presents on new class tree!

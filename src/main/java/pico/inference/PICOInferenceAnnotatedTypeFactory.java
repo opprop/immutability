@@ -31,6 +31,7 @@ import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TreePathUtil;
 import pico.common.ExtendedViewpointAdapter;
 import pico.common.ViewpointAdapterGettable;
 import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator;
@@ -114,7 +115,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
      */
     public AnnotatedDeclaredType getSelfType(Tree tree) {
         TreePath path = getPath(tree);
-        ClassTree enclosingClass = TreeUtils.enclosingClass(path);
+        ClassTree enclosingClass = TreePathUtil.enclosingClass(path);
         if (enclosingClass == null) {
             // I hope this only happens when tree is a fake tree that
             // we created, e.g. when desugaring enhanced-for-loops.
@@ -123,7 +124,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         // "type" is right now VarAnnot inserted to the bound of "enclosingClass"
         AnnotatedDeclaredType type = getAnnotatedType(enclosingClass);
 
-        MethodTree enclosingMethod = TreeUtils.enclosingMethod(path);
+        MethodTree enclosingMethod = TreePathUtil.enclosingMethod(path);
         if (enclosingClass.getSimpleName().length() != 0 && enclosingMethod != null) {
             AnnotatedTypeMirror.AnnotatedDeclaredType methodReceiver;
             if (TreeUtils.isConstructor(enclosingMethod)) {

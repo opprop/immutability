@@ -474,7 +474,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     private void saveFbcViolatedMethods(ExecutableElement method, String actualReceiver, String declaredReceiver) {
         if (actualReceiver.contains("@UnderInitialization") && declaredReceiver.contains("@Initialized")) {
-            String key = ElementUtils.enclosingClass(method) + "#" + method;
+            String key = ElementUtils.enclosingTypeElement(method) + "#" + method;
             Integer times = fbcViolatedMethods.get(key) == null ? 1 : fbcViolatedMethods.get(key) + 1;
             fbcViolatedMethods.put(key, times);
         }

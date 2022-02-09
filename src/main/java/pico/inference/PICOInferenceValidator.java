@@ -5,7 +5,6 @@ import checkers.inference.InferenceVisitor;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
@@ -37,7 +36,7 @@ public class PICOInferenceValidator extends InferenceValidator{
         checkOnlyOneAssignabilityModifierOnField(tree);
 //        AnnotatedDeclaredType defaultType =
 //                (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(type.getUnderlyingType().asElement());
-//        // TODO for defaulted super clause: should top anno be checked? (see shouldCheckTopLevelDeclaredType())
+//        // TODO for defaulted super clause: should top anno be checked? (see shouldCheckTopLevelDeclaredOrPrimitiveType())
 //        if (defaultType.getAnnotationInHierarchy(READONLY) == null && !PICOTypeUtil.isEnumOrEnumConstant(defaultType)) {
 //            defaultType = defaultType.deepCopy();
 //            defaultType.replaceAnnotation(MUTABLE);
@@ -64,11 +63,11 @@ public class PICOInferenceValidator extends InferenceValidator{
     }
 
     @Override
-    protected boolean shouldCheckTopLevelDeclaredType(AnnotatedTypeMirror type, Tree tree) {
+    protected boolean shouldCheckTopLevelDeclaredOrPrimitiveType(AnnotatedTypeMirror type, Tree tree) {
         if (TreeUtils.isLocalVariable(tree)) {
             return true;
         }
-        return super.shouldCheckTopLevelDeclaredType(type, tree);
+        return super.shouldCheckTopLevelDeclaredOrPrimitiveType(type, tree);
     }
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
@@ -121,7 +120,7 @@ public class PICOInferenceValidator extends InferenceValidator{
     }
 
     private void reportFieldMultipleAssignabilityModifiersError(VariableElement field) {
-        checker.report(Result.failure("one.assignability.invalid", field), field);
+        checker.reportError(field, "one.assignability.invalid", field);
         isValid = false;
     }
 

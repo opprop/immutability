@@ -45,6 +45,7 @@ import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TreePathUtil;
 
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ExpressionTree;
@@ -126,12 +127,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         RelevantJavaTypes relevantJavaTypes =
                 checker.getClass().getAnnotation(RelevantJavaTypes.class);
         if (relevantJavaTypes != null) {
-            Class<?>[] classes = relevantJavaTypes.value();
+//            Class<?>[] classes = relevantJavaTypes.value();
             // Must be first in order to annotated all irrelevant types that are not explicilty
             // annotated.
             typeAnnotators.add(
                     new IrrelevantTypeAnnotator(
-                            this, getQualifierHierarchy().getTopAnnotations(), classes));
+                            this, getQualifierHierarchy().getTopAnnotations()));
         }
         typeAnnotators.add(new PropagationTypeAnnotator(this));
         /*Copied code ends*/
@@ -449,7 +450,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         // this is still needed with PICOSuperClauseAnnotator.
         // maybe just use getAnnotatedType
         // add default anno from class main qual, if no qual present
-        AnnotatedTypeMirror enclosing = getAnnotatedType(TreeUtils.enclosingClass(getPath(clause)));
+        AnnotatedTypeMirror enclosing = getAnnotatedType(TreePathUtil.enclosingClass(getPath(clause)));
         AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
         AnnotatedTypeMirror fromTypeTree = this.fromTypeTree(clause);
         if (!fromTypeTree.isAnnotatedInHierarchy(READONLY)) {
@@ -643,7 +644,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             if (isSuperClause(path) &&
                     (!mirror.isAnnotatedInHierarchy(READONLY) ||
                             atypeFactory.getQualifierHierarchy().findAnnotationInHierarchy(TreeUtils.typeOf(tree).getAnnotationMirrors(), READONLY) == null)) {
-                AnnotatedTypeMirror enclosing = atypeFactory.getAnnotatedType(TreeUtils.enclosingClass(path));
+                AnnotatedTypeMirror enclosing = atypeFactory.getAnnotatedType(TreePathUtil.enclosingClass(path));
                 AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
                 mirror.replaceAnnotation(mainBound);
 //                System.err.println("ANNOT: ADDED DEFAULT FOR: " + mirror);

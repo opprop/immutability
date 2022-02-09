@@ -27,6 +27,7 @@ import org.checkerframework.javacutil.AnnotationProvider;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TypesUtils;
 import pico.typecheck.PICOVisitor;
 import qual.Assignable;
@@ -119,12 +120,12 @@ public class PICOTypeUtil {
         if (node instanceof MethodTree) {
             MethodTree methodTree = (MethodTree) node;
             ExecutableElement element = TreeUtils.elementFromDeclaration(methodTree);
-            typeElement = ElementUtils.enclosingClass(element);
+            typeElement = ElementUtils.enclosingTypeElement(element);
         } else if(node instanceof VariableTree) {
             VariableTree variableTree = (VariableTree) node;
             VariableElement variableElement = TreeUtils.elementFromDeclaration(variableTree);
             assert variableElement!= null && variableElement.getKind().isField();
-            typeElement = ElementUtils.enclosingClass(variableElement);
+            typeElement = ElementUtils.enclosingTypeElement(variableElement);
         }
 
         if (typeElement != null) {
@@ -135,7 +136,7 @@ public class PICOTypeUtil {
     }
 
     public static AnnotatedDeclaredType getBoundTypeOfEnclosingTypeDeclaration(Element element, AnnotatedTypeFactory atypeFactory) {
-        TypeElement typeElement = ElementUtils.enclosingClass(element);
+        TypeElement typeElement = ElementUtils.enclosingTypeElement(element);
         if (typeElement != null) {
             return getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
         }
@@ -255,7 +256,7 @@ public class PICOTypeUtil {
 
                        // add RDM if bound=M and enclosingBound=M/RDM
                        Set<AnnotationMirror> enclosingBound = annotatedTypeFactory.getTypeDeclarationBounds(
-                               Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType());
+                               Objects.requireNonNull(ElementUtils.enclosingTypeElement(element)).asType());
                        Set<AnnotationMirror> declBound = annotatedTypeFactory.getTypeDeclarationBounds(element.asType());
                        if (AnnotationUtils.containsSameByName(declBound, MUTABLE)) {
                            if (AnnotationUtils.containsSameByName(enclosingBound, RECEIVER_DEPENDANT_MUTABLE) ||
@@ -311,7 +312,7 @@ public class PICOTypeUtil {
         // Might be null. It's normal. In typechecking side, we use addMissingAnnotations(). Only if
         // there is existing annotation in code, then here is non-null. Otherwise, VariableAnnotator
         // hasn't come into the picture yet, so no VarAnnot exists here, which is normal.
-        Slot shouldBeAppliedTo = slotManager.getVariableSlot(type);
+        Slot shouldBeAppliedTo = slotManager.getSlot(type);
         ConstantSlot constant = slotManager.createConstantSlot(am);
         if (shouldBeAppliedTo == null) {
             // Here, we are adding VarAnnot that represents @Immutable. There won't be solution for this ConstantSlot for this type,
@@ -380,7 +381,7 @@ public class PICOTypeUtil {
     public static boolean isEnclosedByAnonymousClass(Tree tree, AnnotatedTypeFactory atypeFactory) {
         TreePath path = atypeFactory.getPath(tree);
         if (path != null) {
-            ClassTree classTree = TreeUtils.enclosingClass(path);
+            ClassTree classTree = TreePathUtil.enclosingClass(path);
             return classTree != null && InferenceUtil.isAnonymousClass(classTree);
         }
         return false;
@@ -392,7 +393,7 @@ public class PICOTypeUtil {
             return null;
         }
         AnnotatedDeclaredType enclosingType = null;
-        Tree newclassTree = TreeUtils.enclosingOfKind(path, Tree.Kind.NEW_CLASS);
+        Tree newclassTree = TreePathUtil.enclosingOfKind(path, Tree.Kind.NEW_CLASS);
         if (newclassTree != null) {
             enclosingType = (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(newclassTree);
         }
@@ -407,10 +408,10 @@ public class PICOTypeUtil {
 
     public static boolean inStaticScope(TreePath treePath) {
         boolean in = false;
-        if (TreeUtils.isTreeInStaticScope(treePath)) {
+        if (TreePathUtil.isTreeInStaticScope(treePath)) {
             in = true;
             // Exclude case in which enclosing class is static
-            ClassTree classTree = TreeUtils.enclosingClass(treePath);
+            ClassTree classTree = TreePathUtil.enclosingClass(treePath);
             if (classTree != null && classTree.getModifiers().getFlags().contains((Modifier.STATIC))) {
                 in = false;
             }
@@ -454,7 +455,7 @@ public class PICOTypeUtil {
         // If it is a user-declared "Array" class without package, a class / source file should be there.
         // Otherwise, it is the java inner type.
         return ele instanceof Symbol.ClassSymbol
-                && ElementUtils.getVerboseName(ele).equals("Array")
+                && ElementUtils.getQualifiedName(ele).equals("Array")
                 && ((Symbol.ClassSymbol) ele).classfile == null
                 && ((Symbol.ClassSymbol) ele).sourcefile == null;
     }

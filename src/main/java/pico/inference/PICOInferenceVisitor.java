@@ -27,7 +27,6 @@ import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
-import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -38,6 +37,7 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TypesUtils;
 import pico.common.ExtendedViewpointAdapter;
 import pico.common.ViewpointAdapterGettable;
@@ -90,12 +90,12 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // allow RDM on mutable fields with enclosing class bounded with mutable
         if (tree instanceof VariableTree && !useType.isDeclaration()) {
             VariableElement element = TreeUtils.elementFromDeclaration((VariableTree)tree);
-            if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingClass(element) != null) {
+            if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingTypeElement(element) != null) {
                 // assert only 1 bound exists
                 AnnotationMirror enclosingBound =
                         extractVarAnnot(PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(element, atypeFactory));
 //                        atypeFactory.getTypeDeclarationBounds(
-//                                Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType()).iterator().next();
+//                                Objects.requireNonNull(ElementUtils.enclosingTypeElement(element)).asType()).iterator().next();
 
                 // if enclosing bound == mutable -> (RDM or Mutable usable on mutable-bounded fields)
                 // else -> adaptedSubtype
@@ -162,8 +162,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         ExtendedViewpointAdapter vpa = ((ViewpointAdapterGettable)atypeFactory).getViewpointAdapter();
         AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(extractVarAnnot(lhs), rhs);
         return constraintManager.createSubtypeConstraint(
-                slotManager.getVariableSlot(adapted),
-                slotManager.getVariableSlot(lhs)
+                slotManager.getSlot(adapted),
+                slotManager.getSlot(lhs)
         );
     }
 
@@ -180,8 +180,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     private void addMutableImmutableRdmIncompatibleConstraints(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType) {
         final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
         final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
-        Slot declSlot = slotManager.getVariableSlot(declarationType);
-        Slot useSlot = slotManager.getVariableSlot(useType);
+        Slot declSlot = slotManager.getSlot(declarationType);
+        Slot useSlot = slotManager.getSlot(useType);
         Slot mutable = slotManager.getSlot(MUTABLE);
         Slot immutable = slotManager.getSlot(IMMUTABLE);
         Slot rdm = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
@@ -262,7 +262,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     private AnnotationMirror extractVarAnnot(final AnnotatedTypeMirror atm) {
         if (infer) {
             final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
-            return slotManager.getAnnotation(slotManager.getVariableSlot(atm));
+            return slotManager.getAnnotation(slotManager.getSlot(atm));
         }
         return atm.getAnnotationInHierarchy(READONLY);
     }
@@ -346,10 +346,10 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         return constraintManager.createImplicationConstraint(
                 Collections.singletonList(constraintManager.createInequalityConstraint(
                         slotManager.getSlot(MUTABLE),
-                        slotManager.getVariableSlot(mainAtm))),
+                        slotManager.getSlot(mainAtm))),
                 constraintManager.createEqualityConstraint(
                         slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE),
-                        slotManager.getVariableSlot(mainAtm)
+                        slotManager.getSlot(mainAtm)
                 )
         );
     }
@@ -378,10 +378,10 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             Constraint oneOfConst = constraintManager.createImplicationConstraint(
                     Collections.singletonList(constraintManager.createInequalityConstraint(
                             slotManager.getSlot(oneOf[0]),
-                            slotManager.getVariableSlot(mainAtm))),
+                            slotManager.getSlot(mainAtm))),
                     constraintManager.createEqualityConstraint(
                             slotManager.getSlot(oneOf[1]),
-                            slotManager.getVariableSlot(mainAtm)
+                            slotManager.getSlot(mainAtm)
                     )
             );
 
@@ -417,7 +417,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (infer) {
             SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
             // should be constant slot if written explicitly in code
-            if (!(slotManager.getVariableSlot(atm) instanceof ConstantSlot)) {
+            if (!(slotManager.getSlot(atm) instanceof ConstantSlot)) {
                 mainIsNot(atm, anno, errorKey, tree);
             }
 
@@ -456,8 +456,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             if (infer) {
                 ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
                 SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
-                Slot boundSlot = slotManager.getVariableSlot(bound);
-                Slot consRetSlot = slotManager.getVariableSlot(constructorReturnType);
+                Slot boundSlot = slotManager.getSlot(bound);
+                Slot consRetSlot = slotManager.getSlot(constructorReturnType);
                 Slot rdmSlot = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
                 Constraint inequalityConstraint = constraintManager.createInequalityConstraint(boundSlot, rdmSlot);
                 Constraint subtypeConstraint = constraintManager.createSubtypeConstraint(consRetSlot, boundSlot);
@@ -484,7 +484,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             if (declaredReceiverType != null) {
                 mainIsNot(declaredReceiverType, BOTTOM, "bottom.on.receiver", node);
                 if (!isAdaptedSubtype(declaredReceiverType, bound)){
-                    checker.report(Result.failure("method.receiver.incompatible", declaredReceiverType), node);
+                    checker.reportError(node, "method.receiver.incompatible", declaredReceiverType);
                 }
             }
         }
@@ -552,9 +552,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (!isTypeCastSafe(castType, exprType, node)) {
             // This is only warning message, so even though enterred this line, it doesn't cause PICOInfer to exit.
             // Even if that was an error, PICOInfer would also not exit.
-            checker.report(
-                    Result.warning("cast.unsafe", exprType.toString(true), castType.toString(true)),
-                    node);
+            checker.reportWarning(node,
+                    "cast.unsafe", exprType.toString(true), castType.toString(true));
         }
     }
 
@@ -624,8 +623,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             // Default strategy - comparablecast
             final QualifierHierarchy qualHierarchy = InferenceMain.getInstance().getRealTypeFactory().getQualifierHierarchy();
             final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
-            final Slot castSlot = slotManager.getVariableSlot(castType);
-            final Slot exprSlot = slotManager.getVariableSlot(exprType);
+            final Slot castSlot = slotManager.getSlot(castType);
+            final Slot exprSlot = slotManager.getSlot(exprType);
 
             if (castSlot instanceof ConstantSlot && exprSlot instanceof ConstantSlot) {
                 ConstantSlot castCSSlot = (ConstantSlot) castSlot;
@@ -692,8 +691,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 // Break the combination of readonly receiver + rdm assignable field
                 ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
                 SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
-                Slot receiverSlot = slotManager.getVariableSlot(receiverType);
-                Slot fieldSlot = slotManager.getVariableSlot(fieldType);
+                Slot receiverSlot = slotManager.getSlot(receiverType);
+                Slot fieldSlot = slotManager.getSlot(fieldType);
                 Slot readonly = slotManager.getSlot(READONLY);
                 Slot receiver_dependant_mutable = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
                 Constraint receiverReadOnly = constraintManager.createEqualityConstraint(receiverSlot, readonly);
@@ -764,12 +763,12 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         TreePath treePath = atypeFactory.getPath(variable);
         if (treePath == null) return false;
 
-        if (TreeUtils.enclosingTopLevelBlock(treePath) != null) {
+        if (TreePathUtil.enclosingTopLevelBlock(treePath) != null) {
             // In the initialization block => always allow assigning fields!
             return true;
         }
 
-        MethodTree enclosingMethod = TreeUtils.enclosingMethod(treePath);
+        MethodTree enclosingMethod = TreePathUtil.enclosingMethod(treePath);
         // No possibility of initializing object if the assignment is not within constructor or method(both MethodTree)
         if (enclosingMethod == null) return false;
         // At this point, we already know that this assignment is field assignment within a method
@@ -826,7 +825,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         // issues with getting super for anonymous class - do not check for anonymous classes.
         if (TreeUtils.isSuperConstructorCall(node) &&
-                PICOTypeUtil.isAnonymousClassTree(TreeUtils.enclosingClass(atypeFactory.getPath(node)), atypeFactory)) {
+                PICOTypeUtil.isAnonymousClassTree(TreePathUtil.enclosingClass(atypeFactory.getPath(node)), atypeFactory)) {
             return null;
         }
 
