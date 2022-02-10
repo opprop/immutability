@@ -31,13 +31,13 @@ class A {
 
 @Immutable class AIMS extends A {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.extends.clause) :: error: (super.invocation.invalid)
 @ReceiverDependantMutable class ARDMS extends A {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.extends.clause) :: error: (super.invocation.invalid)
 @Mutable class AMS extends A {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.extends.clause) :: error: (super.invocation.invalid)
 class AUNKS extends A {}
 
 // ReceiverDependantMutable class
@@ -68,14 +68,14 @@ class B {
 
 @Immutable class BIMS extends B {}
 
-// :: error: (super.constructor.invocation.incompatible)
+// :: error: (super.invocation.invalid)
 @ReceiverDependantMutable class BRDMS extends B {}
 
-// :: error: (super.constructor.invocation.incompatible)
+// :: error: (super.invocation.invalid)
 @Mutable class BMS extends B {}
 
 // mutable by default(TODO Does this make sense compared to defaulting to receiver-dependant-mutable?)
-// :: error: (super.constructor.invocation.incompatible)
+// :: error: (super.invocation.invalid)
 class BUNKS extends B {}
 
 // Mutable class
@@ -103,16 +103,16 @@ class C {
     }
 }
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.extends.clause)
 @Immutable class CIMS extends C {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (declaration.inconsistent.with.extends.clause) :: error: (super.invocation.invalid)
 @ReceiverDependantMutable class CRDMS extends C {}
 
-// :: error: (super.constructor.invocation.incompatible)
+// :: error: (super.invocation.invalid)
 @Mutable class CMS extends C {}
 
-// :: error: (super.constructor.invocation.incompatible)
+// :: error: (super.invocation.invalid)
 class CUNKS extends C {}
 
 class D {

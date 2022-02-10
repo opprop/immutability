@@ -23,10 +23,11 @@ import javax.lang.model.type.TypeKind;
 
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.source.Result;
-import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedMethodType;
+import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
@@ -166,14 +167,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     // TODO This might not be correct for infer mode. Maybe returning as it is
     @Override
     public boolean validateType(Tree tree, AnnotatedTypeMirror type) {
-        // basic consistency checks
-        if (!AnnotatedTypes.isValidType(atypeFactory.getQualifierHierarchy(), type)) {
-            if (!infer) {
-                checker.report(
-                        Result.failure("type.invalid", type.getAnnotations(), type.toString()), tree);
-                return false;
-            }
-        }
 
         if (!typeValidator.isValid(type, tree)) {
             if (!infer) {
@@ -192,7 +185,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     @Override
-    protected boolean checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
+    protected void checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
         if (infer) {
             AnnotationMirror constructorReturn = extractVarAnnot(constructor.getReturnType());
             mainIsSubtype(invocation, constructorReturn, "constructor.invocation.invalid", newClassTree);
@@ -201,10 +194,10 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType)) {
                 checker.report(Result.failure(
                         "constructor.invocation.invalid", invocation, returnType), newClassTree);
-                return false;
+                return;
             }
         }
-        return super.checkConstructorInvocation(invocation, constructor, newClassTree);
+        super.checkConstructorInvocation(invocation, constructor, newClassTree);
     }
 
     private AnnotationMirror extractVarAnnot(final AnnotatedTypeMirror atm) {
@@ -418,7 +411,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             return true;
         } else {
             // Default strategy - comparablecast
-            final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+            final QualifierHierarchy qualHierarchy = InferenceMain.getInstance().getRealTypeFactory().getQualifierHierarchy();
             final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
             final Slot castSlot = slotManager.getVariableSlot(castType);
             final Slot exprSlot = slotManager.getVariableSlot(exprType);
@@ -429,7 +422,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 // Special handling for case with two ConstantSlots: even though they may not be comparable,
                 // but to infer more program, let this case fall back to "anycast" silently and continue
                 // inference.
-                return constraintManager.getConstraintVerifier().areComparable(castCSSlot, exprCSSlot);
+                return qualHierarchy.isSubtype(castCSSlot.getValue(), exprCSSlot.getValue())
+                		|| qualHierarchy.isSubtype(exprCSSlot.getValue(), castCSSlot.getValue());
             } else {
                 // But if there is at least on VariableSlot, PICOInfer guarantees that solutions don't include
                 // incomparable casts.
@@ -541,7 +535,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
      * 2) In constructor
      * 3) In instance method, declared receiver is @UnderInitialized
      *
-     * @param node assignment tree that might be initializing an object
+     * @param variable assignment tree that might be initializing an object
      * @return true if the assignment tree is initializing an object
      *
      * @see #hasUnderInitializationDeclaredReceiver(MethodTree)
@@ -559,7 +553,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
 
         MethodTree enclosingMethod = TreeUtils.enclosingMethod(treePath);
-        // No possibility of initialiazing object if the assignment is not within constructor or method(both MethodTree)
+        // No possibility of initializing object if the assignment is not within constructor or method(both MethodTree)
         if (enclosingMethod == null) return false;
         // At this point, we already know that this assignment is field assignment within a method
         if (TreeUtils.isConstructor(enclosingMethod) || hasUnderInitializationDeclaredReceiver(enclosingMethod)) {
@@ -620,14 +614,14 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         super.visitMethodInvocation(node, p);
-        ParameterizedMethodType mfuPair =
+        ParameterizedExecutableType mfuPair =
                 atypeFactory.methodFromUse(node);
-        AnnotatedExecutableType invokedMethod = mfuPair.methodType;
+        AnnotatedExecutableType invokedMethod = mfuPair.executableType;
         ExecutableElement invokedMethodElement = invokedMethod.getElement();
         // Only check invocability if it's super call, as non-super call is already checked
         // by super implementation(of course in both cases, invocability is not checked when
         // invoking static methods)
-        if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperCall(node)) {
+        if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperConstructorCall(node)) {
             checkMethodInvocability(invokedMethod, node);
         }
         return null;
@@ -648,7 +642,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 // , otherwise it will cause inference result not typecheck
                 checker.report(
                         Result.failure(
-                                "super.constructor.invocation.incompatible", subClassConstructorReturnType, superClassConstructorReturnType), node);
+                                "super.invocation.invalid", subClassConstructorReturnType, superClassConstructorReturnType), node);
             }
         }
         super.checkMethodInvocability(method, node);
@@ -816,8 +810,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (!validateType(varTree, var)) {
             return;
         }
-
-        checkAssignability(var, varTree);
 
         if (varTree instanceof VariableTree) {
             VariableElement element = TreeUtils.elementFromDeclaration((VariableTree) varTree);

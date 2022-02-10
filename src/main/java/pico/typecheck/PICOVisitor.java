@@ -8,6 +8,7 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
+import com.sun.source.util.TreePath;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,12 +22,13 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 
+import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
 import org.checkerframework.framework.source.Result;
-import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedMethodType;
+import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
@@ -86,7 +88,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 //        if (AnnotationUtils.areSame(declared, atypeFactory.READONLY)) {
 //            // Special case for java.lang.Object. Usually @Readonly is never used as a bound annotation for a
 //            // TypeElement. But we want to have @Readonly as the default for java.lang.Object. There is no way
-//            // of doing this using any exsisting family of @DefaultFor qualifiers, but @ImplicitFor annotation
+//            // of doing this using any existing family of @DefaultFor qualifiers, but @ImplicitFor annotation
 //            // does the trick. But the side effect is, we can't write @ReceiverDependantMutable, which is the
 //            // correct bound for Object element, in jdk.astub, because otherwise it makes all java.lang.Object
 //            // to be @ReceiverDependantMutable; Another side effect is here @Readonly is passed into here as
@@ -101,7 +103,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return true;
         }
         // At this point, element type can only be @Mutable or @Immutable. Otherwise, it's a problem in
-        // PICOVisitor#processorClassTree(ClassTree)
+        // PICOVisitor#processClassTree(ClassTree)
         assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
 
         AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
@@ -131,8 +133,6 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             return;
         }
 
-        checkAssignability(var, varTree);
-
         if (varTree instanceof VariableTree) {
             VariableElement element = TreeUtils.elementFromDeclaration((VariableTree) varTree);
             if (element.getKind() == ElementKind.FIELD && !ElementUtils.isStatic(element)) {
@@ -156,7 +156,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     }
 
     @Override
-    protected boolean checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
+    protected void checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
         // TODO Is the copied code really needed?
         /*Copied Code Start*/
         AnnotatedDeclaredType returnType = (AnnotatedDeclaredType) constructor.getReturnType();
@@ -183,9 +183,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType, READONLY)) {
             checker.report(Result.failure(
                     "constructor.invocation.invalid", invocation, returnType), newClassTree);
-            return false;
         }
-        return true;
     }
 
     @Override
@@ -382,65 +380,17 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         super.visitMethodInvocation(node, p);
-        ParameterizedMethodType mfuPair =
+        ParameterizedExecutableType mfuPair =
                 atypeFactory.methodFromUse(node);
-        AnnotatedExecutableType invokedMethod = mfuPair.methodType;
+        AnnotatedExecutableType invokedMethod = mfuPair.executableType;
         ExecutableElement invokedMethodElement = invokedMethod.getElement();
         // Only check invocability if it's super call, as non-super call is already checked
         // by super implementation(of course in both cases, invocability is not checked when
         // invoking static methods)
-        if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperCall(node)) {
+        if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperConstructorCall(node)) {
             checkMethodInvocability(invokedMethod, node);
         }
         return null;
-    }
-
-    // TODO Find a better way to inject saveFbcViolatedMethods instead of copying lots of code from super method
-    @Override
-    protected void checkMethodInvocability(AnnotatedExecutableType method, MethodInvocationTree node) {
-        // Check subclass constructor calls the correct super class constructor: mutable calls mutable; immutable
-        // calls immutable; any calls receiverdependantmutable
-        if (method.getElement().getKind() == ElementKind.CONSTRUCTOR) {
-            AnnotatedTypeMirror subClassConstructorReturnType = atypeFactory.getReceiverType(node);
-            AnnotatedTypeMirror superClassConstructorReturnType = method.getReturnType();
-            // superClassConstructorReturnType is already the result of viewpoint adaptation, so subClassConstructorReturnType <:
-            // superClassConstructorReturnType is enough to determine the super constructor invocation is valid or not
-            if (!atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType, READONLY)) {
-                checker.report(
-                        Result.failure(
-                                "super.constructor.invocation.incompatible", subClassConstructorReturnType, superClassConstructorReturnType), node);
-            }
-            return;
-        }
-
-        /*Copied Code Starts*/
-        if (method.getReceiverType() == null) {
-            // Static methods don't have a receiver.
-            return;
-        }
-
-        AnnotatedTypeMirror methodReceiver = method.getReceiverType().getErased();
-        AnnotatedTypeMirror treeReceiver = methodReceiver.shallowCopy(false);
-        AnnotatedTypeMirror rcv = atypeFactory.getReceiverType(node);
-
-        treeReceiver.addAnnotations(rcv.getEffectiveAnnotations());
-
-        if (!skipReceiverSubtypeCheck(node, methodReceiver, rcv)
-                && !atypeFactory.getTypeHierarchy().isSubtype(treeReceiver, methodReceiver)) {
-            checker.report(
-                    Result.failure(
-                            "method.invocation.invalid",
-                            TreeUtils.elementFromUse(node),
-                            treeReceiver.toString(),
-                            methodReceiver.toString()),
-                    node);
-            /*Difference Starts*/
-            if (shouldOutputFbcError) {
-                saveFbcViolatedMethods(TreeUtils.elementFromUse(node), treeReceiver.toString(), methodReceiver.toString());
-            }
-            /*Different Ends*/
-        }
-        /*Copied Code Ends*/
     }
 
     private void saveFbcViolatedMethods(ExecutableElement method, String actualReceiver, String declaredReceiver) {
@@ -502,63 +452,74 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             checker.report(Result.failure("class.bound.invalid", bound), node);
             return;// Doesn't process the class tree anymore
         }
-        if (!checkCompatabilityBetweenBoundAndSuperClassesBounds(node, typeElement, bound)) {
-            return;
-        }
 
-        if (!checkCompatabilityBetweenBoundAndExtendsImplements(node, bound)) {
-            return;
-        }
-
-        // Reach this point iff 1) bound annotation is one of mutable, rdm or immutable;
-        // 2) bound is compatible with bounds on super types. Only continue if bound check
-        // passed. Reaching here already means having passed bound check.
         super.processClassTree(node);
     }
-
-    private boolean checkCompatabilityBetweenBoundAndSuperClassesBounds(ClassTree node, TypeElement typeElement, AnnotatedDeclaredType bound) {
-        // Must have compatible bound annotation as the direct super types
-        List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
-        for (AnnotatedDeclaredType superBound : superBounds) {
-            // If annotation on super bound is @ReceiverDependantMutable, then any valid bound is permitted.
-            if (superBound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) continue;
-            // super bound is either @Mutable or @Immutable. Must be the subtype of the corresponding super bound
-            if (!atypeFactory.getQualifierHierarchy().isSubtype(
-                    bound.getAnnotationInHierarchy(READONLY), superBound.getAnnotationInHierarchy(READONLY))) {
-                checker.report(Result.failure("subclass.bound.incompatible", bound, superBound), node);
-                return false;
-            }
+    
+    @Override
+    protected void checkExtendsImplements(ClassTree classTree) {
+    	if (TypesUtils.isAnonymous(TreeUtils.typeOf(classTree))) {
+            // Don't check extends clause on anonymous classes.
+            return;
         }
-        return true;
+    	
+    	AnnotationMirror classAnnot =
+    			atypeFactory.getAnnotatedType(classTree).getAnnotationInHierarchy(READONLY);
+    	
+    	Tree extendsClause = classTree.getExtendsClause();
+    	if (extendsClause != null) {
+			AnnotationMirror extAnnot = atypeFactory.fromTypeTree(extendsClause).getAnnotationInHierarchy(READONLY);
+			if (extAnnot != null && !AnnotationUtils.areSame(extAnnot, classAnnot)) {
+				checker.report(
+                        Result.failure(
+                                "declaration.inconsistent.with.extends.clause",
+                                classAnnot,
+                                extAnnot),
+                        extendsClause);
+			}
+    		
+    	}
+    	
+    	List<? extends Tree> implementsClauses = classTree.getImplementsClause();
+    	if (implementsClauses != null) {
+    		for (Tree impl : implementsClauses) {
+    			AnnotationMirror implAnnot = atypeFactory.fromTypeTree(impl).getAnnotationInHierarchy(READONLY);
+    			if (implAnnot != null && !AnnotationUtils.areSame(implAnnot, classAnnot)) {
+    				checker.report(
+                            Result.failure(
+                                    "declaration.inconsistent.with.implements.clause",
+                                    classAnnot,
+                                    implAnnot),
+                            impl);
+    			}
+    		}
+    	}
     }
 
-    private boolean checkCompatabilityBetweenBoundAndExtendsImplements(ClassTree node, AnnotatedDeclaredType bound) {
-        boolean hasSame;
-        Tree ext = node.getExtendsClause();
-        if (ext != null) {
-            AnnotatedTypeMirror extendsType = atypeFactory.getAnnotatedType(ext);
-            hasSame = bound.getAnnotations().size() == extendsType.getAnnotations().size()
-                        && AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY),
-                                                    bound.getAnnotationInHierarchy(READONLY));
-            if (!hasSame) {
-                checker.report(Result.failure("bound.extends.incompatabile"), node);
-                return false;
-            }
+    /**
+     * The invoked constructor’s return type adapted to the invoking constructor’s return type must
+     * be a supertype of the invoking constructor’s return type. Since InitializationChecker does not
+     * apply any type rules at here, only READONLY hierarchy is checked.
+     *
+     * @param superCall the super invocation, e.g., "super()"
+     * @param errorKey the error key, e.g., "super.invocation.invalid"
+     */
+    @Override
+    protected void checkThisOrSuperConstructorCall(
+            MethodInvocationTree superCall, @CompilerMessageKey String errorKey) {
+        MethodTree enclosingMethod = visitorState.getMethodTree();
+        AnnotatedTypeMirror superType = atypeFactory.getAnnotatedType(superCall);
+        AnnotatedExecutableType constructorType = atypeFactory.getAnnotatedType(enclosingMethod);
+        AnnotationMirror superTypeMirror = superType.getAnnotationInHierarchy(READONLY);
+        AnnotationMirror constructorTypeMirror =
+                constructorType.getReturnType().getAnnotationInHierarchy(READONLY);
+        if (!atypeFactory
+                .getQualifierHierarchy()
+                .isSubtype(constructorTypeMirror, superTypeMirror)) {
+            checker.report(
+                    Result.failure(errorKey, constructorTypeMirror, superCall, superTypeMirror),
+                    superCall);
         }
-
-        List<? extends Tree> impls = node.getImplementsClause();
-        if (impls != null) {
-            for (Tree im : impls) {
-                AnnotatedTypeMirror implementsType = atypeFactory.getAnnotatedType(im);
-                hasSame = bound.getAnnotations().size() == implementsType.getAnnotations().size()
-                        && AnnotationUtils.areSame(implementsType.getAnnotationInHierarchy(READONLY),
-                                                    bound.getAnnotationInHierarchy(READONLY));
-                if (!hasSame) {
-                    checker.report(Result.failure("bound.implements.incompatabile"), node);
-                    return false;
-                }
-            }
-        }
-        return true;
+        super.checkThisOrSuperConstructorCall(superCall, errorKey);
     }
 }

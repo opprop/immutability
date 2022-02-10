@@ -9,8 +9,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ImmutabilityTypecheckTests extends CheckerFrameworkPerFileTest {
-    public ImmutabilityTypecheckTests(File testFile) {
+public class ImmutabilityTypecheckTest extends CheckerFrameworkPerFileTest {
+    public ImmutabilityTypecheckTest(File testFile) {
         super(testFile, PICOChecker.class, "", "-Anomsgtext",
                 "-Anocheckjdk", "-d", "testTmp/typecheck");
     }

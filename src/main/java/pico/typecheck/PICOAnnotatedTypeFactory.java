@@ -34,11 +34,11 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.ViewpointAdapter;
-import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
+import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.framework.type.typeannotator.ImplicitsTypeAnnotator;
+import org.checkerframework.framework.type.typeannotator.DefaultForTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
@@ -50,13 +50,9 @@ import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 
 import com.sun.source.tree.BinaryTree;
-import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.IdentifierTree;
-import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
-import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
@@ -82,9 +78,11 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         PICOStore, PICOTransfer, PICOAnalysis> {
 
     public PICOAnnotatedTypeFactory(BaseTypeChecker checker) {
-        super(checker, true);
+        super(checker);
         postInit();
-        addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
+        // PICO aliasing is not implemented correctly
+        // remove for now
+//        addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
     }
 
     @Override
@@ -114,7 +112,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     protected TreeAnnotator createTreeAnnotator() {
         return new ListTreeAnnotator(
                 new PICOPropagationTreeAnnotator(this),
-                new ImplicitsTreeAnnotator(this),
+                new LiteralTreeAnnotator(this),
                 new CommitmentTreeAnnotator(this),
                 new PICOTreeAnnotator(this));
     }
@@ -140,7 +138,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         // method, so if one annotator already applied the annotations, the others won't apply twice at the
         // same location
         typeAnnotators.add(new PICOTypeAnnotator(this));
-        typeAnnotators.add(new PICOImplicitsTypeAnnotator(this));
+        typeAnnotators.add(new PICODefaultForTypeAnnotator(this));
         typeAnnotators.add(new CommitmentTypeAnnotator(this));
         return new ListTypeAnnotator(typeAnnotators);
     }
@@ -185,20 +183,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         super.addComputedTypeAnnotations(elt, type);
     }
 
-    @Override
-    protected void annotateInheritedFromClass(AnnotatedTypeMirror type, Set<AnnotationMirror> fromClass) {
-        // If interitted from class element is @Mutable or @Immutable, then apply this annotation to the usage type
-        if (fromClass.contains(MUTABLE) || fromClass.contains(IMMUTABLE)) {
-            super.annotateInheritedFromClass(type, fromClass);
-            return;
-        }
-        // If interitted from class element is @ReceiverDependantMutable, then don't apply and wait for @Mutable
-        // (default qualifier in hierarchy to be applied to the usage type). This is to avoid having @ReceiverDependantMutable
-        // on type usages as a default behaviour. By default, @Mutable is better used as the type for usages that
-        // don't have explicit annotation.
-        return;// Don't add annotations from class element
-    }
-
     /**This method gets lhs WITH flow sensitive refinement*/
     // TODO Should refactor super class to avoid too much duplicate code.
     // This method is pretty hacky right now.
@@ -240,11 +224,11 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     /**Handles invoking static methods with polymutable on its declaration*/
     @Override
-    public ParameterizedMethodType methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
-        ParameterizedMethodType pair = super.methodFromUse(tree, methodElt, receiverType);
+    public ParameterizedExecutableType methodFromUse(ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
+        ParameterizedExecutableType pair = super.methodFromUse(tree, methodElt, receiverType);
         // We want to replace polymutable with substitutablepolymutable when we invoke static methods
         if (ElementUtils.isStatic(methodElt)) {
-            AnnotatedExecutableType methodType = pair.methodType;
+            AnnotatedExecutableType methodType = pair.executableType;
             AnnotatedTypeMirror returnType = methodType.getReturnType();
             if (returnType.hasAnnotation(POLY_MUTABLE)) {
                 // Only substitute polymutable but not other qualifiers! Missing the if statement
@@ -391,7 +375,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             return super.visitTypeCast(node, type);
         }
 
-        /**Because TreeAnnotator runs before ImplicitsTypeAnnotator, implicitly immutable types are not guaranteed
+        /**Because TreeAnnotator runs before DefaultForTypeAnnotator, implicitly immutable types are not guaranteed
          to always have immutable annotation. If this happens, we manually add immutable to type. We use
          addMissingAnnotations because we want to respect existing annotation on type*/
         private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
@@ -411,31 +395,6 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     public static class PICOTreeAnnotator extends TreeAnnotator {
         public PICOTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
             super(atypeFactory);
-        }
-
-        @Override
-        public Void visitIdentifier(IdentifierTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            PICOTypeUtil.dragAnnotationFromBoundToExtendsAndImplements(node, annotatedTypeMirror, atypeFactory);
-            return super.visitIdentifier(node, annotatedTypeMirror);
-        }
-
-        @Override
-        public Void visitMemberSelect(MemberSelectTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            PICOTypeUtil.dragAnnotationFromBoundToExtendsAndImplements(node, annotatedTypeMirror, atypeFactory);
-            return super.visitMemberSelect(node, annotatedTypeMirror);
-        }
-
-        @Override
-        public Void visitParameterizedType(ParameterizedTypeTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            PICOTypeUtil.dragAnnotationFromBoundToExtendsAndImplements(node, annotatedTypeMirror, atypeFactory);
-            return super.visitParameterizedType(node, annotatedTypeMirror);
-        }
-
-        @Override
-        public Void visitClass(ClassTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            // Apply @Immutable to enum element's bound
-            PICOTypeUtil.applyImmutableToEnumAndEnumConstant(annotatedTypeMirror);
-            return super.visitClass(node, annotatedTypeMirror);
         }
 
         // This adds @Immutable annotation to constructor return type if type declaration has @Immutable when the
@@ -488,9 +447,9 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     }
 
-    public static class PICOImplicitsTypeAnnotator extends ImplicitsTypeAnnotator {
+    public static class PICODefaultForTypeAnnotator extends DefaultForTypeAnnotator {
 
-        public PICOImplicitsTypeAnnotator(AnnotatedTypeFactory typeFactory) {
+        public PICODefaultForTypeAnnotator(AnnotatedTypeFactory typeFactory) {
             super(typeFactory);
         }
 
@@ -520,7 +479,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     // TODO Right now, instance method receiver cannot inherit bound annotation from class element, and
     // this caused the inconsistency when accessing the type of receiver while visiting the method and
     // while visiting the variable tree. Implicit annotation can be inserted to method receiver via
-    // extending ImplicitsTypeAnnotator; But InheritedFromClassAnnotator cannot be inheritted because its
+    // extending DefaultForTypeAnnotator; But InheritedFromClassAnnotator cannot be inheritted because its
     // constructor is private and I can't override it to also inherit bound annotation from class element
     // to the declared receiver type of instance methods. To view the details, look at ImmutableClass1.java
     // testcase.
