@@ -16,6 +16,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 
+import checkers.inference.BaseInferenceRealTypeFactory;
 import com.sun.tools.javac.tree.JCTree;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -58,7 +59,7 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.*;
  * to InitializationAnnotatedTypeFactory as if there is only one mutability qualifier hierarchy.
  * This class has lots of copied code from PICOAnnotatedTypeFactory. The two should be in sync.
  */
-public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory implements ViewpointAdapterGettable {
+public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory implements ViewpointAdapterGettable {
 
     private static final List<String> IMMUTABLE_ALIASES = Arrays.asList(
             "com.google.errorprone.annotations.Immutable",
@@ -226,7 +227,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory imple
 
         }
         AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
-        AnnotatedTypeMirror fromTypeTree = this.fromTypeTree(clause);
+        AnnotatedTypeMirror fromTypeTree = this.getAnnotatedTypeFromTypeTree(clause);
         if (!fromTypeTree.isAnnotatedInHierarchy(READONLY)) {
             fromTypeTree.addAnnotation(mainBound);
         }

@@ -45,80 +45,80 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         super(typeFactory, realTypeFactory, realChecker, slotManager, constraintManager);
     }
 
-    @Override
-    protected void handleClassDeclaration(AnnotatedDeclaredType classType, ClassTree classTree) {
-        super.handleClassDeclaration(classType, classTree);
-        int interfaceIndex = 1;
-        for(Tree implementsTree : classTree.getImplementsClause()) {
-            final AnnotatedTypeMirror implementsType = inferenceTypeFactory.getAnnotatedTypeFromTypeTree(implementsTree);
-            AnnotatedTypeMirror supertype = classType.directSuperTypes().get(interfaceIndex);
-            assert supertype.getUnderlyingType() == implementsType.getUnderlyingType();
-            visit(supertype, implementsTree);
-            interfaceIndex++;
-        }
-    }
+//    @Override
+//    protected void handleClassDeclaration(AnnotatedDeclaredType classType, ClassTree classTree) {
+//        super.handleClassDeclaration(classType, classTree);
+//        int interfaceIndex = 1;
+//        for(Tree implementsTree : classTree.getImplementsClause()) {
+//            final AnnotatedTypeMirror implementsType = inferenceTypeFactory.getAnnotatedTypeFromTypeTree(implementsTree);
+//            AnnotatedTypeMirror supertype = classType.directSupertypes().get(interfaceIndex);
+//            assert supertype.getUnderlyingType() == implementsType.getUnderlyingType();
+//            visit(supertype, implementsTree);
+//            interfaceIndex++;
+//        }
+//    }
 
-    @Override
-    protected void handleClassDeclarationBound(AnnotatedDeclaredType classType) {
-        TypeElement classElement = (TypeElement) classType.getUnderlyingType().asElement();
-        if (classDeclAnnos.containsKey(classElement)) {
-            classType.addAnnotation(slotManager.getAnnotation(classDeclAnnos.get(classElement)));
-            classType.addAnnotation(READONLY);
-            return;
-        }
-        AnnotatedDeclaredType bound = inferenceTypeFactory.fromElement(classElement);
-
-        VariableSlot boundSlot;
-
-        // Insert @Immutable VarAnnot directly to enum bound
-//        if (PICOTypeUtil.isEnumOrEnumConstant(bound)) {
-//            boundSlot = slotManager.createConstantSlot(IMMUTABLE);
-//            classType.addAnnotation(slotManager.getAnnotation(boundSlot));
-//            classDeclAnnos.put(classElement, boundSlot);
+//    @Override
+//    protected void handleClassDeclarationBound(AnnotatedDeclaredType classType) {
+//        TypeElement classElement = (TypeElement) classType.getUnderlyingType().asElement();
+//        if (classDeclAnnos.containsKey(classElement)) {
+//            classType.addAnnotation(slotManager.getAnnotation(classDeclAnnos.get(classElement)));
+//            classType.addAnnotation(READONLY);
 //            return;
 //        }
-
-        Tree classTree = inferenceTypeFactory.declarationFromElement(classElement);
-        if (classTree != null) {
-            // Have source tree
-            if (bound.isAnnotatedInHierarchy(READONLY)) {
-                // Have bound annotation -> convert to equivalent ConstantSlot
-                boundSlot = slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
-            } else {
-                // No existing annotation -> create new VariableSlot
-                boundSlot = createVariable(treeToLocation(classTree));
-            }
-        } else {
-            // No source tree: bytecode classes
-            if (bound.isAnnotatedInHierarchy(READONLY)) {
-                // Have bound annotation in stub file
-                boundSlot = slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
-            } else {
-                // No stub file
-                if (PICOTypeUtil.isImplicitlyImmutableType(classType)) {
-                    // Implicitly immutable
-                    boundSlot = slotManager.createConstantSlot(IMMUTABLE);
-                } else {
-                    // None of the above applies: use conservative @Mutable
-                    boundSlot = slotManager.createConstantSlot(MUTABLE);
-                }
-            }
-        }
-        classType.addAnnotation(slotManager.getAnnotation(boundSlot));
-        classDeclAnnos.put(classElement, boundSlot);
-    }
+//        AnnotatedDeclaredType bound = inferenceTypeFactory.fromElement(classElement);
+//
+//        VariableSlot boundSlot;
+//
+//        // Insert @Immutable VarAnnot directly to enum bound
+////        if (PICOTypeUtil.isEnumOrEnumConstant(bound)) {
+////            boundSlot = slotManager.createConstantSlot(IMMUTABLE);
+////            classType.addAnnotation(slotManager.getAnnotation(boundSlot));
+////            classDeclAnnos.put(classElement, boundSlot);
+////            return;
+////        }
+//
+//        Tree classTree = inferenceTypeFactory.declarationFromElement(classElement);
+//        if (classTree != null) {
+//            // Have source tree
+//            if (bound.isAnnotatedInHierarchy(READONLY)) {
+//                // Have bound annotation -> convert to equivalent ConstantSlot
+//                boundSlot = slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
+//            } else {
+//                // No existing annotation -> create new VariableSlot
+//                boundSlot = createVariable(treeToLocation(classTree));
+//            }
+//        } else {
+//            // No source tree: bytecode classes
+//            if (bound.isAnnotatedInHierarchy(READONLY)) {
+//                // Have bound annotation in stub file
+//                boundSlot = slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
+//            } else {
+//                // No stub file
+//                if (PICOTypeUtil.isImplicitlyImmutableType(classType)) {
+//                    // Implicitly immutable
+//                    boundSlot = slotManager.createConstantSlot(IMMUTABLE);
+//                } else {
+//                    // None of the above applies: use conservative @Mutable
+//                    boundSlot = slotManager.createConstantSlot(MUTABLE);
+//                }
+//            }
+//        }
+//        classType.addAnnotation(slotManager.getAnnotation(boundSlot));
+//        classDeclAnnos.put(classElement, boundSlot);
+//    }
 
     @Override
     protected VariableSlot getOrCreateDeclBound(AnnotatedDeclaredType type) {
         TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
 
-        VariableSlot declSlot = classDeclAnnos.get(classDecl);
+        AnnotationMirror declSlot = getClassDeclVarAnnot(classDecl);
         if (declSlot == null) {
             // if a explicit annotation presents on the class DECL, use that directly
             if (type.isDeclaration() && type.isAnnotatedInHierarchy(READONLY) && !type.hasAnnotation(READONLY)) {
                 VariableSlot constantSlot = (VariableSlot) slotManager.getSlot(type.getAnnotationInHierarchy(READONLY));
 //                TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
-                classDeclAnnos.put(classDecl, constantSlot);
+                super.getOrCreateDeclBound(type);
 //                // avoid duplicate annos
 //                type.removeAnnotationInHierarchy(READONLY);
                 return constantSlot;
@@ -134,21 +134,21 @@ public class PICOVariableAnnotator extends VariableAnnotator {
                 return (VariableSlot) slotManager.getSlot(type.getAnnotation(VarAnnot.class));
             }
         }
-        return super.getOrCreateDeclBound(type);
+        return (VariableSlot) super.getOrCreateDeclBound(type);
     }
 
-    @Override
-    protected void handleExplicitExtends(Tree extendsTree) {
-        // PICO cannot use base extends handling: not simply subtype relationship because of RDM
-        // Constraints already generated in processClassTree
-    }
+//    @Override
+//    protected void handleExplicitExtends(Tree extendsTree) {
+//        // PICO cannot use base extends handling: not simply subtype relationship because of RDM
+//        // Constraints already generated in processClassTree
+//    }
 
     @Override
     public void storeElementType(Element element, AnnotatedTypeMirror atm) {
         // this method is override the behavior of super.handleClassDeclaration before storing
         // find a better way
 
-        Slot slot = slotManager.getVariableSlot(atm);
+        Slot slot = slotManager.getSlot(atm);
         // do not use potential slot generated on the class decl annotation
         // PICO always have a annotation on the class bound, so Existential should always exist
         // TODO make VariableAnnotator::getOrCreateDeclBound protected and override that instead of this method
@@ -167,22 +167,22 @@ public class PICOVariableAnnotator extends VariableAnnotator {
     }
 
     // Don't generate subtype constraint between use type and bound type
-    @Override
-    protected void handleInstantiationConstraint(AnnotatedTypeMirror.AnnotatedDeclaredType adt, VariableSlot instantiationSlot, Tree tree) {
-        return;
-    }
+//    @Override
+//    protected void handleInstantiationConstraint(AnnotatedTypeMirror.AnnotatedDeclaredType adt, VariableSlot instantiationSlot, Tree tree) {
+//        return;
+//    }
 
-    @Override
-    protected VariableSlot addPrimaryVariable(AnnotatedTypeMirror atm, Tree tree) {
-//        if (PICOTypeUtil.isEnumOrEnumConstant(atm)) {
-//            // Don't add new VarAnnot to type use of enum type
-//            PICOTypeUtil.applyConstant(atm, IMMUTABLE);
+//    @Override
+//    protected VariableSlot addPrimaryVariable(AnnotatedTypeMirror atm, Tree tree) {
+////        if (PICOTypeUtil.isEnumOrEnumConstant(atm)) {
+////            // Don't add new VarAnnot to type use of enum type
+////            PICOTypeUtil.applyConstant(atm, IMMUTABLE);
+////        }
+//        if (atm instanceof AnnotatedTypeMirror.AnnotatedNullType) {
+//            PICOTypeUtil.applyConstant(atm, BOTTOM);
 //        }
-        if (atm instanceof AnnotatedTypeMirror.AnnotatedNullType) {
-            PICOTypeUtil.applyConstant(atm, BOTTOM);
-        }
-        return super.addPrimaryVariable(atm, tree);
-    }
+//        return super.addPrimaryVariable(atm, tree);
+//    }
 
     // Generates inequality constraint between every strict VariableSlot and @Bottom so that @Bottom is not inserted
     // back to source code, but can be within the internal state because of dataflow refinement
@@ -285,7 +285,7 @@ public class PICOVariableAnnotator extends VariableAnnotator {
 
     @Override
     public void handleBinaryTree(AnnotatedTypeMirror atm, BinaryTree binaryTree) {
-        if (atm.isAnnotatedInHierarchy(varAnnot)) {
+        if (atm.isAnnotatedInHierarchy(inferenceTypeFactory.getVarAnnot())) {
             // Happens for binary trees whose atm is implicitly immutable and already handled by
             // PICOInferencePropagationTreeAnnotator
             return;
@@ -294,15 +294,12 @@ public class PICOVariableAnnotator extends VariableAnnotator {
     }
 
     public AnnotationMirror getClassDeclAnno(Element ele) {
-        if (classDeclAnnos.get(ele) != null) {
-            return slotManager.getAnnotation(classDeclAnnos.get(ele));
-        }
-        return null;
+        return getClassDeclVarAnnot((TypeElement) ele); // todo: solved
     }
 
 
     @Override
-    protected void addDeclarationConstraints(VariableSlot declSlot, VariableSlot instanceSlot) {
+    protected void addDeclarationConstraints(Slot declSlot, Slot instanceSlot) {
         // RDM-related constraints cannot use subtype.
         // Necessary constraints added in visitor instead.
     }

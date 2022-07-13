@@ -18,7 +18,6 @@ import org.checkerframework.javacutil.TreePathUtil;
 import pico.common.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.VariableElement;
 

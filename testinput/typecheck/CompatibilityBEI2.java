@@ -28,7 +28,6 @@ abstract class I implements @Mutable List<@Immutable Object> {}
 // :: error: (declaration.inconsistent.with.implements.clause)
 @Mutable abstract class J implements @Immutable List<@Immutable Object> {}
 
-// :: error: (declaration.inconsistent.with.implements.clause)
 @Mutable abstract class K implements @ReceiverDependantMutable List<@Immutable Object> {}
 
 // :: error: (declaration.inconsistent.with.extends.clause)
@@ -36,7 +35,6 @@ abstract class I implements @Mutable List<@Immutable Object> {}
 
 @Immutable class M extends @Immutable ArrayList<@Immutable Object> {}
 
-// :: error: (declaration.inconsistent.with.extends.clause)
 @Immutable class N extends @ReceiverDependantMutable ArrayList<@Immutable Object> {}
 
 abstract class O implements CharSequence {}

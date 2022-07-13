@@ -16,8 +16,8 @@ import java.util.Set;
  */
 public class PICOAnalysis extends CFAbstractAnalysis<PICOValue, PICOStore, PICOTransfer> {
 
-    public PICOAnalysis(BaseTypeChecker checker, PICOAnnotatedTypeFactory factory, List<Pair<VariableElement, PICOValue>> fieldValues) {
-        super(checker, factory, fieldValues);
+    public PICOAnalysis(BaseTypeChecker checker, PICOAnnotatedTypeFactory factory) {
+        super(checker, factory, -1);
     }
 
     @Override

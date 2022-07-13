@@ -24,14 +24,14 @@ import java.util.Map;
  * to solve constraints
  */
 public class PICOSolverEngine extends SolverEngine {
-    @Override
-    public InferenceResult solve(Map<String, String> configuration, Collection<Slot> slots, Collection<Constraint> constraints, QualifierHierarchy qualHierarchy, ProcessingEnvironment processingEnvironment) {
-        InferenceResult result= super.solve(configuration, slots, constraints, qualHierarchy, processingEnvironment);
-        if (collectStatistics && result.hasSolution()) {
-            writeInferenceResult("pico-inference-result.txt", ((DefaultInferenceResult)result).varIdToAnnotation);
-        }
-        return result;
-    }
+//    @Override
+//    public InferenceResult solve(Map<String, String> configuration, Collection<Slot> slots, Collection<Constraint> constraints, QualifierHierarchy qualHierarchy, ProcessingEnvironment processingEnvironment) {
+//        InferenceResult result= super.solve(configuration, slots, constraints, qualHierarchy, processingEnvironment);
+//        if (collectStatistics && result.hasSolution()) {
+//            writeInferenceResult("pico-inference-result.txt", ((DefaultInferenceResult)result).varIdToAnnotation);
+//        }
+//        return result;
+//    } // TODO: default write into statistic.txt
 
     public static void writeInferenceResult(String filename, Map<Integer, AnnotationMirror> result) {
         String writePath = new File(new File("").getAbsolutePath()).toString() + File.separator + filename;

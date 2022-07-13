@@ -39,7 +39,7 @@ import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.*;
-import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
+import org.checkerframework.framework.util.QualifierKind;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
@@ -147,8 +147,8 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     }
 
     @Override
-    public QualifierHierarchy createQualifierHierarchy(MultiGraphFactory factory) {
-        return new PICOQualifierHierarchy(factory, null);
+    public QualifierHierarchy createQualifierHierarchy() {
+        return new PICOQualifierHierarchy();
     }
 
     /**Just to transfer the method from super class to package*/
@@ -189,41 +189,41 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     /**This method gets lhs WITH flow sensitive refinement*/
     // TODO Should refactor super class to avoid too much duplicate code.
     // This method is pretty hacky right now.
-    @Override
-    public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
-        boolean oldComputingAnnotatedTypeMirrorOfLHS = computingAnnotatedTypeMirrorOfLHS;
-        computingAnnotatedTypeMirrorOfLHS = true;
-
-        AnnotatedTypeMirror result;
-        boolean oldShouldCache = shouldCache;
-        // Don't cache the result because getAnnotatedType(lhsTree) could
-        // be called from elsewhere and would expect flow-sensitive type refinements.
-        shouldCache = false;
-        switch (lhsTree.getKind()) {
-            case VARIABLE:
-            case IDENTIFIER:
-            case MEMBER_SELECT:
-            case ARRAY_ACCESS:
-                result = getAnnotatedType(lhsTree);
-                break;
-            default:
-                if (TreeUtils.isTypeTree(lhsTree)) {
-                    // lhsTree is a type tree at the pseudo assignment of a returned expression to declared return type.
-                    result = getAnnotatedType(lhsTree);
-                } else {
-                    throw new BugInCF(
-                            "GenericAnnotatedTypeFactory: Unexpected tree passed to getAnnotatedTypeLhs. "
-                                    + "lhsTree: "
-                                    + lhsTree
-                                    + " Tree.Kind: "
-                                    + lhsTree.getKind());
-                }
-        }
-        shouldCache = oldShouldCache;
-
-        computingAnnotatedTypeMirrorOfLHS = oldComputingAnnotatedTypeMirrorOfLHS;
-        return result;
-    }
+//    @Override
+//    public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
+//        boolean oldComputingAnnotatedTypeMirrorOfLHS = computingAnnotatedTypeMirrorOfLHS;
+//        computingAnnotatedTypeMirrorOfLHS = true;
+//
+//        AnnotatedTypeMirror result;
+//        boolean oldShouldCache = shouldCache;
+//        // Don't cache the result because getAnnotatedType(lhsTree) could
+//        // be called from elsewhere and would expect flow-sensitive type refinements.
+//        shouldCache = false;
+//        switch (lhsTree.getKind()) {
+//            case VARIABLE:
+//            case IDENTIFIER:
+//            case MEMBER_SELECT:
+//            case ARRAY_ACCESS:
+//                result = getAnnotatedType(lhsTree);
+//                break;
+//            default:
+//                if (TreeUtils.isTypeTree(lhsTree)) {
+//                    // lhsTree is a type tree at the pseudo assignment of a returned expression to declared return type.
+//                    result = getAnnotatedType(lhsTree);
+//                } else {
+//                    throw new BugInCF(
+//                            "GenericAnnotatedTypeFactory: Unexpected tree passed to getAnnotatedTypeLhs. "
+//                                    + "lhsTree: "
+//                                    + lhsTree
+//                                    + " Tree.Kind: "
+//                                    + lhsTree.getKind());
+//                }
+//        }
+//        shouldCache = oldShouldCache;
+//
+//        computingAnnotatedTypeMirrorOfLHS = oldComputingAnnotatedTypeMirrorOfLHS;
+//        return result;
+//    }
 
 //    /**Handles invoking static methods with polymutable on its declaration*/
 //    @Override
@@ -250,24 +250,45 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 
     protected class PICOQualifierHierarchy extends InitializationQualifierHierarchy {
 
-        public PICOQualifierHierarchy(MultiGraphFactory f, Object[] arg) {
-            super(f, arg);
-        }
+//        public PICOQualifierHierarchy(MultiGraphFactory f, Object[] arg) {
+//            super(f, arg);
+//        }
+
+//        @Override
+//        public boolean isSubtype(AnnotationMirror subAnno, AnnotationMirror superAnno) {
+//            if (isInitializationAnnotation(subAnno) || isInitializationAnnotation(superAnno)) {
+//                return this.isSubtypeInitialization(subAnno, superAnno);
+//            }
+//            return super.isSubtype(subAnno, superAnno);
+//        }
 
         @Override
-        public boolean isSubtype(AnnotationMirror subAnno, AnnotationMirror superAnno) {
+        protected boolean isSubtypeWithElements(AnnotationMirror subAnno, QualifierKind subKind, AnnotationMirror superAnno, QualifierKind superKind) {
             if (isInitializationAnnotation(subAnno) || isInitializationAnnotation(superAnno)) {
-                return this.isSubtypeInitialization(subAnno, superAnno);
+                return this.isSubtypeInitialization(subAnno, subKind, superAnno, superKind);
             }
             return super.isSubtype(subAnno, superAnno);
         }
 
+//        @Override
+//        public AnnotationMirror leastUpperBound(AnnotationMirror a1, AnnotationMirror a2) {
+//            if (isInitializationAnnotation(a1) || isInitializationAnnotation(a2)) {
+//                return this.leastUpperBoundInitialization(a1, a2);
+//            }
+//            return super.leastUpperBound(a1, a2);
+//        }
+
         @Override
-        public AnnotationMirror leastUpperBound(AnnotationMirror a1, AnnotationMirror a2) {
+        protected AnnotationMirror leastUpperBoundWithElements(AnnotationMirror a1, QualifierKind q1, AnnotationMirror a2, QualifierKind q2, QualifierKind lub) {
             if (isInitializationAnnotation(a1) || isInitializationAnnotation(a2)) {
-                return this.leastUpperBoundInitialization(a1, a2);
+                return this.leastUpperBoundInitialization(a1, q1, a2, q2);
             }
             return super.leastUpperBound(a1, a2);
+        }
+
+        @Override
+        protected AnnotationMirror greatestLowerBoundWithElements(AnnotationMirror annotationMirror, QualifierKind qualifierKind, AnnotationMirror annotationMirror1, QualifierKind qualifierKind1, QualifierKind qualifierKind2) {
+            return null;
         }
     }
 
@@ -276,108 +297,108 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         public PICOPropagationTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
             super(atypeFactory);
         }
+//
+//        // TODO This is very ugly. Why is array component type from lhs propagates to rhs?!
+//        @Override
+//        public Void visitNewArray(NewArrayTree tree, AnnotatedTypeMirror type) {
+//            // Below is copied from super
+//            assert type.getKind() == TypeKind.ARRAY
+//                    : "PropagationTreeAnnotator.visitNewArray: should be an array type";
+//
+//            AnnotatedTypeMirror componentType = ((AnnotatedTypeMirror.AnnotatedArrayType) type).getComponentType();
+//
+//            Collection<? extends AnnotationMirror> prev = null;
+//            if (tree.getInitializers() != null && tree.getInitializers().size() != 0) {
+//                // We have initializers, either with or without an array type.
+//
+//                for (ExpressionTree init : tree.getInitializers()) {
+//                    AnnotatedTypeMirror initType = atypeFactory.getAnnotatedType(init);
+//                    // initType might be a typeVariable, so use effectiveAnnotations.
+//                    Collection<AnnotationMirror> annos = initType.getEffectiveAnnotations();
+//
+//                    prev = (prev == null) ? annos : atypeFactory.getQualifierHierarchy().leastUpperBounds(prev, annos);
+//                }
+//            } else {
+//                prev = componentType.getAnnotations();
+//            }
+//
+//            assert prev != null
+//                    : "PropagationTreeAnnotator.visitNewArray: violated assumption about qualifiers";
+//
+//            Pair<Tree, AnnotatedTypeMirror> context =
+//                    atypeFactory.getVisitorState().getAssignmentContext();
+//            Collection<? extends AnnotationMirror> post;
+//
+//            if (context != null
+//                    && context.second != null
+//                    && context.second instanceof AnnotatedTypeMirror.AnnotatedArrayType) {
+//                AnnotatedTypeMirror contextComponentType =
+//                        ((AnnotatedTypeMirror.AnnotatedArrayType) context.second).getComponentType();
+//                // Only compare the qualifiers that existed in the array type
+//                // Defaulting wasn't performed yet, so prev might have fewer qualifiers than
+//                // contextComponentType, which would cause a failure.
+//                // TODO: better solution?
+//                boolean prevIsSubtype = true;
+//                for (AnnotationMirror am : prev) {
+//                    if (contextComponentType.isAnnotatedInHierarchy(am)
+//                            && !atypeFactory.getQualifierHierarchy().isSubtype(
+//                            am, contextComponentType.getAnnotationInHierarchy(am))) {
+//                        prevIsSubtype = false;
+//                    }
+//                }
+//                // TODO: checking conformance of component kinds is a basic sanity check
+//                // It fails for array initializer expressions. Those should be handled nicer.
+//                if (contextComponentType.getKind() == componentType.getKind()
+//                        && (prev.isEmpty()
+//                        || (!contextComponentType.getAnnotations().isEmpty()
+//                        && prevIsSubtype))) {
+//                    post = contextComponentType.getAnnotations();
+//                } else {
+//                    // The type of the array initializers is incompatible with the
+//                    // context type!
+//                    // Somebody else will complain.
+//                    post = prev;
+//                }
+//            } else {
+//                // No context is available - simply use what we have.
+//                post = prev;
+//            }
+//
+//            // Below line is the only difference from super implementation
+//            applyImmutableIfImplicitlyImmutable(componentType);
+//            // Above line is the only difference from super implementation
+//            componentType.addMissingAnnotations(post);
+//
+//            return null;
+//            // Above is copied from super
+//        }
+//
+//        /**Add immutable to the result type of a binary operation if the result type is implicitly immutable*/
+//        @Override
+//        public Void visitBinary(BinaryTree node, AnnotatedTypeMirror type) {
+//            applyImmutableIfImplicitlyImmutable(type);// Usually there isn't existing annotation on binary trees, but to be safe, run it first
+//            super.visitBinary(node, type);
+//            // NullnessPropagationTreeAnnotator says result type of binary tree is always @Initialized. So replace it
+//            // with COMMITED here.
+//            applyCommitedIfSupported(atypeFactory, type);
+//            return null;
+//        }
 
-        // TODO This is very ugly. Why is array component type from lhs propagates to rhs?!
-        @Override
-        public Void visitNewArray(NewArrayTree tree, AnnotatedTypeMirror type) {
-            // Below is copied from super
-            assert type.getKind() == TypeKind.ARRAY
-                    : "PropagationTreeAnnotator.visitNewArray: should be an array type";
-
-            AnnotatedTypeMirror componentType = ((AnnotatedTypeMirror.AnnotatedArrayType) type).getComponentType();
-
-            Collection<? extends AnnotationMirror> prev = null;
-            if (tree.getInitializers() != null && tree.getInitializers().size() != 0) {
-                // We have initializers, either with or without an array type.
-
-                for (ExpressionTree init : tree.getInitializers()) {
-                    AnnotatedTypeMirror initType = atypeFactory.getAnnotatedType(init);
-                    // initType might be a typeVariable, so use effectiveAnnotations.
-                    Collection<AnnotationMirror> annos = initType.getEffectiveAnnotations();
-
-                    prev = (prev == null) ? annos : atypeFactory.getQualifierHierarchy().leastUpperBounds(prev, annos);
-                }
-            } else {
-                prev = componentType.getAnnotations();
-            }
-
-            assert prev != null
-                    : "PropagationTreeAnnotator.visitNewArray: violated assumption about qualifiers";
-
-            Pair<Tree, AnnotatedTypeMirror> context =
-                    atypeFactory.getVisitorState().getAssignmentContext();
-            Collection<? extends AnnotationMirror> post;
-
-            if (context != null
-                    && context.second != null
-                    && context.second instanceof AnnotatedTypeMirror.AnnotatedArrayType) {
-                AnnotatedTypeMirror contextComponentType =
-                        ((AnnotatedTypeMirror.AnnotatedArrayType) context.second).getComponentType();
-                // Only compare the qualifiers that existed in the array type
-                // Defaulting wasn't performed yet, so prev might have fewer qualifiers than
-                // contextComponentType, which would cause a failure.
-                // TODO: better solution?
-                boolean prevIsSubtype = true;
-                for (AnnotationMirror am : prev) {
-                    if (contextComponentType.isAnnotatedInHierarchy(am)
-                            && !atypeFactory.getQualifierHierarchy().isSubtype(
-                            am, contextComponentType.getAnnotationInHierarchy(am))) {
-                        prevIsSubtype = false;
-                    }
-                }
-                // TODO: checking conformance of component kinds is a basic sanity check
-                // It fails for array initializer expressions. Those should be handled nicer.
-                if (contextComponentType.getKind() == componentType.getKind()
-                        && (prev.isEmpty()
-                        || (!contextComponentType.getAnnotations().isEmpty()
-                        && prevIsSubtype))) {
-                    post = contextComponentType.getAnnotations();
-                } else {
-                    // The type of the array initializers is incompatible with the
-                    // context type!
-                    // Somebody else will complain.
-                    post = prev;
-                }
-            } else {
-                // No context is available - simply use what we have.
-                post = prev;
-            }
-
-            // Below line is the only difference from super implementation
-            applyImmutableIfImplicitlyImmutable(componentType);
-            // Above line is the only difference from super implementation
-            componentType.addMissingAnnotations(post);
-
-            return null;
-            // Above is copied from super
-        }
-
-        /**Add immutable to the result type of a binary operation if the result type is implicitly immutable*/
-        @Override
-        public Void visitBinary(BinaryTree node, AnnotatedTypeMirror type) {
-            applyImmutableIfImplicitlyImmutable(type);// Usually there isn't existing annotation on binary trees, but to be safe, run it first
-            super.visitBinary(node, type);
-            // NullnessPropagationTreeAnnotator says result type of binary tree is always @Initialized. So replace it
-            // with COMMITED here.
-            applyCommitedIfSupported(atypeFactory, type);
-            return null;
-        }
-
-        @Override
-        public Void visitUnary(UnaryTree node, AnnotatedTypeMirror type) {
-            super.visitUnary(node, type);
-            // Same reason as above
-            applyCommitedIfSupported(atypeFactory, type);
-            return null;
-        }
-
-        /**Add immutable to the result type of a cast if the result type is implicitly immutable*/
-        @Override
-        public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
-            applyImmutableIfImplicitlyImmutable(type);// Must run before calling super method to respect existing annotation
-            return super.visitTypeCast(node, type);
-        }
-
+//        @Override
+//        public Void visitUnary(UnaryTree node, AnnotatedTypeMirror type) {
+//            super.visitUnary(node, type);
+//            // Same reason as above
+//            applyCommitedIfSupported(atypeFactory, type);
+//            return null;
+//        }
+//
+//        /**Add immutable to the result type of a cast if the result type is implicitly immutable*/
+//        @Override
+//        public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
+//            applyImmutableIfImplicitlyImmutable(type);// Must run before calling super method to respect existing annotation
+//            return super.visitTypeCast(node, type);
+//        }
+//
         /**Because TreeAnnotator runs before DefaultForTypeAnnotator, implicitly immutable types are not guaranteed
          to always have immutable annotation. If this happens, we manually add immutable to type. We use
          addMissingAnnotations because we want to respect existing annotation on type*/
@@ -387,11 +408,16 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             }
         }
 
-        private void applyCommitedIfSupported(AnnotatedTypeFactory annotatedTypeFactory, AnnotatedTypeMirror type) {
-            if (annotatedTypeFactory.isSupportedQualifier(COMMITED)) {
-                type.replaceAnnotation(COMMITED);
-            }
+        @Override
+        public Void visitBinary(BinaryTree node, AnnotatedTypeMirror type) {
+            return null;
         }
+
+//        private void applyCommitedIfSupported(AnnotatedTypeFactory annotatedTypeFactory, AnnotatedTypeMirror type) {
+//            if (annotatedTypeFactory.isSupportedQualifier(COMMITED)) {
+//                type.replaceAnnotation(COMMITED);
+//            }
+//        }
     }
 
     public ExtendedViewpointAdapter getViewpointAdapter() {
@@ -429,7 +455,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             return IMMUTABLE;
         }
         if (type.getKind() == TypeKind.ARRAY) {
-            return RECEIVER_DEPENDANT_MUTABLE; // if decided to use vpa for array, return RDM.
+            return READONLY; // if decided to use vpa for array, return RDM.
         }
 
         // IMMUTABLE for enum w/o decl anno
@@ -450,16 +476,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         // this is still needed with PICOSuperClauseAnnotator.
         // maybe just use getAnnotatedType
         // add default anno from class main qual, if no qual present
-        AnnotatedTypeMirror enclosing = getAnnotatedType(TreePathUtil.enclosingClass(getPath(clause)));
-        AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
-        AnnotatedTypeMirror fromTypeTree = this.fromTypeTree(clause);
-        if (!fromTypeTree.isAnnotatedInHierarchy(READONLY)) {
-            fromTypeTree.addAnnotation(mainBound);
+        AnnotatedTypeMirror fromTypeTree = super.getTypeOfExtendsImplements(clause);
+        if (fromTypeTree.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+            AnnotatedTypeMirror enclosing = getAnnotatedType(TreePathUtil.enclosingClass(getPath(clause)));
+            AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
+            fromTypeTree.replaceAnnotation(mainBound);
         }
-
-        // for FBC quals
-        Set<AnnotationMirror> bound = this.getTypeDeclarationBounds(fromTypeTree.getUnderlyingType());
-        fromTypeTree.addMissingAnnotations(bound);
         return fromTypeTree;
     }
 
@@ -487,6 +509,12 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             PICOTypeUtil.addDefaultForField(atypeFactory, annotatedTypeMirror, element);
 //            PICOTypeUtil.applyImmutableToEnumAndEnumConstant(annotatedTypeMirror);
             return super.visitVariable(node, annotatedTypeMirror);
+        }
+
+        @Override
+        public Void visitBinary(BinaryTree node, AnnotatedTypeMirror type) {
+            type.replaceAnnotation(IMMUTABLE);
+            return null;
         }
     }
 

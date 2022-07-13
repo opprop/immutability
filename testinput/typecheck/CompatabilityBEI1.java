@@ -35,7 +35,6 @@ class I implements @Mutable Cloneable {}
 // :: error: (declaration.inconsistent.with.implements.clause)
 @Mutable class J implements @Immutable Cloneable {}
 
-// :: error: (declaration.inconsistent.with.implements.clause)
 @Mutable class K implements @ReceiverDependantMutable Cloneable {}
 
 // :: error: (declaration.inconsistent.with.extends.clause)
@@ -43,7 +42,6 @@ class I implements @Mutable Cloneable {}
 
 @Immutable class M extends @Immutable Object {}
 
-// :: error: (declaration.inconsistent.with.extends.clause)
 @Immutable class N extends @ReceiverDependantMutable Object {}
 
 abstract class O implements CharSequence {}

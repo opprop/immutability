@@ -148,6 +148,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (extractVarAnnot(lhs).equals(extractVarAnnot(rhs))) {
             return true;
         }
+        // todo: haifeng we should do the viewpointAdapt in baseTypeValidator.java#visitDeclared 299 function:getTypeDeclarationBounds
         ExtendedViewpointAdapter vpa = ((ViewpointAdapterGettable)atypeFactory).getViewpointAdapter();
         AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(extractVarAnnot(lhs),
                 rhs);
@@ -494,7 +495,22 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // TODO Object identity check
         return super.visitMethod(node, p);
     }
-
+    /*
+    * @RDM
+    * class A <T> {
+    *
+    *   void foo(T) {
+    *
+    *   }
+    * }
+    * class B extends @Immutable A<@X String> {
+    *
+    *   @Override
+    *   void foo(@Y String) { // string is compatible to bound of T.  Adapt the signature of Class A to the use of class B.
+    *   }
+    * }
+    *
+    * */
     private void flexibleOverrideChecker(MethodTree node) {
         // Method overriding checks
         // TODO Copied from super, hence has lots of duplicate code with super. We need to
@@ -520,7 +536,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                             types, atypeFactory, enclosingType, pair.getValue());
             // Viewpoint adapt super method executable type to current class bound(is this always class bound?)
             // to allow flexible overriding
-            atypeFactory.getViewpointAdapter().viewpointAdaptMethod(enclosingType, pair.getValue() , overriddenMethod);
+            atypeFactory.getViewpointAdapter().viewpointAdaptMethod(enclosingType, pair.getValue() , overriddenMethod); // todo: should we cast it?
             AnnotatedExecutableType overrider = atypeFactory.getAnnotatedType(node);
             if (!checkOverride(node, overrider, enclosingType, overriddenMethod, overriddenType)) {
                 // Stop at the first mismatch; this makes a difference only if
@@ -707,7 +723,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
     }
 
-    private void checkInitializingObject(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
+    private void checkInitializingObject(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) { // todo: haifeng we only need to do this in one statement
         // TODO rm infer after mainIsNot returns bool
         if (infer) {
             // Can be anything from mutable, immutable or receiverdependantmutable
@@ -718,7 +734,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             }
         }
     }
-
+    // todo: haifeng: the deciding factor seems to be if it is array or not. Not infer.
     private void checkMutableReceiverCase(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         // TODO rm infer after mainIs returns bool
         if (infer) {
@@ -1004,7 +1020,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
      */
     @Override
     protected void commonAssignmentCheck(
-            Tree varTree, ExpressionTree valueExp, String errorKey) {
+            Tree varTree, ExpressionTree valueExp, String errorKey, Object... extraArgs) {
         AnnotatedTypeMirror var = atypeFactory.getAnnotatedTypeLhs(varTree);
         assert var != null : "no variable found for tree: " + varTree;
 
@@ -1043,7 +1059,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     @Override
     protected void commonAssignmentCheck(AnnotatedTypeMirror varType,
                                          AnnotatedTypeMirror valueType, Tree valueTree,
-                                                 String errorKey) {
+                                                 String errorKey, Object... extraArgs) {
         // TODO: WORKAROUND: anonymous class handling
         if (TypesUtils.isAnonymous(valueType.getUnderlyingType())) {
             AnnotatedTypeMirror newValueType = varType.deepCopy();

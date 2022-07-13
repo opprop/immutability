@@ -50,6 +50,8 @@ sourceSets {
     main {
         java {
             srcDirs = ["src/main/java"]
+            exclude "pico/inference/**"
+
         }
 
         resources {
@@ -62,6 +64,8 @@ sourceSets {
         java {
             // TODO: we shouldn't need source level dependency on CFITest
             srcDirs = ["src/test/java", "${cfiPath}/tests/checkers/inference/test"]
+            exclude "pico/ImmutabilityInferenceInitialTypecheckTest.java","pico/ImmutabilityReImInferenceTest.java",
+            "pico/ImmutabilityInferenceTest.java"
         }
     }
 }

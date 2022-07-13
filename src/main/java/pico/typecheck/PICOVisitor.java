@@ -158,7 +158,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     @Override
     protected void commonAssignmentCheck(
-            Tree varTree, ExpressionTree valueExp, String errorKey) {
+            Tree varTree, ExpressionTree valueExp, String errorKey, Object... extraArgs) {
         AnnotatedTypeMirror var = atypeFactory.getAnnotatedTypeLhs(varTree);
         assert var != null : "no variable found for tree: " + varTree;
 
@@ -590,7 +590,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     protected void checkThisOrSuperConstructorCall(
             MethodInvocationTree superCall, @CompilerMessageKey String errorKey) {
-        MethodTree enclosingMethod = visitorState.getMethodTree();
+        MethodTree enclosingMethod = methodTree;
         AnnotatedTypeMirror superType = atypeFactory.getAnnotatedType(superCall);
         AnnotatedExecutableType constructorType = atypeFactory.getAnnotatedType(enclosingMethod);
         AnnotationMirror superTypeMirror = superType.getAnnotationInHierarchy(READONLY);
@@ -631,7 +631,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     protected void commonAssignmentCheck(AnnotatedTypeMirror varType,
                                          AnnotatedTypeMirror valueType, Tree valueTree,
-                                         String errorKey) {
+                                         String errorKey, Object... extraArgs) {
         // TODO: WORKAROUND: anonymous class handling
         if (TypesUtils.isAnonymous(valueType.getUnderlyingType())) {
             AnnotatedTypeMirror newValueType = varType.deepCopy();
