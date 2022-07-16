@@ -11,8 +11,8 @@ apply plugin: 'java'
 ext {
     isJava8 = JavaVersion.current() == JavaVersion.VERSION_1_8
     jsr308 = file(new File("..")).absolutePath
-    cfPath = "${jsr308}/../projects/checker-framework"
-    cfiPath = "${jsr308}/../projects/checker-framework-inference"
+    cfPath = "${jsr308}/checker-framework"
+    cfiPath = "${jsr308}/checker-framework-inference"
     afu = "${jsr308}/annotation-tools/annotation-file-utilities"
     picoPath = "${jsr308}/immutability"
     compilerArgsForRunningPICO = [
