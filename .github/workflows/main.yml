@@ -38,43 +38,43 @@ jobs:
         run: ./.ci-build-without-test.sh
 
       - name: PICO Typecheck Test
-        if: ${{ steps.build.conclusion == 'success' }}
+        if: ${{ steps.build.outcome == 'success' }}
         run: |
              ./.ci-prepare.sh
              ./gradlew ImmutabilityTypecheckTest
 
       - name: PICO Typecheck AllSystems Test
-        if: ${{ !cancelled() }}
+        if: ${{ steps.build.outcome == 'success' }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityTypecheckBaseAllSystemsTest
 
       - name: PICO Typecheck Extended Test
-        if: ${{ !cancelled() }}
+        if: ${{ steps.build.outcome == 'success' }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityTypecheckExtendedTest
 
       - name: PICO Inference Initial Typecheck Test
-        if: ${{ !cancelled() }}
+        if: ${{ steps.build.outcome == 'success' }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityInferenceInitialTypecheckTest
 
       - name: PICO Inference Test
-        if: ${{ !cancelled() }}
+        if: ${{ steps.build.outcome == 'success' }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityInferenceTest
 
       - name: Glacier TypeCheck Test
-        if: ${{ !cancelled() }}
+        if: ${{ steps.build.outcome == 'success' }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityTypecheckGlacierTest
 
       - name: PICO ReIm Inference Test
-        if: ${{ !cancelled() }}
+        if: ${{ steps.build.outcome == 'success' }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityReImInferenceTest
