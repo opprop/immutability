@@ -9,8 +9,9 @@ on:
 jobs:
   build:
     strategy:
+      max-parallel: 1
       matrix:
-        jdk: [ 8, 11, 17 ]
+        jdk: [ 11, 8, 17 ]
     runs-on: ubuntu-latest
 
     steps:
@@ -28,5 +29,48 @@ jobs:
         with:
           java-version: ${{matrix.jdk}}
           distribution: 'temurin'
-      - name: Build and test
-        run: ./.ci-build.sh
+      - name: Build
+        id: build
+        run: ./.ci-build-without-test.sh
+
+      - name: PICO Typecheck Test
+        if: ${{ steps.build.conclusion == 'success' }}
+        run: |
+             ./.ci-prepare.sh
+             ./gradlew ImmutabilityTypecheckTest
+
+      - name: PICO Typecheck AllSystems Test
+        if: ${{ always() }}
+        run: |
+          ./.ci-prepare.sh
+          ./gradlew ImmutabilityTypecheckBaseAllSystemsTest
+
+      - name: PICO Typecheck Extended Test
+        if: ${{ always() }}
+        run: |
+          ./.ci-prepare.sh
+          ./gradlew ImmutabilityTypecheckExtendedTest
+
+      - name: PICO Inference Initial Typecheck Test
+        if: ${{ always() }}
+        run: |
+          ./.ci-prepare.sh
+          ./gradlew ImmutabilityInferenceInitialTypecheckTest
+
+      - name: PICO Inference Test
+        if: ${{ always() }}
+        run: |
+          ./.ci-prepare.sh
+          ./gradlew ImmutabilityInferenceTest
+
+      - name: Glacier TypeCheck Test
+        if: ${{ always() }}
+        run: |
+          ./.ci-prepare.sh
+          ./gradlew ImmutabilityTypecheckGlacierTest
+
+      - name: PICO ReIm Inference Test
+        if: ${{ always() }}
+        run: |
+          ./.ci-prepare.sh
+          ./gradlew ImmutabilityReImInferenceTest
