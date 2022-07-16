@@ -44,37 +44,37 @@ jobs:
              ./gradlew ImmutabilityTypecheckTest
 
       - name: PICO Typecheck AllSystems Test
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityTypecheckBaseAllSystemsTest
 
       - name: PICO Typecheck Extended Test
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityTypecheckExtendedTest
 
       - name: PICO Inference Initial Typecheck Test
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityInferenceInitialTypecheckTest
 
       - name: PICO Inference Test
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityInferenceTest
 
       - name: Glacier TypeCheck Test
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityTypecheckGlacierTest
 
       - name: PICO ReIm Inference Test
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityReImInferenceTest
