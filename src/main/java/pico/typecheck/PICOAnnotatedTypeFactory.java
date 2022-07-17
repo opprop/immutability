@@ -299,79 +299,21 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
         }
 //
 //        // TODO This is very ugly. Why is array component type from lhs propagates to rhs?!
-//        @Override
-//        public Void visitNewArray(NewArrayTree tree, AnnotatedTypeMirror type) {
-//            // Below is copied from super
-//            assert type.getKind() == TypeKind.ARRAY
-//                    : "PropagationTreeAnnotator.visitNewArray: should be an array type";
-//
-//            AnnotatedTypeMirror componentType = ((AnnotatedTypeMirror.AnnotatedArrayType) type).getComponentType();
-//
-//            Collection<? extends AnnotationMirror> prev = null;
-//            if (tree.getInitializers() != null && tree.getInitializers().size() != 0) {
-//                // We have initializers, either with or without an array type.
-//
-//                for (ExpressionTree init : tree.getInitializers()) {
-//                    AnnotatedTypeMirror initType = atypeFactory.getAnnotatedType(init);
-//                    // initType might be a typeVariable, so use effectiveAnnotations.
-//                    Collection<AnnotationMirror> annos = initType.getEffectiveAnnotations();
-//
-//                    prev = (prev == null) ? annos : atypeFactory.getQualifierHierarchy().leastUpperBounds(prev, annos);
-//                }
-//            } else {
-//                prev = componentType.getAnnotations();
-//            }
-//
-//            assert prev != null
-//                    : "PropagationTreeAnnotator.visitNewArray: violated assumption about qualifiers";
-//
-//            Pair<Tree, AnnotatedTypeMirror> context =
-//                    atypeFactory.getVisitorState().getAssignmentContext();
-//            Collection<? extends AnnotationMirror> post;
-//
-//            if (context != null
-//                    && context.second != null
-//                    && context.second instanceof AnnotatedTypeMirror.AnnotatedArrayType) {
-//                AnnotatedTypeMirror contextComponentType =
-//                        ((AnnotatedTypeMirror.AnnotatedArrayType) context.second).getComponentType();
-//                // Only compare the qualifiers that existed in the array type
-//                // Defaulting wasn't performed yet, so prev might have fewer qualifiers than
-//                // contextComponentType, which would cause a failure.
-//                // TODO: better solution?
-//                boolean prevIsSubtype = true;
-//                for (AnnotationMirror am : prev) {
-//                    if (contextComponentType.isAnnotatedInHierarchy(am)
-//                            && !atypeFactory.getQualifierHierarchy().isSubtype(
-//                            am, contextComponentType.getAnnotationInHierarchy(am))) {
-//                        prevIsSubtype = false;
-//                    }
-//                }
-//                // TODO: checking conformance of component kinds is a basic sanity check
-//                // It fails for array initializer expressions. Those should be handled nicer.
-//                if (contextComponentType.getKind() == componentType.getKind()
-//                        && (prev.isEmpty()
-//                        || (!contextComponentType.getAnnotations().isEmpty()
-//                        && prevIsSubtype))) {
-//                    post = contextComponentType.getAnnotations();
-//                } else {
-//                    // The type of the array initializers is incompatible with the
-//                    // context type!
-//                    // Somebody else will complain.
-//                    post = prev;
-//                }
-//            } else {
-//                // No context is available - simply use what we have.
-//                post = prev;
-//            }
-//
-//            // Below line is the only difference from super implementation
-//            applyImmutableIfImplicitlyImmutable(componentType);
-//            // Above line is the only difference from super implementation
-//            componentType.addMissingAnnotations(post);
-//
-//            return null;
-//            // Above is copied from super
-//        }
+        @Override
+        public Void visitNewArray(NewArrayTree tree, AnnotatedTypeMirror type) {
+            AnnotatedTypeMirror componentType = ((AnnotatedTypeMirror.AnnotatedArrayType) type).getComponentType();
+            boolean noExplicitATM = false;
+            if (!componentType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+                noExplicitATM = true;
+            }
+            super.visitNewArray(tree, type);
+            // if new explicit anno before, but RDM after, the RDM must come from the type declaration bound
+            // however, for type has declaration bound as RDM, its default use is mutable.
+            if (noExplicitATM && componentType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+                componentType.replaceAnnotation(MUTABLE);
+            }
+            return null;
+        }
 //
 //        /**Add immutable to the result type of a binary operation if the result type is implicitly immutable*/
 //        @Override
@@ -455,7 +397,7 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
             return IMMUTABLE;
         }
         if (type.getKind() == TypeKind.ARRAY) {
-            return READONLY; // if decided to use vpa for array, return RDM.
+            return RECEIVER_DEPENDANT_MUTABLE; // if decided to use vpa for array, return RDM.
         }
 
         // IMMUTABLE for enum w/o decl anno
