@@ -55,6 +55,12 @@ jobs:
           ./.ci-prepare.sh
           ./gradlew ImmutabilityTypecheckExtendedTest
 
+      - name: PICO Glacier TypeCheck Test
+        if: ${{ steps.build.outcome == 'success' }}
+        run: |
+          ./.ci-prepare.sh
+          ./gradlew ImmutabilityTypecheckGlacierTest
+
       - name: PICO Inference Initial Typecheck Test
         if: ${{ steps.build.outcome == 'success' }}
         run: |
@@ -66,12 +72,6 @@ jobs:
         run: |
           ./.ci-prepare.sh
           ./gradlew ImmutabilityInferenceTest
-
-      - name: Glacier TypeCheck Test
-        if: ${{ steps.build.outcome == 'success' }}
-        run: |
-          ./.ci-prepare.sh
-          ./gradlew ImmutabilityTypecheckGlacierTest
 
       - name: PICO ReIm Inference Test
         if: ${{ steps.build.outcome == 'success' }}
