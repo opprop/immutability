@@ -15,7 +15,7 @@ ext {
     cfiPath = "${jsr308}/checker-framework-inference"
     afu = "${jsr308}/annotation-tools/annotation-file-utilities"
     picoPath = "${jsr308}/immutability"
-    compilerArgsForRunningPICO = [
+    compilerArgsForRunningCF = [
             // Keep in sync with checker-framework/build.gradle.
             "--add-exports", "jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
             "--add-exports", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
@@ -111,7 +111,7 @@ afterEvaluate {
         if (isJava8) {
             jvmArgs "-Xbootclasspath/p:${cfiPath}/dist/javac.jar"
         } else {
-            jvmArgs += compilerArgsForRunningPICO
+            jvmArgs += compilerArgsForRunningCF
         }
 
         testLogging {
