@@ -35,46 +35,32 @@ jobs:
           distribution: 'temurin'
       - name: Build
         id: build
-        run: ./.ci-build-without-test.sh
+        run: ./.ci-build.sh
 
       - name: PICO Typecheck Test
         if: ${{ steps.build.outcome == 'success' }}
-        run: |
-             ./.ci-prepare.sh
-             ./gradlew ImmutabilityTypecheckTest
+        run: ./gradlew ImmutabilityTypecheckTest
 
       - name: PICO Typecheck AllSystems Test
         if: ${{ steps.build.outcome == 'success' }}
-        run: |
-          ./.ci-prepare.sh
-          ./gradlew ImmutabilityTypecheckBaseAllSystemsTest
+        run: ./gradlew ImmutabilityTypecheckBaseAllSystemsTest
 
       - name: PICO Typecheck Extended Test
         if: ${{ steps.build.outcome == 'success' }}
-        run: |
-          ./.ci-prepare.sh
-          ./gradlew ImmutabilityTypecheckExtendedTest
+        run: ./gradlew ImmutabilityTypecheckExtendedTest
 
       - name: PICO Glacier TypeCheck Test
         if: ${{ steps.build.outcome == 'success' }}
-        run: |
-          ./.ci-prepare.sh
-          ./gradlew ImmutabilityTypecheckGlacierTest
+        run: ./gradlew ImmutabilityTypecheckGlacierTest
 
       - name: PICO Inference Initial Typecheck Test
         if: ${{ steps.build.outcome == 'success' }}
-        run: |
-          ./.ci-prepare.sh
-          ./gradlew ImmutabilityInferenceInitialTypecheckTest
+        run: ./gradlew ImmutabilityInferenceInitialTypecheckTest
 
       - name: PICO Inference Test
         if: ${{ steps.build.outcome == 'success' }}
-        run: |
-          ./.ci-prepare.sh
-          ./gradlew ImmutabilityInferenceTest
+        run: ./gradlew ImmutabilityInferenceTest
 
       - name: PICO ReIm Inference Test
         if: ${{ steps.build.outcome == 'success' }}
-        run: |
-          ./.ci-prepare.sh
-          ./gradlew ImmutabilityReImInferenceTest
+        run: ./gradlew ImmutabilityReImInferenceTest
