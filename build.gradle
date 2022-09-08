@@ -9,12 +9,24 @@ plugins {
 apply plugin: 'java'
 
 ext {
-    assert JavaVersion.current() == JavaVersion.VERSION_11: "Set JAVA_HOME to JDK 11. Current version is ${JavaVersion.current()}"
+    isJava8 = JavaVersion.current() == JavaVersion.VERSION_1_8
     jsr308 = file(new File("..")).absolutePath
     cfPath = "${jsr308}/checker-framework"
     cfiPath = "${jsr308}/checker-framework-inference"
     afu = "${jsr308}/annotation-tools/annotation-file-utilities"
     picoPath = "${jsr308}/immutability"
+    compilerArgsForRunningCF = [
+            // Keep in sync with checker-framework/build.gradle.
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED",
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED",
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED",
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED",
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
+            "--add-opens", "jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED",
+    ]
 }
 
 println '==================================='
@@ -99,7 +111,11 @@ afterEvaluate {
 
         environment "external_checker_classpath", "${picoPath}/build/classes/java/main:${picoPath}/build/resources/main"
 
-        jvmArgs "-Xbootclasspath/p:${cfiPath}/dist/javac.jar"
+        if (isJava8) {
+            jvmArgs "-Xbootclasspath/p:${cfiPath}/dist/javac.jar"
+        } else {
+            jvmArgs += compilerArgsForRunningCF
+        }
 
         testLogging {
             // Always run the tests
