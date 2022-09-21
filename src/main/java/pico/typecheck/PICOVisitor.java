@@ -605,27 +605,28 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     }
 
     @Override
-    protected boolean isTypeCastSafe(AnnotatedTypeMirror castType, AnnotatedTypeMirror exprType) {
+    protected CastSafeKind isSafeDowncast(
+            AnnotatedTypeMirror castType, AnnotatedTypeMirror exprType) {
+        Set<AnnotationMirror> castAnnos = castType.getEffectiveAnnotations();
+        Set<AnnotationMirror> exprAnnos = exprType.getEffectiveAnnotations();
         QualifierHierarchy qualifierHierarchy = atypeFactory.getQualifierHierarchy();
 
-        final TypeKind castTypeKind = castType.getKind();
-        if (castTypeKind == TypeKind.DECLARED) {
-            // Don't issue an error if the mutability annotations are equivalent to the qualifier upper bound
-            // of the type.
-            // BaseTypeVisitor#isTypeCastSafe is not used, to be consistent with inference which only have mutability qualifiers
-            // if inference is supporting FBC in the future, this overridden method can be removed.
-            AnnotatedDeclaredType castDeclared = (AnnotatedDeclaredType) castType;
-
-            AnnotationMirror bound = qualifierHierarchy.findAnnotationInHierarchy(
-                    atypeFactory.getTypeDeclarationBounds(castDeclared.getUnderlyingType()), READONLY);
-            assert bound != null;
-
-            if (AnnotationUtils.areSame(castDeclared.getAnnotationInHierarchy(READONLY), bound)) {
-                return true;
-            }
+        if (!qualifierHierarchy.isComparable(castAnnos, exprAnnos)) {
+            return CastSafeKind.NOT_DOWNCAST;
         }
 
-        return super.isTypeCastSafe(castType, exprType);
+        final TypeKind castTypeKind = castType.getKind();
+
+        if (castTypeKind == TypeKind.DECLARED) {
+            AnnotatedDeclaredType castDeclared = (AnnotatedDeclaredType) castType;
+            AnnotationMirror bound =
+                    qualifierHierarchy.findAnnotationInHierarchy(atypeFactory.getTypeDeclarationBounds(castDeclared.getUnderlyingType()), READONLY);
+
+            if (AnnotationUtils.areSame(castDeclared.getAnnotationInHierarchy(READONLY), bound)) {
+                return CastSafeKind.SAFE;
+            }
+        }
+        return CastSafeKind.WARNING;
     }
 
     @Override
