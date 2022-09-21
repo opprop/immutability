@@ -145,7 +145,7 @@ class ObjectMethods6 {
 
     @Override
     protected @ReceiverDependantMutable Object clone(@Readonly ObjectMethods6 this) throws CloneNotSupportedException {
-        // :: warning: (cast.unsafe)
+        // No cast.unsafe
         return (@ReceiverDependantMutable Object) super.clone();
     }
 

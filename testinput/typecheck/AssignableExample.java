@@ -28,7 +28,7 @@ public class AssignableExample {
     }
 }
 
-// :: error: (super.constructor.invocation.incompatible)
+// :: error: (super.invocation.invalid)
 @ReceiverDependantMutable class Subclass extends AssignableExample {
     void bar(@Immutable Subclass this) {
         // :: error: (illegal.field.write)

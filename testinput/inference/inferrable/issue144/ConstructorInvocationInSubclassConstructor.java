@@ -15,7 +15,7 @@ public class ConstructorInvocationInSubclassConstructor {
 class SubClass extends ConstructorInvocationInSubclassConstructor {
     SubClass(Object p) {
         // Handled by PICOInferenceVisito##checkMethodInvocability
-        // :: fixable-error: (super.constructor.invocation.incompatible)
+        // :: fixable-error: (super.invocation.invalid)
         super(p);
     }
 }

@@ -1,7 +1,5 @@
 package pico.typecheck;
 
-import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.checker.initialization.InitializationTransfer;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
@@ -9,7 +7,6 @@ import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.node.AssignmentNode;
 import org.checkerframework.dataflow.cfg.node.NullLiteralNode;
-import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.VariableElement;
@@ -40,10 +37,5 @@ public class PICOTransfer extends InitializationTransfer<PICOValue, PICOTransfer
         }
         TransferResult<PICOValue, PICOStore> result = super.visitAssignment(n, in);
         return result;
-    }
-
-    @Override
-    protected void addFieldValues(PICOStore info, AnnotatedTypeFactory factory, ClassTree classTree, MethodTree methodTree) {
-        return;
     }
 }

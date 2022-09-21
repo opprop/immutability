@@ -13,7 +13,7 @@ public class Primitive3 {
         // I reenable type cast safety checking when the cast type is implicitly immutable.
         // Why should we suppress warning just because cast type is implicitly immutable?
         // That doesn't make any sense. Am I right?
-        // :: warning: (cast.unsafe)
+        // No cast.unsafe
         params[0] = (String) word.get(0);
     }
 }

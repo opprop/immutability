@@ -1,47 +1,55 @@
 package pico.inference;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Elements;
 
+import checkers.inference.BaseInferenceRealTypeFactory;
+import com.sun.tools.javac.tree.JCTree;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
+import org.checkerframework.framework.qual.TypeUseLocation;
 import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
+import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator;
-import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
-import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
-import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.framework.type.typeannotator.*;
+import org.checkerframework.framework.util.defaults.QualifierDefaults;
+import org.checkerframework.javacutil.AnnotationBuilder;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TreePathUtil;
 
 import com.sun.source.tree.Tree;
 
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOTreeAnnotator;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOTypeAnnotator;
-import pico.typecheck.PICOTypeUtil;
+import pico.common.ExtendedViewpointAdapter;
+import pico.common.ViewpointAdapterGettable;
+import pico.typecheck.PICOAnnotatedTypeFactory;
+import pico.common.PICOTypeUtil;
 import pico.typecheck.PICOViewpointAdapter;
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
+import qual.PolyMutable;
 import qual.Readonly;
 import qual.ReceiverDependantMutable;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
 /**
  * PICOInferenceRealTypeFactory exists because: 1)PICOAnnotatedTypeFactory is not subtype of
@@ -51,11 +59,19 @@ import qual.ReceiverDependantMutable;
  * to InitializationAnnotatedTypeFactory as if there is only one mutability qualifier hierarchy.
  * This class has lots of copied code from PICOAnnotatedTypeFactory. The two should be in sync.
  */
-public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
+public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory implements ViewpointAdapterGettable {
+
+    private static final List<String> IMMUTABLE_ALIASES = Arrays.asList(
+            "com.google.errorprone.annotations.Immutable",
+            "edu.cmu.cs.glacier.qual.Immutable");
 
     public PICOInferenceRealTypeFactory(BaseTypeChecker checker, boolean useFlow) {
         super(checker, useFlow);
-        addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
+        if (READONLY != null) {
+            addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
+        }
+//        IMMUTABLE_ALIASES.forEach(anno -> addAliasedAnnotation(anno, IMMUTABLE));
+
         postInit();
     }
 
@@ -64,6 +80,7 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
     protected Set<Class<? extends Annotation>> createSupportedTypeQualifiers() {
         return new LinkedHashSet<Class<? extends Annotation>>(
                 Arrays.asList(
+                        PolyMutable.class,
                         Readonly.class,
                         Mutable.class,
                         ReceiverDependantMutable.class,
@@ -81,9 +98,10 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
     @Override
     protected TreeAnnotator createTreeAnnotator() {
         return new ListTreeAnnotator(
-                new PICOPropagationTreeAnnotator(this),
-                new ImplicitsTreeAnnotator(this),
-                new PICOTreeAnnotator(this));
+                new PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator(this),
+                new LiteralTreeAnnotator(this),
+                new PICOAnnotatedTypeFactory.PICOSuperClauseAnnotator(this),
+                new PICOAnnotatedTypeFactory.PICOTreeAnnotator(this));
     }
 
     // TODO Refactor super class to remove this duplicate code
@@ -99,19 +117,43 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
             // annotated.
             typeAnnotators.add(
                     new IrrelevantTypeAnnotator(
-                            this, getQualifierHierarchy().getTopAnnotations(), classes));
+                            this, getQualifierHierarchy().getTopAnnotations()));
         }
         typeAnnotators.add(new PropagationTypeAnnotator(this));
         /*Copied code ends*/
         // Adding order is important here. Because internally type annotators are using addMissingAnnotations()
         // method, so if one annotator already applied the annotations, the others won't apply twice at the
         // same location
-        typeAnnotators.add(new PICOTypeAnnotator(this));
-        typeAnnotators.add(new PICOImplicitsTypeAnnotator(this));
+        typeAnnotators.add(new PICOAnnotatedTypeFactory.PICOTypeAnnotator(this));
+        typeAnnotators.add(new PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator(this));
+        typeAnnotators.add(new PICOAnnotatedTypeFactory.PICOEnumDefaultAnnotator(this));
         return new ListTypeAnnotator(typeAnnotators);
     }
 
-    /** TODO If the dataflow refines the type as bottom, should we allow such a refinement? If we allow it,
+    @Override
+    protected QualifierDefaults createQualifierDefaults() {
+        QualifierDefaults defaults = super.createQualifierDefaults();
+        Elements elements = checker.getElementUtils();
+
+        // The optimistic flag only change the rules of unchecked defaults.
+        // To enable optimistic default, the user should both enable conservative for bytecode ONLY,
+        // and pass the optimistic flag to override the default of the conservative.
+        // i.e. -AuseConservativeDefaultsForUncheckedCode=bytecode (or -AuseDefaultsForUncheckedCode=bytecode)
+        //      -AuseOptimisticUncheckedDefaults
+        if (checker.hasOption("useOptimisticUncheckedDefaults")) {
+            defaults.addUncheckedCodeDefaults(AnnotationBuilder.fromClass(elements, Bottom.class), new TypeUseLocation[]{
+                    TypeUseLocation.LOWER_BOUND, TypeUseLocation.RETURN, TypeUseLocation.FIELD
+            });
+            defaults.addUncheckedCodeDefaults(AnnotationBuilder.fromClass(elements, Readonly.class), new TypeUseLocation[]{
+                    TypeUseLocation.UPPER_BOUND, TypeUseLocation.PARAMETER
+            });
+        }
+
+        return defaults;
+
+    }
+
+    /* TODO If the dataflow refines the type as bottom, should we allow such a refinement? If we allow it,
      PICOValidator will give an error if it begins to enforce @Bottom is not used*/
 /*    @Override
     protected void applyInferredAnnotations(AnnotatedTypeMirror type, PICOValue as) {
@@ -125,26 +167,11 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         return false;
     }
 
-    // Copied from PICOAnnotatedTypeFactory
-    @Override
-    protected void annotateInheritedFromClass(AnnotatedTypeMirror type, Set<AnnotationMirror> fromClass) {
-        // If interitted from class element is @Mutable or @Immutable, then apply this annotation to the usage type
-        if (fromClass.contains(MUTABLE) || fromClass.contains(IMMUTABLE)) {
-            super.annotateInheritedFromClass(type, fromClass);
-            return;
-        }
-        // If interitted from class element is @ReceiverDependantMutable, then don't apply and wait for @Mutable
-        // (default qualifier in hierarchy to be applied to the usage type). This is to avoid having @ReceiverDependantMutable
-        // on type usages as a default behaviour. By default, @Mutable is better used as the type for usages that
-        // don't have explicit annotation.
-        return;// Don't add annotations from class element
-    }
-
     @Override
     public void addComputedTypeAnnotations(Element elt, AnnotatedTypeMirror type) {
         PICOTypeUtil.addDefaultForField(this, type, elt);
         PICOTypeUtil.defaultConstructorReturnToClassBound(this, elt, type);
-        PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
+//        PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
         super.addComputedTypeAnnotations(elt, type);
     }
 
@@ -180,5 +207,66 @@ public class PICOInferenceRealTypeFactory extends BaseAnnotatedTypeFactory {
         shouldCache = oldShouldCache;
 
         return result;
+    }
+
+    @Override
+    protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {
+        return new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(this);
+    }
+
+    @Override
+    public AnnotatedTypeMirror getTypeOfExtendsImplements(Tree clause) {
+        // add default anno from class main qual, if no qual present
+        AnnotatedTypeMirror enclosing = getAnnotatedType(TreePathUtil.enclosingClass(getPath(clause)));
+
+        // workaround for anonymous class.
+        // TypesUtils::isAnonymous won't work when annotation presents on new class tree!
+        // by reaching this line TypesUtils::isAnonymous is already not working: it shouldn't check anonymous class!
+        if(getPath(clause).getParentPath().getLeaf() instanceof JCTree.JCNewClass) {
+            enclosing = getAnnotatedType(getPath(clause).getParentPath().getLeaf());
+
+        }
+        AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
+        AnnotatedTypeMirror fromTypeTree = this.getAnnotatedTypeFromTypeTree(clause);
+        if (!fromTypeTree.isAnnotatedInHierarchy(READONLY)) {
+            fromTypeTree.addAnnotation(mainBound);
+        }
+
+        // for FBC quals
+//        Set<AnnotationMirror> bound = this.getTypeDeclarationBounds(fromTypeTree.getUnderlyingType());
+//        fromTypeTree.addMissingAnnotations(bound);
+        return fromTypeTree;
+    }
+
+    public ExtendedViewpointAdapter getViewpointAdapter() {
+        return (ExtendedViewpointAdapter) viewpointAdapter;
+    }
+
+    @Override
+    protected Set<? extends AnnotationMirror> getDefaultTypeDeclarationBounds() {
+        return Collections.singleton(MUTABLE);
+    }
+
+    @Override
+    public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
+        // TODO too awkward. maybe overload isImplicitlyImmutableType
+        if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
+            return Collections.singleton(IMMUTABLE);
+        }
+        if (type.getKind() == TypeKind.ARRAY) {
+            return Collections.singleton(READONLY); // if decided to use vpa for array, return RDM.
+        }
+
+        // IMMUTABLE for enum w/o decl anno
+        if (type instanceof DeclaredType) {
+            Element ele = ((DeclaredType) type).asElement();
+            if (ele.getKind() == ElementKind.ENUM) {
+                if (!AnnotationUtils.containsSameByName(getDeclAnnotations(ele), MUTABLE) &&
+                        !AnnotationUtils.containsSameByName(getDeclAnnotations(ele), RECEIVER_DEPENDANT_MUTABLE)) { // no decl anno
+                    return Collections.singleton(IMMUTABLE);
+                }
+            }
+        }
+        return super.getTypeDeclarationBounds(type);
     }
 }

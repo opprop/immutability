@@ -24,7 +24,9 @@ public class RawIterator {
         // programs that have the below line wouldn't be inferred. One legal use case we discussed
         // is to cast @Mutable datastructure to @Immutable if we guarantee that @Mutable reference
         // doesn't leak. So we should continue if incompatible cast happens(@Mutable to @Immutable).
-        // :: warning: (cast.unsafe)
+
+        // Lian: What is a incompatible cast? It seems good to cast to Immutable if casting to String
+        //       is already vaild.
         String s = (String)iterator.next();
 
         // But for cast that involves at least one VariableSlot, PICOInfer tends to give solutions

@@ -11,6 +11,7 @@ import checkers.inference.util.InferenceViewpointAdapter;
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
@@ -20,24 +21,36 @@ import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
-import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
+import org.checkerframework.framework.type.ViewpointAdapter;
+import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
-import pico.typecheck.PICOTypeUtil;
+import org.checkerframework.javacutil.TreePathUtil;
+import pico.common.ExtendedViewpointAdapter;
+import pico.common.ViewpointAdapterGettable;
+import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator;
+import pico.common.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
+import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
 
 /**
  * Propagates correct constraints on trees and types using TreeAnnotators and TypeAnnotators.
@@ -47,7 +60,7 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
  * type on that type. This ensures that that VariableSlot doesn't enter solver and solver doesn't
  * give solution to the VariableSlot, and there won't be annotations inserted to implicit locations.
  */
-public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFactory {
+public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFactory implements ViewpointAdapterGettable {
     public PICOInferenceAnnotatedTypeFactory(InferenceChecker inferenceChecker, boolean withCombineConstraints, BaseAnnotatedTypeFactory realTypeFactory, InferrableChecker realChecker, SlotManager slotManager, ConstraintManager constraintManager) {
         super(inferenceChecker, withCombineConstraints, realTypeFactory, realChecker, slotManager, constraintManager);
         // Always call postInit() at the end of ATF constructor!
@@ -62,17 +75,17 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     // be inserted results anyway).
     @Override
     public TreeAnnotator createTreeAnnotator() {
-        return new ListTreeAnnotator(new ImplicitsTreeAnnotator(this),
+        return new ListTreeAnnotator(new LiteralTreeAnnotator(this),
                 new PICOInferencePropagationTreeAnnotator(this),
                 new InferenceTreeAnnotator(this, realChecker, realTypeFactory, variableAnnotator, slotManager));
     }
 
     @Override
     protected TypeAnnotator createTypeAnnotator() {
-        // Reuse PICOImplicitsTypeAnnotator even in inference mode. Because the type annotator's implementation
+        // Reuse PICODefaultForTypeAnnotator even in inference mode. Because the type annotator's implementation
         // are the same. The only drawback is that naming is not good(doesn't include "Inference"), thus may be
         // hard to debug
-        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICOImplicitsTypeAnnotator(this));
+        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICODefaultForTypeAnnotator(this));
     }
 
     @Override
@@ -102,7 +115,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
      */
     public AnnotatedDeclaredType getSelfType(Tree tree) {
         TreePath path = getPath(tree);
-        ClassTree enclosingClass = TreeUtils.enclosingClass(path);
+        ClassTree enclosingClass = TreePathUtil.enclosingClass(path);
         if (enclosingClass == null) {
             // I hope this only happens when tree is a fake tree that
             // we created, e.g. when desugaring enhanced-for-loops.
@@ -111,7 +124,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         // "type" is right now VarAnnot inserted to the bound of "enclosingClass"
         AnnotatedDeclaredType type = getAnnotatedType(enclosingClass);
 
-        MethodTree enclosingMethod = TreeUtils.enclosingMethod(path);
+        MethodTree enclosingMethod = TreePathUtil.enclosingMethod(path);
         if (enclosingClass.getSimpleName().length() != 0 && enclosingMethod != null) {
             AnnotatedTypeMirror.AnnotatedDeclaredType methodReceiver;
             if (TreeUtils.isConstructor(enclosingMethod)) {
@@ -129,9 +142,75 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         return type;
     }
 
+    @Override
+    public ExtendedViewpointAdapter getViewpointAdapter() {
+        return (ExtendedViewpointAdapter) viewpointAdapter;
+    }
+
+    @Override
+    protected Set<? extends AnnotationMirror> getDefaultTypeDeclarationBounds() {
+        return Collections.singleton(MUTABLE);
+    }
+
+    @Override
+    public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
+        // Get the VarAnnot on the class decl
+        // This factory is only invoked on inference, so no need to provide concrete anno for type-check
+        if (type instanceof PrimitiveType) {
+            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
+        }
+        if (type.getKind() == TypeKind.ARRAY) {
+            // WORKAROUND: return RDM will cause issues with new clauses
+            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(READONLY)));
+        }
+//        AnnotatedTypeMirror atm = toAnnotatedType(type, true);
+//        if (atm instanceof AnnotatedDeclaredType && ((AnnotatedDeclaredType) atm).getTypeArguments().size() > 0) {
+//            // Workaround for types with type arguments.
+//            // annotateElementFromStore can only get the original type with type param.
+//            // But this method only needs the top annotation.
+//            // Note: class bound cache is a private field of annotator.
+//
+//            atm = PICOTypeUtil.getBoundTypeOfTypeDeclaration(TypesUtils.getTypeElement(type), this);
+//        } else {
+//            getVariableAnnotator().annotateElementFromStore(getProcessingEnv().getTypeUtils().asElement(type), atm);
+//        }
+//
+//        if (atm.hasAnnotation(VarAnnot.class)) {
+//            return atm.getAnnotations();
+//        }
+        AnnotationMirror am = ((PICOVariableAnnotator) variableAnnotator).getClassDeclAnno(getProcessingEnv().getTypeUtils().asElement(type));
+        if (am != null) {
+            return Collections.singleton(am);
+        }
+
+        // if reaching this point and still no anno: not annotated from slot manager
+        // maybe should read from stub file.
+        // if implicit: return immutable slot
+
+        // implicit
+        if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
+            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
+        }
+
+        // get stub & default from element.
+//        return stubTypes.getAnnotatedTypeMirror(TypesUtils.getTypeElement(type)).getAnnotations();
+        return Collections.singleton(
+                slotManager.getAnnotation(slotManager.getSlot(super.getTypeDeclarationBounds(type).iterator().next())));
+    }
+
     class PICOInferencePropagationTreeAnnotator extends PropagationTreeAnnotator {
         public PICOInferencePropagationTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
             super(atypeFactory);
+        }
+
+        @Override
+        public Void visitMethodInvocation(MethodInvocationTree methodInvocationTree, AnnotatedTypeMirror mirror) {
+            // This is a workaround for implicit types.
+            // Implicit types in lib method get defaulted to mutable.
+            // Implicit immutable classes cannot be annotated in stub files, annotations were ignored.
+            // Find the cause, annotate implicit immutable classes in stub, and remove this method.
+            applyImmutableIfImplicitlyImmutable(mirror);
+            return super.visitMethodInvocation(methodInvocationTree, mirror);
         }
 
         @Override
@@ -214,6 +293,10 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
 
             return null;
             // Above is copied from super
+
+            // We have a problem with the annotation.
+            // During inference it get defaulted annotation for component types inside dataflow and cache that.
+            // The assignment context have only constant slots.
         }
 
         /**Add immutable to the result type of a binary operation if the result type is implicitly immutable*/
@@ -235,7 +318,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
             return super.visitTypeCast(node, type);
         }
 
-        /**Because TreeAnnotator runs before ImplicitsTypeAnnotator, implicitly immutable types are not guaranteed
+        /**Because TreeAnnotator runs before DefaultForTypeAnnotator, implicitly immutable types are not guaranteed
          to always have immutable annotation. If this happens, we manually add immutable to type. */
         private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
             if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
