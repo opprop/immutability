@@ -639,7 +639,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             newValueType.replaceAnnotation(valueType.getAnnotationInHierarchy(READONLY));
             valueType = newValueType;
         }
-        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey);
+        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
 
     }
 }
