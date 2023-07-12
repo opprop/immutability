@@ -1,4 +1,7 @@
-
+import qual.Immutable;
+import qual.Readonly;
+import qual.Mutable;
+import qual.ReceiverDependantMutable;
 
 class MyA {
 	String f;
