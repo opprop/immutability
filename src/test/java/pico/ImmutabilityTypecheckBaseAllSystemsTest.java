@@ -10,10 +10,12 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+/* Focus on crashes and ignore errors for now. As errors are usually due to
+ unannotated test files but crashes are due to bugs in CF */
 @Ignore
 public class ImmutabilityTypecheckBaseAllSystemsTest extends CheckerFrameworkPerFileTest {
     public ImmutabilityTypecheckBaseAllSystemsTest(File testFile) {
-        super(testFile, PICOChecker.class, "", "-Anomsgtext",
+        super(testFile, PICOChecker.class, "", "-Anomsgtext", "-AsuppressWarnings=pico",
                 "-Anocheckjdk", "-d", "testTmp/typecheck");
     }
 

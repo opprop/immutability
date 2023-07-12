@@ -34,6 +34,11 @@ public class ImmutabilityReImInferenceTest extends CFInferenceTest {
         return true;
     }
 
+    @Override
+    public boolean makeDefaultsExplicit() {
+        return true;
+    }
+
     @Parameters
     public static List<File> getTestFiles(){
         //InferenceTestUtilities.findAllSystemTests();
