@@ -16,10 +16,12 @@ public class ForbidAssignmentCase {
     // Allowing assignment through @Readonly receiver to @Assignable @ReceiverDependantMutable
     // in either way causes errors. So I would forbid this combination in assignment. Otherwise,
     // we don't. For example, we still allow reading this field by @Readonly receiver
-    static void forbid(@Readonly ForbidAssignmentCase fac) {
+    static void forbid() {
+        @Mutable ForbidAssignmentCase mo = new @Mutable ForbidAssignmentCase();
+        @Readonly ForbidAssignmentCase ro = mo;
         // :: error: (illegal.field.write)
-        fac.f = new @Immutable Object();
-        Object lo = fac.f;
+        ro.f = new @Immutable Object(); // cannot exclude f out of the abstract state!
+        @Mutable Object = mo.f; // it's mutable
     }
 
     // Below are different cases. Because dataflow refinement refines @Readonly to concrete type,
