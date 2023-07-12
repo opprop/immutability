@@ -7,7 +7,7 @@ public class DeepMutable {
     @Immutable
     static class ImmutableClass {
 
-        // :: warning: (implicit.shallow.immutable)
+        // :: error: (implicit.shallow.immutable)
         MutableBox implicit = new MutableBox();
 
         @Mutable MutableBox explicit = new MutableBox();
@@ -24,7 +24,7 @@ public class DeepMutable {
 
     @Immutable
     static class ImmutableGenericIm<T extends MutableBox> {
-        // :: warning: (implicit.shallow.immutable)
+        // :: error: (implicit.shallow.immutable)
         T t;
         @Immutable ImmutableGenericIm(T t) {
             this.t = t;
