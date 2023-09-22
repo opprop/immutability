@@ -20,7 +20,7 @@ import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
-import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
+import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
@@ -28,7 +28,7 @@ import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICOImplicitsTypeAnnotator;
+import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator;
 import pico.typecheck.PICOTypeUtil;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -62,17 +62,17 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     // be inserted results anyway).
     @Override
     public TreeAnnotator createTreeAnnotator() {
-        return new ListTreeAnnotator(new ImplicitsTreeAnnotator(this),
+        return new ListTreeAnnotator(new LiteralTreeAnnotator(this),
                 new PICOInferencePropagationTreeAnnotator(this),
                 new InferenceTreeAnnotator(this, realChecker, realTypeFactory, variableAnnotator, slotManager));
     }
 
     @Override
     protected TypeAnnotator createTypeAnnotator() {
-        // Reuse PICOImplicitsTypeAnnotator even in inference mode. Because the type annotator's implementation
+        // Reuse PICODefaultForTypeAnnotator even in inference mode. Because the type annotator's implementation
         // are the same. The only drawback is that naming is not good(doesn't include "Inference"), thus may be
         // hard to debug
-        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICOImplicitsTypeAnnotator(this));
+        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICODefaultForTypeAnnotator(this));
     }
 
     @Override
@@ -235,7 +235,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
             return super.visitTypeCast(node, type);
         }
 
-        /**Because TreeAnnotator runs before ImplicitsTypeAnnotator, implicitly immutable types are not guaranteed
+        /**Because TreeAnnotator runs before DefaultForTypeAnnotator, implicitly immutable types are not guaranteed
          to always have immutable annotation. If this happens, we manually add immutable to type. */
         private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
             if (PICOTypeUtil.isImplicitlyImmutableType(type)) {

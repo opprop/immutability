@@ -1,6 +1,7 @@
 package qual;
 
-import org.checkerframework.framework.qual.ImplicitFor;
+import org.checkerframework.framework.qual.DefaultFor;
+import org.checkerframework.framework.qual.QualifierForLiterals;
 import org.checkerframework.framework.qual.LiteralKind;
 import org.checkerframework.framework.qual.SubtypeOf;
 
@@ -17,10 +18,10 @@ import java.math.BigInteger;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@ImplicitFor(typeNames={Enum.class, String.class, Double.class, Boolean.class, Byte.class,
+@DefaultFor(types={Enum.class, String.class, Double.class, Boolean.class, Byte.class,
         Character.class, Float.class, Integer.class, Long.class, Short.class, Number.class,
         BigDecimal.class, BigInteger.class},
-        literals = { LiteralKind.PRIMITIVE, LiteralKind.STRING},
-        types = { TypeKind.INT, TypeKind.BYTE, TypeKind.SHORT, TypeKind.BOOLEAN,
+        typeKinds = { TypeKind.INT, TypeKind.BYTE, TypeKind.SHORT, TypeKind.BOOLEAN,
                 TypeKind.LONG, TypeKind.CHAR, TypeKind.FLOAT, TypeKind.DOUBLE })
+@QualifierForLiterals({ LiteralKind.PRIMITIVE, LiteralKind.STRING})
 public @interface Immutable {}
