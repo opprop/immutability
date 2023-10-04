@@ -101,7 +101,8 @@ public class PICOValidator extends BaseTypeValidator {
         }
     }
 
-    /**Check that implicitly immutable type has immutable or bottom type. Dataflow might refine immutable type to @Bottom,
+    /**Check that implicitly immutable type has immutable or bottom type. Dataflow might refine immutable type to
+     * {@code @Bottom} (see RefineFromNull.java),
      * so we accept @Bottom as a valid qualifier for implicitly immutable types*/
     private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
         if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(IMMUTABLE) && !type.hasAnnotation(BOTTOM)) {

@@ -2,11 +2,15 @@ package pico.inference;
 
 import checkers.inference.InferenceAnnotatedTypeFactory;
 import checkers.inference.InferenceChecker;
+import checkers.inference.InferenceMain;
+import checkers.inference.InferenceQualifierHierarchy;
 import checkers.inference.InferenceTreeAnnotator;
 import checkers.inference.InferrableChecker;
 import checkers.inference.SlotManager;
 import checkers.inference.VariableAnnotator;
 import checkers.inference.model.ConstraintManager;
+import checkers.inference.model.Slot;
+import checkers.inference.model.SourceVariableSlot;
 import checkers.inference.util.InferenceViewpointAdapter;
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ClassTree;
@@ -14,6 +18,7 @@ import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
+import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.util.TreePath;
@@ -21,6 +26,7 @@ import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
+import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.ViewpointAdapter;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
@@ -29,6 +35,7 @@ import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TreePathUtil;
@@ -40,11 +47,14 @@ import pico.common.PICOTypeUtil;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Elements;
 
+import java.lang.annotation.Annotation;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -153,6 +163,11 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     }
 
     @Override
+    protected QualifierHierarchy createQualifierHierarchy() {
+        return new PICOInferenceQualifierHierarchy(getSupportedTypeQualifiers(), elements);
+    }
+
+    @Override
     public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
         // Get the VarAnnot on the class decl
         // This factory is only invoked on inference, so no need to provide concrete anno for type-check
@@ -162,6 +177,10 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         if (type.getKind() == TypeKind.ARRAY) {
             // WORKAROUND: return RDM will cause issues with new clauses
             return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(READONLY)));
+        }
+
+        if (PICOTypeUtil.isEnumOrEnumConstant(type)) {
+            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
         }
 //        AnnotatedTypeMirror atm = toAnnotatedType(type, true);
 //        if (atm instanceof AnnotatedDeclaredType && ((AnnotatedDeclaredType) atm).getTypeArguments().size() > 0) {
@@ -193,7 +212,14 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         }
 
         // get stub & default from element.
-//        return stubTypes.getAnnotatedTypeMirror(TypesUtils.getTypeElement(type)).getAnnotations();
+        AnnotatedTypeMirror atm = stubTypes.getAnnotatedTypeMirror(getProcessingEnv().getTypeUtils().asElement(type));
+        if (atm != null) {
+            Set<AnnotationMirror> set = atm.getAnnotations();
+            if (!set.isEmpty()) {
+                return Collections.singleton(
+                        slotManager.getAnnotation(slotManager.getSlot(set.iterator().next())));
+            }
+        }
         return Collections.singleton(
                 slotManager.getAnnotation(slotManager.getSlot(super.getTypeDeclarationBounds(type).iterator().next())));
     }
@@ -211,92 +237,6 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
             // Find the cause, annotate implicit immutable classes in stub, and remove this method.
             applyImmutableIfImplicitlyImmutable(mirror);
             return super.visitMethodInvocation(methodInvocationTree, mirror);
-        }
-
-        @Override
-        public Void visitNewArray(NewArrayTree tree, AnnotatedTypeMirror type) {
-            // Below is copied from super
-            assert type.getKind() == TypeKind.ARRAY
-                    : "PropagationTreeAnnotator.visitNewArray: should be an array type";
-
-            AnnotatedTypeMirror componentType = ((AnnotatedTypeMirror.AnnotatedArrayType) type).getComponentType();
-
-            Collection<? extends AnnotationMirror> prev = null;
-            if (tree.getInitializers() != null && tree.getInitializers().size() != 0) {
-                // We have initializers, either with or without an array type.
-
-                for (ExpressionTree init : tree.getInitializers()) {
-                    AnnotatedTypeMirror initType = atypeFactory.getAnnotatedType(init);
-                    // initType might be a typeVariable, so use effectiveAnnotations.
-                    Collection<AnnotationMirror> annos = initType.getEffectiveAnnotations();
-
-                    prev = (prev == null) ? annos : atypeFactory.getQualifierHierarchy().leastUpperBounds(prev, annos);
-                }
-            } else {
-                prev = componentType.getAnnotations();
-            }
-
-            assert prev != null
-                    : "PropagationTreeAnnotator.visitNewArray: violated assumption about qualifiers";
-
-            Pair<Tree, AnnotatedTypeMirror> context =
-                    atypeFactory.getVisitorState().getAssignmentContext();
-            Collection<? extends AnnotationMirror> post;
-
-            if (context != null
-                    && context.second != null
-                    && context.second instanceof AnnotatedTypeMirror.AnnotatedArrayType) {
-                AnnotatedTypeMirror contextComponentType =
-                        ((AnnotatedTypeMirror.AnnotatedArrayType) context.second).getComponentType();
-                // Only compare the qualifiers that existed in the array type
-                // Defaulting wasn't performed yet, so prev might have fewer qualifiers than
-                // contextComponentType, which would cause a failure.
-                // TODO: better solution?
-                boolean prevIsSubtype = true;
-                for (AnnotationMirror am : prev) {
-                    // Workaround for mutable Object array component type problem.
-                    if (componentType instanceof AnnotatedDeclaredType) {
-                        if (((AnnotatedDeclaredType) componentType).getUnderlyingType().asElement().getSimpleName().contentEquals("Object")) {
-                            continue;
-                        }
-                    }
-
-                    if (contextComponentType.isAnnotatedInHierarchy(am)
-                            && !atypeFactory.getQualifierHierarchy().isSubtype(
-                            am, contextComponentType.getAnnotationInHierarchy(am))) {
-                        prevIsSubtype = false;
-                    }
-                }
-
-                // TODO: checking conformance of component kinds is a basic sanity check
-                // It fails for array initializer expressions. Those should be handled nicer.
-                if (contextComponentType.getKind() == componentType.getKind()
-                        && (prev.isEmpty()
-                        || (!contextComponentType.getAnnotations().isEmpty()
-                        && prevIsSubtype))) {
-                    post = contextComponentType.getAnnotations();
-                } else {
-                    // The type of the array initializers is incompatible with the
-                    // context type!
-                    // Somebody else will complain.
-                    post = prev;
-                }
-            } else {
-                // No context is available - simply use what we have.
-                post = prev;
-            }
-
-            // Below line is the only difference from super implementation
-            applyImmutableIfImplicitlyImmutable(componentType);
-            // Above line is the only difference from super implementation
-            componentType.addMissingAnnotations(post);
-
-            return null;
-            // Above is copied from super
-
-            // We have a problem with the annotation.
-            // During inference it get defaulted annotation for component types inside dataflow and cache that.
-            // The assignment context have only constant slots.
         }
 
         /**Add immutable to the result type of a binary operation if the result type is implicitly immutable*/
@@ -324,6 +264,39 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
             if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
                 PICOTypeUtil.applyConstant(type, IMMUTABLE);
             }
+        }
+    }
+
+    protected class PICOInferenceQualifierHierarchy extends InferenceQualifierHierarchy {
+
+        public PICOInferenceQualifierHierarchy(
+                Collection<Class<? extends Annotation>> qualifierClasses, Elements elements) {
+            super(qualifierClasses, elements);
+        }
+
+        @Override
+        public boolean isSubtype(final AnnotationMirror subtype, final AnnotationMirror supertype) {
+
+            if (subtype == null || supertype == null || !isVarAnnot(subtype) || !isVarAnnot(supertype)) {
+                if (InferenceMain.isHackMode()) {
+                    return true;
+                } else {
+                    throw new BugInCF("Unexpected arguments for isSubtype: subtype=%s, supertype=%s", subtype, supertype);
+                }
+            }
+
+            if (supertype.getElementValues().isEmpty()) {
+                return true;
+            }
+
+            final Slot subSlot   = slotManager.getSlot(subtype);
+            final Slot superSlot = slotManager.getSlot(supertype);
+
+            if (superSlot.getId() == 6) { // don't generate the constraint when it's RDM.
+                return true;
+            }
+
+            return constraintManager.addSubtypeConstraintNoErrorMsg(subSlot, superSlot);
         }
     }
 }

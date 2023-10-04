@@ -259,8 +259,7 @@ public class PICOTypeUtil {
                                Objects.requireNonNull(ElementUtils.enclosingTypeElement(element)).asType());
                        Set<AnnotationMirror> declBound = annotatedTypeFactory.getTypeDeclarationBounds(element.asType());
                        if (AnnotationUtils.containsSameByName(declBound, MUTABLE)) {
-                           if (AnnotationUtils.containsSameByName(enclosingBound, RECEIVER_DEPENDANT_MUTABLE) ||
-                                   AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
+                           if (AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
                                annotatedTypeMirror.replaceAnnotation(RECEIVER_DEPENDANT_MUTABLE);
                            }
                        }
@@ -287,6 +286,15 @@ public class PICOTypeUtil {
         return element != null
                 && (element.getKind() == ElementKind.ENUM_CONSTANT || element.getKind() == ElementKind.ENUM);
 
+    }
+
+    public static boolean isEnumOrEnumConstant(TypeMirror type) {
+        if (!(type instanceof DeclaredType)) {
+            return false;
+        }
+        Element element = ((DeclaredType)type).asElement();
+        return element != null
+                && (element.getKind() == ElementKind.ENUM_CONSTANT || element.getKind() == ElementKind.ENUM);
     }
 
     public static void applyImmutableToEnumAndEnumConstant(AnnotatedTypeMirror annotatedTypeMirror) {

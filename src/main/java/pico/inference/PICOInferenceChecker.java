@@ -20,7 +20,7 @@ public class PICOInferenceChecker extends BaseInferrableChecker {
 
     @Override
     public BaseInferenceRealTypeFactory createRealTypeFactory(boolean infer) {
-        return new PICOInferenceRealTypeFactory(this, true);
+        return new PICOInferenceRealTypeFactory(this, infer);
     }
 
     @Override

@@ -7,19 +7,24 @@ import org.checkerframework.framework.qual.TypeKind;
 import org.checkerframework.framework.qual.TypeUseLocation;
 
 import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * {@code @Bottom} can only be annotated before a type parameter
+ * (For example, {@code class C<@Bottom T extends MutableBox>{}}). This means {@code @Bottom}
+ * is the lower bound for this type parameter.
+ *
+ * User can explicitly write {@code @Bottom} but it's not necessary because it's
+ * automatically inferred, and we have -AwarnRedundantAnnotations flag to warn about
+ * redundant annotations.
+ */
 @SubtypeOf({Mutable.class, Immutable.class, ReceiverDependantMutable.class})
 @DefaultFor(value = { TypeUseLocation.LOWER_BOUND }, typeKinds = {TypeKind.NULL})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-// Stop allowing any explicit usage of @Bottom qualifier in source. As it causes difficulty to
-// differentiate correct explicit usage of @Bottom and internally propagated @Bottom. Instead,
-// if programmers don't write anything on explicit lower bound(of a wildcard), we still have
-// defaulting mechanism to make the explicit lower bound to be @Bottom. They can still use other
-// qualifier than @Bottom explicitly on explicit lower bound to have different-than-default type.
-@Target({})
-@TargetLocations({})
+@Target({ElementType.TYPE_PARAMETER})
+@TargetLocations({TypeUseLocation.LOWER_BOUND})
 public @interface Bottom {}

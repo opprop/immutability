@@ -12,9 +12,7 @@ class Object {
   @ReceiverDependantMutable Object();
   Class<?> getClass(@Readonly Object this);
   String toString(@Readonly Object this);
-  @OnlyDependantOnAbstractStateField
   int hashCode(@Readonly Object this);
-  @OnlyDependantOnAbstractStateField
   boolean equals(@Readonly Object this, @Readonly Object var1);
   @ReceiverDependantMutable Object clone(@ReceiverDependantMutable Object this);
   @ObjectIdentityMethod
@@ -130,7 +128,6 @@ class ArrayList<E> {
   boolean contains(@Readonly ArrayList<E> this, @Readonly Object o);
   int indexOf(@Readonly ArrayList<E> this, @Readonly Object o);
   int lastIndexOf(@Readonly ArrayList<E> this, @Readonly Object o);
-  void rangeCheck(@Readonly ArrayList<E> this, int index);
   Iterator<E> iterator(@Readonly ArrayList<E> this);
 }
 
@@ -295,40 +292,9 @@ class ObjectOutputStream {
 @ReceiverDependantMutable
 interface Serializable {}
 
-package org.hibernate;
-class Session {
-  Object get(@Readonly Class clazz, @Readonly Serializable id);
-}
-
 package java.awt;
 
 @ReceiverDependantMutable
 class Container {
   void add(@Readonly Component comp, @Readonly Object constraints);
-}
-
-package org.apache.maven.plugin.logging;
-
-interface Log {
-  void info(@Readonly Log this, @Readonly CharSequence content);
-  void info(@Readonly Log this, @Readonly CharSequence content, @Readonly Throwable error);
-  void info(@Readonly Log this, @Readonly Throwable error);
-  void debug(@Readonly Log this, @Readonly CharSequence content);
-  void debug(@Readonly Log this, @Readonly CharSequence content, @Readonly Throwable error);
-  void debug(@Readonly Log this, @Readonly Throwable error);
-  void warn(@Readonly Log this, @Readonly CharSequence content);
-  void warn(@Readonly Log this, @Readonly CharSequence content, @Readonly Throwable error);
-  void warn(@Readonly Log this, @Readonly Throwable error);
-  void error(@Readonly Log this, @Readonly CharSequence content);
-  void error(@Readonly Log this, @Readonly CharSequence content, @Readonly Throwable error);
-  void error(@Readonly Log this, @Readonly Throwable error);
-  boolean isInfoEnabled(@Readonly Log this);
-  boolean isDebugEnabled(@Readonly Log this);
-  boolean isWarnEnabled(@Readonly Log this);
-  boolean isErrorEnabled(@Readonly Log this);
-}
-
-package org.apache.commons.io;
-class FileUtils {
-  static long copyFile(@Readonly File input, OutputStream output);
 }

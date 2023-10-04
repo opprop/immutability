@@ -17,6 +17,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 
 import checkers.inference.BaseInferenceRealTypeFactory;
+import com.sun.source.tree.NewClassTree;
 import com.sun.tools.javac.tree.JCTree;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -65,11 +66,11 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
             "com.google.errorprone.annotations.Immutable",
             "edu.cmu.cs.glacier.qual.Immutable");
 
-    public PICOInferenceRealTypeFactory(BaseTypeChecker checker, boolean useFlow) {
-        super(checker, useFlow);
-        if (READONLY != null) {
-            addAliasedAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
-        }
+    public PICOInferenceRealTypeFactory(BaseTypeChecker checker, boolean isInfer) {
+        super(checker, isInfer);
+//        if (READONLY != null) {
+//            addAliasedTypeAnnotation(org.jmlspecs.annotation.Readonly.class, READONLY);
+//        }
 //        IMMUTABLE_ALIASES.forEach(anno -> addAliasedAnnotation(anno, IMMUTABLE));
 
         postInit();
@@ -153,6 +154,21 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
 
     }
 
+    @Override
+    public ParameterizedExecutableType constructorFromUse(NewClassTree tree) {
+        boolean hasExplicitAnnos = false;
+        if (!getExplicitNewClassAnnos(tree).isEmpty()) {
+            hasExplicitAnnos = true;
+        }
+        ParameterizedExecutableType mType = super.constructorFromUse(tree);
+        AnnotatedTypeMirror.AnnotatedExecutableType method = mType.executableType;
+        if (!hasExplicitAnnos && method.getReturnType().hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+            method.getReturnType().replaceAnnotation(MUTABLE);
+        }
+        return mType;
+    }
+
+
     /* TODO If the dataflow refines the type as bottom, should we allow such a refinement? If we allow it,
      PICOValidator will give an error if it begins to enforce @Bottom is not used*/
 /*    @Override
@@ -175,39 +191,39 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
         super.addComputedTypeAnnotations(elt, type);
     }
 
-    /**This method gets lhs WITH flow sensitive refinement*/
-    // TODO This method is completely copied from PICOAnnotatedTypeFactory
-    @Override
-    public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
-        AnnotatedTypeMirror result = null;
-        boolean oldShouldCache = shouldCache;
-        // Don't cache the result because getAnnotatedType(lhsTree) could
-        // be called from elsewhere and would expect flow-sensitive type refinements.
-        shouldCache = false;
-        switch (lhsTree.getKind()) {
-            case VARIABLE:
-            case IDENTIFIER:
-            case MEMBER_SELECT:
-            case ARRAY_ACCESS:
-                result = getAnnotatedType(lhsTree);
-                break;
-            default:
-                if (TreeUtils.isTypeTree(lhsTree)) {
-                    // lhsTree is a type tree at the pseudo assignment of a returned expression to declared return type.
-                    result = getAnnotatedType(lhsTree);
-                } else {
-                    throw new BugInCF(
-                            "GenericAnnotatedTypeFactory: Unexpected tree passed to getAnnotatedTypeLhs. "
-                                    + "lhsTree: "
-                                    + lhsTree
-                                    + " Tree.Kind: "
-                                    + lhsTree.getKind());
-                }
-        }
-        shouldCache = oldShouldCache;
-
-        return result;
-    }
+//    /**This method gets lhs WITH flow sensitive refinement*/
+//    // TODO This method is completely copied from PICOAnnotatedTypeFactory
+//    @Override
+//    public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
+//        AnnotatedTypeMirror result = null;
+//        boolean oldShouldCache = shouldCache;
+//        // Don't cache the result because getAnnotatedType(lhsTree) could
+//        // be called from elsewhere and would expect flow-sensitive type refinements.
+//        shouldCache = false;
+//        switch (lhsTree.getKind()) {
+//            case VARIABLE:
+//            case IDENTIFIER:
+//            case MEMBER_SELECT:
+//            case ARRAY_ACCESS:
+//                result = getAnnotatedType(lhsTree);
+//                break;
+//            default:
+//                if (TreeUtils.isTypeTree(lhsTree)) {
+//                    // lhsTree is a type tree at the pseudo assignment of a returned expression to declared return type.
+//                    result = getAnnotatedType(lhsTree);
+//                } else {
+//                    throw new BugInCF(
+//                            "GenericAnnotatedTypeFactory: Unexpected tree passed to getAnnotatedTypeLhs. "
+//                                    + "lhsTree: "
+//                                    + lhsTree
+//                                    + " Tree.Kind: "
+//                                    + lhsTree.getKind());
+//                }
+//        }
+//        shouldCache = oldShouldCache;
+//
+//        return result;
+//    }
 
     @Override
     protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {

@@ -20,6 +20,7 @@ import javax.lang.model.type.TypeMirror;
 
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
@@ -149,6 +150,20 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
     @Override
     public QualifierHierarchy createQualifierHierarchy() {
         return new PICOQualifierHierarchy();
+    }
+
+    @Override
+    public ParameterizedExecutableType constructorFromUse(NewClassTree tree) {
+        boolean hasExplicitAnnos = false;
+        if (!getExplicitNewClassAnnos(tree).isEmpty()) {
+            hasExplicitAnnos = true;
+        }
+        ParameterizedExecutableType mType = super.constructorFromUse(tree);
+        AnnotatedExecutableType method = mType.executableType;
+        if (!hasExplicitAnnos && method.getReturnType().hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+            method.getReturnType().replaceAnnotation(MUTABLE);
+        }
+        return mType;
     }
 
     /**Just to transfer the method from super class to package*/
@@ -334,12 +349,18 @@ public class PICOAnnotatedTypeFactory extends InitializationAnnotatedTypeFactory
 //            return null;
 //        }
 //
-//        /**Add immutable to the result type of a cast if the result type is implicitly immutable*/
-//        @Override
-//        public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
-//            applyImmutableIfImplicitlyImmutable(type);// Must run before calling super method to respect existing annotation
-//            return super.visitTypeCast(node, type);
-//        }
+        @Override
+        public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
+            boolean hasExplicitAnnos = false;
+            if (!type.getAnnotations().isEmpty()) {
+                hasExplicitAnnos = true;
+            }
+            super.visitTypeCast(node, type);
+            if (!hasExplicitAnnos && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+                type.replaceAnnotation(MUTABLE);
+            }
+            return null;
+        }
 //
         /**Because TreeAnnotator runs before DefaultForTypeAnnotator, implicitly immutable types are not guaranteed
          to always have immutable annotation. If this happens, we manually add immutable to type. We use

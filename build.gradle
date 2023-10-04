@@ -106,7 +106,7 @@ afterEvaluate {
                 JDK_JAR: "${cfPath}/checker/dist/jdk8.jar"
 
         environment "external_checker_classpath", "${picoPath}/build/classes/java/main:${picoPath}/build/resources/main"
-
+        maxHeapSize = "1024m"
         if (isJava8) {
             jvmArgs "-Xbootclasspath/p:${cfiPath}/dist/javac.jar"
         } else {

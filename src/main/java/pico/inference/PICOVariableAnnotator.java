@@ -109,19 +109,21 @@ public class PICOVariableAnnotator extends VariableAnnotator {
 //    }
 
     @Override
-    protected VariableSlot getOrCreateDeclBound(AnnotatedDeclaredType type) {
+    protected Slot getOrCreateDeclBound(AnnotatedDeclaredType type) {
         TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
 
         AnnotationMirror declSlot = getClassDeclVarAnnot(classDecl);
         if (declSlot == null) {
             // if a explicit annotation presents on the class DECL, use that directly
             if (type.isDeclaration() && type.isAnnotatedInHierarchy(READONLY) && !type.hasAnnotation(READONLY)) {
-                VariableSlot constantSlot = (VariableSlot) slotManager.getSlot(type.getAnnotationInHierarchy(READONLY));
+                Slot constantSlot = slotManager.getSlot(type.getAnnotationInHierarchy(READONLY));
 //                TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
                 super.getOrCreateDeclBound(type);
 //                // avoid duplicate annos
 //                type.removeAnnotationInHierarchy(READONLY);
                 return constantSlot;
+            } else if (PICOTypeUtil.isEnumOrEnumConstant(type)) {
+                return slotManager.createConstantSlot(IMMUTABLE);
             }
 
             // new class tree of an anonymous class is always visited before (enclosing tree).
@@ -130,11 +132,12 @@ public class PICOVariableAnnotator extends VariableAnnotator {
             // push this change to inference IFF the slot on new class have same requirement with class bound
             // e.g. existence slot on new class tree?
             if (TypesUtils.isAnonymous(type.getUnderlyingType())) {
-                assert type.hasAnnotation(VarAnnot.class);
-                return (VariableSlot) slotManager.getSlot(type.getAnnotation(VarAnnot.class));
+                if (type.hasAnnotation(VarAnnot.class)) {
+                    return slotManager.getSlot(type.getAnnotation(VarAnnot.class));
+                }
             }
         }
-        return (VariableSlot) super.getOrCreateDeclBound(type);
+        return super.getOrCreateDeclBound(type);
     }
 
 //    @Override
@@ -186,17 +189,17 @@ public class PICOVariableAnnotator extends VariableAnnotator {
 
     // Generates inequality constraint between every strict VariableSlot and @Bottom so that @Bottom is not inserted
     // back to source code, but can be within the internal state because of dataflow refinement
-    @Override
-    protected VariableSlot createVariable(AnnotationLocation location) {
-        VariableSlot varSlot = super.createVariable(location);
-        // Forbid any explicit use of @Bottom to be inserted back to source code(no VariableSlot instance is inferred
-        // @Bottom)
-        if (generateBottomInequality) {
-            constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(BOTTOM));
-            constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(POLY_MUTABLE));
-        }
-        return varSlot;
-    }
+//    @Override
+//    protected VariableSlot createVariable(AnnotationLocation location) {
+//        VariableSlot varSlot = super.createVariable(location);
+//        // Forbid any explicit use of @Bottom to be inserted back to source code(no VariableSlot instance is inferred
+//        // @Bottom)
+//        if (generateBottomInequality) {
+//            constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(BOTTOM));
+//            constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(POLY_MUTABLE));
+//        }
+//        return varSlot;
+//    }
 
     // Copied from super implementation
     @Override
@@ -238,50 +241,50 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         }
     }
 
-    @Override
-    public Void visitWildcard(AnnotatedTypeMirror.AnnotatedWildcardType wildcardType, Tree tree) {
-        if (!(tree instanceof WildcardTree)) {
-            if (tree instanceof AnnotatedTypeTree) {
-                tree = ((AnnotatedTypeTree) tree).getUnderlyingType();
-            }
-            if (!(tree instanceof WildcardTree)) {
-                throw new IllegalArgumentException("Wildcard type ( " + wildcardType + " ) associated " +
-                        "with non-WildcardTree ( " + tree + " ) ");
-            }
-        }
-
-        final WildcardTree wildcardTree = (WildcardTree) tree;
-        final Tree.Kind wildcardKind = wildcardTree.getKind();
-        if (wildcardKind == Tree.Kind.UNBOUNDED_WILDCARD) {
-            boolean prev = generateBottomInequality;
-            generateBottomInequality = false;
-            // Visit super bound, use the wild card type tree to represents the superbound.
-            addPrimaryVariable(wildcardType.getSuperBound(), tree);
-            generateBottomInequality = prev;
-
-            // Visit extend bound, construct an artificial extends bound tree to represent the extendbound.
-            ArtificialExtendsBoundTree artificialExtendsBoundTree = new ArtificialExtendsBoundTree(wildcardTree);
-            addPrimaryVariable(wildcardType.getExtendsBound(), artificialExtendsBoundTree);
-
-        } else if (wildcardKind == Tree.Kind.EXTENDS_WILDCARD) {
-            boolean prev = generateBottomInequality;
-            generateBottomInequality = false;
-            addPrimaryVariable(wildcardType.getSuperBound(), tree);
-            generateBottomInequality = prev;
-
-            visit(wildcardType.getExtendsBound(), ((WildcardTree) tree).getBound());
-
-        } else if (wildcardKind == Tree.Kind.SUPER_WILDCARD) {
-            addPrimaryVariable(wildcardType.getExtendsBound(), tree);
-
-            boolean prev = generateBottomInequality;
-            generateBottomInequality = false;
-            visit(wildcardType.getSuperBound(), ((WildcardTree) tree).getBound());
-            generateBottomInequality = prev;
-        }
-
-        return null;
-    }
+//    @Override
+//    public Void visitWildcard(AnnotatedTypeMirror.AnnotatedWildcardType wildcardType, Tree tree) {
+//        if (!(tree instanceof WildcardTree)) {
+//            if (tree instanceof AnnotatedTypeTree) {
+//                tree = ((AnnotatedTypeTree) tree).getUnderlyingType();
+//            }
+//            if (!(tree instanceof WildcardTree)) {
+//                throw new IllegalArgumentException("Wildcard type ( " + wildcardType + " ) associated " +
+//                        "with non-WildcardTree ( " + tree + " ) ");
+//            }
+//        }
+//
+//        final WildcardTree wildcardTree = (WildcardTree) tree;
+//        final Tree.Kind wildcardKind = wildcardTree.getKind();
+//        if (wildcardKind == Tree.Kind.UNBOUNDED_WILDCARD) {
+//            boolean prev = generateBottomInequality;
+//            generateBottomInequality = false;
+//            // Visit super bound, use the wild card type tree to represents the superbound.
+//            addPrimaryVariable(wildcardType.getSuperBound(), tree);
+//            generateBottomInequality = prev;
+//
+//            // Visit extend bound, construct an artificial extends bound tree to represent the extendbound.
+//            ArtificialExtendsBoundTree artificialExtendsBoundTree = new ArtificialExtendsBoundTree(wildcardTree);
+//            addPrimaryVariable(wildcardType.getExtendsBound(), artificialExtendsBoundTree);
+//
+//        } else if (wildcardKind == Tree.Kind.EXTENDS_WILDCARD) {
+//            boolean prev = generateBottomInequality;
+//            generateBottomInequality = false;
+//            addPrimaryVariable(wildcardType.getSuperBound(), tree);
+//            generateBottomInequality = prev;
+//
+//            visit(wildcardType.getExtendsBound(), ((WildcardTree) tree).getBound());
+//
+//        } else if (wildcardKind == Tree.Kind.SUPER_WILDCARD) {
+//            addPrimaryVariable(wildcardType.getExtendsBound(), tree);
+//
+//            boolean prev = generateBottomInequality;
+//            generateBottomInequality = false;
+//            visit(wildcardType.getSuperBound(), ((WildcardTree) tree).getBound());
+//            generateBottomInequality = prev;
+//        }
+//
+//        return null;
+//    }
 
     @Override
     public void handleBinaryTree(AnnotatedTypeMirror atm, BinaryTree binaryTree) {

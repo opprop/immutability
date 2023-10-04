@@ -58,6 +58,8 @@ import pico.common.ExtendedViewpointAdapter;
 import pico.common.PICOTypeUtil;
 import pico.common.ViewpointAdapterGettable;
 import qual.Immutable;
+import qual.Readonly;
+import qual.ReceiverDependantMutable;
 
 /**
  * Created by mier on 20/06/17.
@@ -88,10 +90,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     // (at least for types other than java.lang.Object)
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
-        // FIXME workaround for typecheck BOTTOM
-        if (useType.hasAnnotation(BOTTOM)) {
-            return true;
-        }
+
         // FIXME workaround for poly anno, remove after fix substitutable poly and add poly vp rules
         if (useType.hasAnnotation(POLY_MUTABLE)) {
             return true;
@@ -180,12 +179,12 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                 // Caution: cannot pass var directly. Modifying type in PICOInferenceTreeAnnotator#
                 // visitVariable() will cause wrong type to be gotton here, as on inference side,
                 // atm is uniquely determined by each element.
-                commonAssignmentCheck(varAdapted, valueExp, errorKey);
+                commonAssignmentCheck(varAdapted, valueExp, errorKey, extraArgs);
                 return;
             }
         }
 
-        commonAssignmentCheck(var, valueExp, errorKey);
+        commonAssignmentCheck(var, valueExp, errorKey, extraArgs);
     }
 
 
@@ -363,10 +362,15 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     private boolean isAllowedAssignableField(AnnotatedTypeMirror receiverType, ExpressionTree node) {
         Element fieldElement = TreeUtils.elementFromUse(node);
+        Set<AnnotationMirror> bounds = atypeFactory.getTypeDeclarationBounds(TreeUtils.typeOf(node));
         AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
         if (fieldElement == null) return false;
-        // Forbid the case that might break type soundness
-        return !(receiverType.hasAnnotation(READONLY) && fieldType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE));
+        // Forbid the case that might break type soundness. See ForbidAssignmentCase.java:21
+        // the second and third predicates ensure that the field is actually rdm (since sometimes we
+        // replace implicitly mutable with rdm to protect transitive immutability).
+        return !(receiverType.hasAnnotation(READONLY)
+                && AnnotationUtils.containsSameByName(bounds, RECEIVER_DEPENDANT_MUTABLE)
+                        && fieldType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE));
     }
 
     private boolean isInitializingReceiverDependantMutableOrImmutableObject(AnnotatedTypeMirror receiverType) {
@@ -408,9 +412,8 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         // top anno not RDM
         // TODO use base cf check methods
         AnnotationMirror declAnno = atypeFactory.getTypeDeclarationBoundForMutability(type.getUnderlyingType());
-        if (declAnno != null && AnnotationUtils.areSameByName(declAnno, IMMUTABLE) ||
-                element.getKind() != ElementKind.FIELD ||
-                !type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+        if ((declAnno != null && AnnotationUtils.areSameByName(declAnno, IMMUTABLE)) ||
+                element.getKind() != ElementKind.FIELD || !type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
             checkAndReportInvalidAnnotationOnUse(type, node);
         }
         return super.visitVariable(node, p);
@@ -424,7 +427,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         }
         if (useAnno != null && !PICOTypeUtil.isImplicitlyImmutableType(type) && type.getKind() != TypeKind.ARRAY) {  // TODO: annotate the use instead of using this
             AnnotationMirror defaultAnno = MUTABLE;
-            for (AnnotationMirror anno : atypeFactory.getTypeDeclarationBounds(atypeFactory.getAnnotatedType(node).getUnderlyingType())) {
+            for (AnnotationMirror anno : atypeFactory.getTypeDeclarationBounds(type.getUnderlyingType())) {
                 if (atypeFactory.getQualifierHierarchy().isSubtype(anno, READONLY) && !AnnotationUtils.areSame(anno, READONLY)) {
                     defaultAnno = anno;
                 }
@@ -534,11 +537,11 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
         // Issue warnings on implicit shallow immutable:
         // Condition:
-        // * Class decl == Immutable
+        // * Class decl == Immutable or RDM     * move rdm default error here. see 3.6.3 last part. liansun
         // * Member is field
         // * Member's declared bound == Mutable
         // * Member's use anno == null
-        if (bound.hasAnnotation(IMMUTABLE)) {
+        if (bound.hasAnnotation(IMMUTABLE) || bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
             for(Tree member : node.getMembers()) {
                 if(member.getKind() == Kind.VARIABLE) {
                     Element ele = TreeUtils.elementFromTree(member);
@@ -552,7 +555,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                     if (AnnotationUtils.containsSameByName(
                             atypeFactory.getTypeDeclarationBounds(ty), MUTABLE)
                             && !noDefaultMirror.isAnnotatedInHierarchy(READONLY)) {
-                        checker.reportWarning(member, "implicit.shallow.immutable");
+                        checker.reportError(member, "implicit.shallow.immutable");
                     }
 
                 }
@@ -638,7 +641,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
             newValueType.replaceAnnotation(valueType.getAnnotationInHierarchy(READONLY));
             valueType = newValueType;
         }
-        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey);
+        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
 
     }
 }

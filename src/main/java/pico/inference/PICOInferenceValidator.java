@@ -2,6 +2,7 @@ package pico.inference;
 
 import checkers.inference.InferenceValidator;
 import checkers.inference.InferenceVisitor;
+import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -10,12 +11,17 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import pico.common.PICOTypeUtil;
+import pico.typecheck.PICOAnnotatedTypeFactory;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.VariableElement;
 
+import java.util.Objects;
 import java.util.Set;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.*;
@@ -51,6 +57,18 @@ public class PICOInferenceValidator extends InferenceValidator{
     }
 
     @Override
+    protected Void visitParameterizedType(AnnotatedDeclaredType type, ParameterizedTypeTree tree) {
+        if (infer) {
+            for (AnnotatedTypeMirror arg : type.getTypeArguments()) {
+                ((PICOInferenceVisitor) visitor).mainIsNoneOf(arg,
+                        new AnnotationMirror[]{POLY_MUTABLE, BOTTOM, RECEIVER_DEPENDANT_MUTABLE},
+                        "type.invalid.annotations.on.use", tree);
+            }
+        }
+        return super.visitParameterizedType(type, tree);
+    }
+
+    @Override
     public Void visitArray(AnnotatedArrayType type, Tree tree) {
         checkStaticReceiverDependantMutableError(type, tree);
         return super.visitArray(type, tree);
@@ -64,8 +82,34 @@ public class PICOInferenceValidator extends InferenceValidator{
 
     @Override
     protected boolean shouldCheckTopLevelDeclaredOrPrimitiveType(AnnotatedTypeMirror type, Tree tree) {
-        if (TreeUtils.isLocalVariable(tree)) {
-            return true;
+        if (infer) {
+            if (TreeUtils.isLocalVariable(tree)) {
+                return true;
+            }
+        } else {
+            // check top annotations in extends/implements clauses
+            if ((tree.getKind() == Tree.Kind.IDENTIFIER || tree.getKind() == Tree.Kind.PARAMETERIZED_TYPE) &&
+                    PICOAnnotatedTypeFactory.PICOSuperClauseAnnotator.isSuperClause(atypeFactory.getPath(tree))) {
+                return true;
+            }
+            // allow RDM on mutable fields with enclosing class bounded with mutable
+            if (tree instanceof VariableTree) {
+                VariableElement element = TreeUtils.elementFromDeclaration((VariableTree)tree);
+                if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingTypeElement(element) != null) {
+                    Set<AnnotationMirror> enclosingBound =
+                            atypeFactory.getTypeDeclarationBounds(
+                                    Objects.requireNonNull(ElementUtils.enclosingTypeElement(element)).asType());
+
+                    Set<AnnotationMirror> declaredBound =
+                            atypeFactory.getTypeDeclarationBounds(type.getUnderlyingType());
+
+                    if(AnnotationUtils.containsSameByName(declaredBound, MUTABLE)
+                            && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
+                            && AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
+                        return false;
+                    }
+                }
+            }
         }
         return super.shouldCheckTopLevelDeclaredOrPrimitiveType(type, tree);
     }
@@ -74,14 +118,13 @@ public class PICOInferenceValidator extends InferenceValidator{
         // Static inner class is considered within the static scope.
         // Added condition to ensure not class decl.
         if (PICOTypeUtil.inStaticScope(visitor.getCurrentPath()) && !type.isDeclaration()) {
-//            if (infer) {
-//                ((PICOInferenceVisitor)visitor).mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
-//            } else {
-//                if (type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
-//                    reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
-//                }
-//            }
-            ((InferenceVisitor)visitor).mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
+            if (infer) {
+                ((PICOInferenceVisitor)visitor).mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
+            } else {
+                if (type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+                    reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
+                }
+            }
             // TODO set isValid or move to visitor
         }
     }
