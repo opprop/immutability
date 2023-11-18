@@ -22,7 +22,7 @@ import java.lang.annotation.Target;
  * redundant annotations.
  */
 @SubtypeOf({Mutable.class, Immutable.class, ReceiverDependantMutable.class})
-@DefaultFor(value = { TypeUseLocation.LOWER_BOUND }, typeKinds = {TypeKind.NULL})
+@DefaultFor(typeKinds = {TypeKind.NULL})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_PARAMETER})
