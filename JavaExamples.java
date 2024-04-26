@@ -12,7 +12,9 @@ void foo(Set<String> s) {
 // Mutating immut set, `new_s` is immut
 void foo1(@Mutable Set<String> s) {
   Set<String> new_s = new HashSet<>(s);
+  Set<String> new_s1 = s;
   new_s.add("x"); // ERROR
+  new_s1.add("x"); //OK
 }
 
 // Mutating mut set
