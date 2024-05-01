@@ -29,7 +29,6 @@ import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TypesUtils;
-import pico.typecheck.PICOVisitor;
 import qual.Assignable;
 import qual.Immutable;
 import qual.ObjectIdentityMethod;

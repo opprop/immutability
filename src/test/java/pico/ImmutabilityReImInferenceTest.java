@@ -5,6 +5,7 @@ import org.checkerframework.framework.test.TestUtilities;
 import org.checkerframework.javacutil.Pair;
 import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
+import org.plumelib.util.IPair;
 import pico.inference.PICOInferenceChecker;
 import pico.inference.solver.PICOSolverEngine;
 
@@ -24,8 +25,8 @@ public class ImmutabilityReImInferenceTest extends CFInferenceTest {
     }
 
     @Override
-    public Pair<String, List<String>> getSolverNameAndOptions() {
-        return Pair.of(PICOSolverEngine.class.getCanonicalName(),
+    public IPair<String, List<String>> getSolverNameAndOptions() {
+        return IPair.of(PICOSolverEngine.class.getCanonicalName(),
                 new ArrayList<>(Arrays.asList("useGraph=false", "collectStatistic=true")));
     }
 

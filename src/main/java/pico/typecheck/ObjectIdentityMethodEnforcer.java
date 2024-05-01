@@ -21,16 +21,16 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 
 public class ObjectIdentityMethodEnforcer extends TreePathScanner<Void, Void> {
 
-    private PICOAnnotatedTypeFactory typeFactory;
+    private PICONoInitAnnotatedTypeFactory typeFactory;
     private BaseTypeChecker checker;
 
-    private ObjectIdentityMethodEnforcer(PICOAnnotatedTypeFactory typeFactory, BaseTypeChecker checker) {
+    private ObjectIdentityMethodEnforcer(PICONoInitAnnotatedTypeFactory typeFactory, BaseTypeChecker checker) {
         this.typeFactory = typeFactory;
         this.checker = checker;
     }
 
     // Main entry
-    public static void check(TreePath statement, PICOAnnotatedTypeFactory typeFactory, BaseTypeChecker checker) {
+    public static void check(TreePath statement, PICONoInitAnnotatedTypeFactory typeFactory, BaseTypeChecker checker) {
         if (statement == null) return;
         ObjectIdentityMethodEnforcer asfchecker = new
                 ObjectIdentityMethodEnforcer(typeFactory, checker);
@@ -89,7 +89,7 @@ public class ObjectIdentityMethodEnforcer extends TreePathScanner<Void, Void> {
 
     // Deeply test if a field is in abstract state or not. For composite types: array component,
     // type arguments, upper bound of type parameter uses are also checked.
-    private boolean isInAbstractState(Element elt, PICOAnnotatedTypeFactory typeFactory) {
+    private boolean isInAbstractState(Element elt, PICONoInitAnnotatedTypeFactory typeFactory) {
         boolean in = true;
         if (PICOTypeUtil.isAssignableField(elt, typeFactory)) {
             in = false;

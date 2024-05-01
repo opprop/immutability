@@ -23,26 +23,19 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
-import org.checkerframework.framework.type.AnnotatedTypeFactory;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.*;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
-import org.checkerframework.framework.type.QualifierHierarchy;
-import org.checkerframework.framework.type.ViewpointAdapter;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.Pair;
-import org.checkerframework.javacutil.TreeUtils;
-import org.checkerframework.javacutil.TreePathUtil;
+import org.checkerframework.javacutil.*;
 import pico.common.ExtendedViewpointAdapter;
 import pico.common.ViewpointAdapterGettable;
-import pico.typecheck.PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator;
 import pico.common.PICOTypeUtil;
+import pico.typecheck.PICONoInitAnnotatedTypeFactory;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -95,7 +88,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         // Reuse PICODefaultForTypeAnnotator even in inference mode. Because the type annotator's implementation
         // are the same. The only drawback is that naming is not good(doesn't include "Inference"), thus may be
         // hard to debug
-        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICODefaultForTypeAnnotator(this));
+        return new ListTypeAnnotator(super.createTypeAnnotator(), new PICONoInitAnnotatedTypeFactory.PICODefaultForTypeAnnotator(this));
     }
 
     @Override
@@ -129,7 +122,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         if (enclosingClass == null) {
             // I hope this only happens when tree is a fake tree that
             // we created, e.g. when desugaring enhanced-for-loops.
-            enclosingClass = getCurrentClassTree(tree);
+            enclosingClass = TreePathUtil.enclosingClass(getPath(tree));
         }
         // "type" is right now VarAnnot inserted to the bound of "enclosingClass"
         AnnotatedDeclaredType type = getAnnotatedType(enclosingClass);
@@ -158,29 +151,29 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     }
 
     @Override
-    protected Set<? extends AnnotationMirror> getDefaultTypeDeclarationBounds() {
-        return Collections.singleton(MUTABLE);
+    protected AnnotationMirrorSet getDefaultTypeDeclarationBounds() {
+        return new AnnotationMirrorSet(MUTABLE);
     }
 
     @Override
     protected QualifierHierarchy createQualifierHierarchy() {
-        return new PICOInferenceQualifierHierarchy(getSupportedTypeQualifiers(), elements);
+        return new PICOInferenceQualifierHierarchy(getSupportedTypeQualifiers(), elements, this);
     }
 
     @Override
-    public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
+    public AnnotationMirrorSet getTypeDeclarationBounds(TypeMirror type) {
         // Get the VarAnnot on the class decl
         // This factory is only invoked on inference, so no need to provide concrete anno for type-check
         if (type instanceof PrimitiveType) {
-            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
+            return new AnnotationMirrorSet(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
         }
         if (type.getKind() == TypeKind.ARRAY) {
             // WORKAROUND: return RDM will cause issues with new clauses
-            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(READONLY)));
+            return new AnnotationMirrorSet(slotManager.getAnnotation(slotManager.getSlot(READONLY)));
         }
 
         if (PICOTypeUtil.isEnumOrEnumConstant(type)) {
-            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
+            return new AnnotationMirrorSet(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
         }
 //        AnnotatedTypeMirror atm = toAnnotatedType(type, true);
 //        if (atm instanceof AnnotatedDeclaredType && ((AnnotatedDeclaredType) atm).getTypeArguments().size() > 0) {
@@ -199,7 +192,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
 //        }
         AnnotationMirror am = ((PICOVariableAnnotator) variableAnnotator).getClassDeclAnno(getProcessingEnv().getTypeUtils().asElement(type));
         if (am != null) {
-            return Collections.singleton(am);
+            return new AnnotationMirrorSet(am);
         }
 
         // if reaching this point and still no anno: not annotated from slot manager
@@ -208,7 +201,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
 
         // implicit
         if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
-            return Collections.singleton(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
+            return new AnnotationMirrorSet(slotManager.getAnnotation(slotManager.getSlot(IMMUTABLE)));
         }
 
         // get stub & default from element.
@@ -216,11 +209,11 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         if (atm != null) {
             Set<AnnotationMirror> set = atm.getAnnotations();
             if (!set.isEmpty()) {
-                return Collections.singleton(
+                return new AnnotationMirrorSet(
                         slotManager.getAnnotation(slotManager.getSlot(set.iterator().next())));
             }
         }
-        return Collections.singleton(
+        return new AnnotationMirrorSet(
                 slotManager.getAnnotation(slotManager.getSlot(super.getTypeDeclarationBounds(type).iterator().next())));
     }
 
@@ -270,12 +263,14 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
     protected class PICOInferenceQualifierHierarchy extends InferenceQualifierHierarchy {
 
         public PICOInferenceQualifierHierarchy(
-                Collection<Class<? extends Annotation>> qualifierClasses, Elements elements) {
-            super(qualifierClasses, elements);
+                Set<Class<? extends Annotation>> qualifierClasses,
+                Elements elements,
+                GenericAnnotatedTypeFactory<?, ?, ?, ?> atypeFactory) {
+            super(qualifierClasses, elements, atypeFactory);
         }
 
         @Override
-        public boolean isSubtype(final AnnotationMirror subtype, final AnnotationMirror supertype) {
+        public boolean isSubtypeQualifiers(final AnnotationMirror subtype, final AnnotationMirror supertype) {
 
             if (subtype == null || supertype == null || !isVarAnnot(subtype) || !isVarAnnot(supertype)) {
                 if (InferenceMain.isHackMode()) {

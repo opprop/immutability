@@ -30,18 +30,14 @@ import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.type.typeannotator.*;
 import org.checkerframework.framework.util.defaults.QualifierDefaults;
-import org.checkerframework.javacutil.AnnotationBuilder;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.TreeUtils;
-import org.checkerframework.javacutil.TreePathUtil;
+import org.checkerframework.javacutil.*;
 
 import com.sun.source.tree.Tree;
 
 import pico.common.ExtendedViewpointAdapter;
 import pico.common.ViewpointAdapterGettable;
-import pico.typecheck.PICOAnnotatedTypeFactory;
 import pico.common.PICOTypeUtil;
+import pico.typecheck.PICONoInitAnnotatedTypeFactory;
 import pico.typecheck.PICOViewpointAdapter;
 import qual.Bottom;
 import qual.Immutable;
@@ -99,10 +95,10 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
     @Override
     protected TreeAnnotator createTreeAnnotator() {
         return new ListTreeAnnotator(
-                new PICOAnnotatedTypeFactory.PICOPropagationTreeAnnotator(this),
+                new PICONoInitAnnotatedTypeFactory.PICOPropagationTreeAnnotator(this),
                 new LiteralTreeAnnotator(this),
-                new PICOAnnotatedTypeFactory.PICOSuperClauseAnnotator(this),
-                new PICOAnnotatedTypeFactory.PICOTreeAnnotator(this));
+                new PICONoInitAnnotatedTypeFactory.PICOSuperClauseAnnotator(this),
+                new PICONoInitAnnotatedTypeFactory.PICOTreeAnnotator(this));
     }
 
     // TODO Refactor super class to remove this duplicate code
@@ -117,17 +113,16 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
             // Must be first in order to annotated all irrelevant types that are not explicilty
             // annotated.
             typeAnnotators.add(
-                    new IrrelevantTypeAnnotator(
-                            this, getQualifierHierarchy().getTopAnnotations()));
+                    new IrrelevantTypeAnnotator(this));
         }
         typeAnnotators.add(new PropagationTypeAnnotator(this));
         /*Copied code ends*/
         // Adding order is important here. Because internally type annotators are using addMissingAnnotations()
         // method, so if one annotator already applied the annotations, the others won't apply twice at the
         // same location
-        typeAnnotators.add(new PICOAnnotatedTypeFactory.PICOTypeAnnotator(this));
-        typeAnnotators.add(new PICOAnnotatedTypeFactory.PICODefaultForTypeAnnotator(this));
-        typeAnnotators.add(new PICOAnnotatedTypeFactory.PICOEnumDefaultAnnotator(this));
+        typeAnnotators.add(new PICONoInitAnnotatedTypeFactory.PICOTypeAnnotator(this));
+        typeAnnotators.add(new PICONoInitAnnotatedTypeFactory.PICODefaultForTypeAnnotator(this));
+        typeAnnotators.add(new PICONoInitAnnotatedTypeFactory.PICOEnumDefaultAnnotator(this));
         return new ListTypeAnnotator(typeAnnotators);
     }
 
@@ -227,7 +222,7 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
 
     @Override
     protected DefaultQualifierForUseTypeAnnotator createDefaultForUseTypeAnnotator() {
-        return new PICOAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(this);
+        return new PICONoInitAnnotatedTypeFactory.PICOQualifierForUseTypeAnnotator(this);
     }
 
     @Override
@@ -259,18 +254,18 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
     }
 
     @Override
-    protected Set<? extends AnnotationMirror> getDefaultTypeDeclarationBounds() {
-        return Collections.singleton(MUTABLE);
+    protected AnnotationMirrorSet getDefaultTypeDeclarationBounds() {
+        return new AnnotationMirrorSet(MUTABLE);
     }
 
     @Override
-    public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
+    public AnnotationMirrorSet getTypeDeclarationBounds(TypeMirror type) {
         // TODO too awkward. maybe overload isImplicitlyImmutableType
         if (PICOTypeUtil.isImplicitlyImmutableType(toAnnotatedType(type, false))) {
-            return Collections.singleton(IMMUTABLE);
+            return new AnnotationMirrorSet(IMMUTABLE);
         }
         if (type.getKind() == TypeKind.ARRAY) {
-            return Collections.singleton(READONLY); // if decided to use vpa for array, return RDM.
+            return new AnnotationMirrorSet(READONLY); // if decided to use vpa for array, return RDM.
         }
 
         // IMMUTABLE for enum w/o decl anno
@@ -279,7 +274,7 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
             if (ele.getKind() == ElementKind.ENUM) {
                 if (!AnnotationUtils.containsSameByName(getDeclAnnotations(ele), MUTABLE) &&
                         !AnnotationUtils.containsSameByName(getDeclAnnotations(ele), RECEIVER_DEPENDANT_MUTABLE)) { // no decl anno
-                    return Collections.singleton(IMMUTABLE);
+                    return new AnnotationMirrorSet(IMMUTABLE);
                 }
             }
         }

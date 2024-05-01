@@ -34,12 +34,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclared
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.TreeUtils;
-import org.checkerframework.javacutil.TreePathUtil;
-import org.checkerframework.javacutil.TypesUtils;
+import org.checkerframework.javacutil.*;
 import pico.common.ExtendedViewpointAdapter;
 import pico.common.ViewpointAdapterGettable;
 import pico.common.PICOTypeUtil;
@@ -191,7 +186,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     public void mainIsSubtype(AnnotatedTypeMirror ty, AnnotationMirror mod, String msgkey, Tree node) {
         if (infer) {
             super.mainIsSubtype(ty, mod, msgkey, node);
-        } else if (!atypeFactory.getQualifierHierarchy().isSubtype(ty.getAnnotationInHierarchy(mod), mod)){
+        } else if (!atypeFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(ty.getAnnotationInHierarchy(mod), mod)){
             checker.reportError(node, msgkey, ty.getAnnotations().toString(), mod.toString());
         }
     }
@@ -368,7 +363,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (useAnno != null && !PICOTypeUtil.isImplicitlyImmutableType(type) && type.getKind() != TypeKind.ARRAY) {  // TODO: annotate the use instead of using this
             AnnotationMirror defaultAnno = MUTABLE;
             for (AnnotationMirror anno : atypeFactory.getTypeDeclarationBounds(type.getUnderlyingType())) {
-                if (atypeFactory.getQualifierHierarchy().isSubtype(anno, READONLY) && !AnnotationUtils.areSame(anno, READONLY)) {
+                if (atypeFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(anno, READONLY) && !AnnotationUtils.areSame(anno, READONLY)) {
                     defaultAnno = anno;
                 }
             }
@@ -706,8 +701,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 // Special handling for case with two ConstantSlots: even though they may not be comparable,
                 // but to infer more program, let this case fall back to "anycast" silently and continue
                 // inference.
-                return qualHierarchy.isSubtype(castCSSlot.getValue(), exprCSSlot.getValue())
-                		|| qualHierarchy.isSubtype(exprCSSlot.getValue(), castCSSlot.getValue());
+                return qualHierarchy.isSubtypeQualifiersOnly(castCSSlot.getValue(), exprCSSlot.getValue())
+                		|| qualHierarchy.isSubtypeQualifiersOnly(exprCSSlot.getValue(), castCSSlot.getValue());
             } else {
                 // But if there is at least on VariableSlot, PICOInfer guarantees that solutions don't include
                 // incomparable casts.
@@ -950,8 +945,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     @Override
-    protected Set<? extends AnnotationMirror> getExceptionParameterLowerBoundAnnotations() {
-        Set<AnnotationMirror> result = new HashSet<>();
+    protected AnnotationMirrorSet getExceptionParameterLowerBoundAnnotations() {
+        AnnotationMirrorSet result = new AnnotationMirrorSet();
         if (infer) {
             result.add(PICOTypeUtil.createEquivalentVarAnnotOfRealQualifier(BOTTOM));
         } else {
@@ -961,8 +956,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     }
 
     @Override
-    protected Set<? extends AnnotationMirror> getThrowUpperBoundAnnotations() {
-        Set<AnnotationMirror> result = new HashSet<>();
+    protected AnnotationMirrorSet getThrowUpperBoundAnnotations() {
+        AnnotationMirrorSet result = new AnnotationMirrorSet();
         if (infer) {
             result.add(PICOTypeUtil.createEquivalentVarAnnotOfRealQualifier(READONLY));
         } else {
@@ -1016,12 +1011,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         checkSuperClauseEquals(node, bound);
         // Always reach this point. Do not suppress errors.
         super.processClassTree(node);
-    }
-
-    @Override
-    protected void checkExtendsImplements(ClassTree classTree) {
-        // do not use CF's checkExtendsImplements which will generate subtype constraints.
-        // maybe extract a method between class bound and extends/implements annos and override that.
     }
 
     /**
@@ -1109,7 +1098,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
      * @param errorKey the error message to use if the check fails (must be a
      */
     @Override
-    protected void commonAssignmentCheck(
+    protected boolean commonAssignmentCheck(
             Tree varTree, ExpressionTree valueExp, String errorKey, Object... extraArgs) {
         AnnotatedTypeMirror var = atypeFactory.getAnnotatedTypeLhs(varTree);
         assert var != null : "no variable found for tree: " + varTree;
@@ -1121,7 +1110,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // it still got "refined"
         // Maybe updating the flow-sensitive logic to not refined to invalid type?
         if (!validateType(varTree, var)) {
-            return;
+            return false;
         }
 
         if (varTree instanceof VariableTree) {
@@ -1138,16 +1127,15 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 // Caution: cannot pass var directly. Modifying type in PICOInferenceTreeAnnotator#
                 // visitVariable() will cause wrong type to be gotton here, as on inference side,
                 // atm is uniquely determined by each element.
-                commonAssignmentCheck(varAdapted, valueExp, errorKey, extraArgs);
-                return;
+                return commonAssignmentCheck(varAdapted, valueExp, errorKey, extraArgs);
             }
         }
 
-        commonAssignmentCheck(var, valueExp, errorKey, extraArgs);
+        return commonAssignmentCheck(var, valueExp, errorKey, extraArgs);
     }
 
     @Override
-    protected void commonAssignmentCheck(AnnotatedTypeMirror varType,
+    protected boolean commonAssignmentCheck(AnnotatedTypeMirror varType,
                                          AnnotatedTypeMirror valueType, Tree valueTree,
                                                  String errorKey, Object... extraArgs) {
         // TODO: WORKAROUND: anonymous class handling
@@ -1158,7 +1146,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
             valueType = newValueType;
         }
-        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
-
+        return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
     }
 }

@@ -15,7 +15,7 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import pico.common.PICOTypeUtil;
-import pico.typecheck.PICOAnnotatedTypeFactory;
+import pico.typecheck.PICONoInitAnnotatedTypeFactory;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
@@ -89,7 +89,7 @@ public class PICOInferenceValidator extends InferenceValidator{
         } else {
             // check top annotations in extends/implements clauses
             if ((tree.getKind() == Tree.Kind.IDENTIFIER || tree.getKind() == Tree.Kind.PARAMETERIZED_TYPE) &&
-                    PICOAnnotatedTypeFactory.PICOSuperClauseAnnotator.isSuperClause(atypeFactory.getPath(tree))) {
+                    PICONoInitAnnotatedTypeFactory.PICOSuperClauseAnnotator.isSuperClause(atypeFactory.getPath(tree))) {
                 return true;
             }
             // allow RDM on mutable fields with enclosing class bounded with mutable
