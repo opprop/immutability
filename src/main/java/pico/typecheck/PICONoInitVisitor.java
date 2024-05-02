@@ -1,5 +1,6 @@
 package pico.typecheck;
 
+import static org.checkerframework.javacutil.TreePathUtil.isTopLevelAssignmentInInitializerBlock;
 import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
@@ -376,6 +377,10 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
         MethodTree enclosingMethod = TreePathUtil.enclosingMethod(getCurrentPath());
         if (enclosingMethod != null && TreeUtils.isConstructor(enclosingMethod)) {
             // If the enclosing method is constructor, we don't need to check the receiver type
+            return;
+        }
+        if (isTopLevelAssignmentInInitializerBlock(getCurrentPath())) {
+            // If the assignment is in initializer block, we don't need to check the receiver type
             return;
         }
         // Cannot use receiverTree = TreeUtils.getReceiverTree(variable) to determine if it's
