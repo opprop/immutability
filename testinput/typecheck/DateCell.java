@@ -9,7 +9,6 @@ import java.util.Date;
 
 @ReceiverDependantMutable public class DateCell {
 
-    // :: error: (initialization.field.uninitialized)
     @ReceiverDependantMutable Date date;
 
     @ReceiverDependantMutable Date getDate(@ReceiverDependantMutable DateCell this) {

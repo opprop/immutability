@@ -20,7 +20,7 @@ public class EnumConstantNotAlwaysMutable {
     @Mutable Kind invalidKind2;
     // no error now
     @Readonly Kind invalidKind3;
-
+    // :: error: (initialization.fields.uninitialized)
     EnumConstantNotAlwaysMutable() {
         // Kind.SOME should be @Immutable
         kind = Kind.SOME;
