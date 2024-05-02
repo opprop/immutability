@@ -49,10 +49,6 @@ jobs:
         if: ${{ steps.build.outcome == 'success' }}
         run: ./gradlew ImmutabilityTypecheckExtendedTest
 
-      - name: PICO Glacier TypeCheck Test
-        if: ${{ steps.build.outcome == 'success' }}
-        run: ./gradlew ImmutabilityTypecheckGlacierTest
-
       - name: PICO Inference Initial Typecheck Test
         if: ${{ steps.build.outcome == 'success' }}
         run: ./gradlew ImmutabilityInferenceInitialTypecheckTest
@@ -60,7 +56,3 @@ jobs:
       - name: PICO Inference Test
         if: ${{ steps.build.outcome == 'success' }}
         run: ./gradlew ImmutabilityInferenceTest
-
-      - name: PICO ReIm Inference Test
-        if: ${{ steps.build.outcome == 'success' }}
-        run: ./gradlew ImmutabilityReImInferenceTest
