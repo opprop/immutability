@@ -19,7 +19,7 @@ import javax.lang.model.util.Elements;
 import checkers.inference.BaseInferenceRealTypeFactory;
 import com.sun.source.tree.NewClassTree;
 import com.sun.tools.javac.tree.JCTree;
-import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
+import org.checkerframework.checker.initialization.InitializationFieldAccessTreeAnnotator;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.qual.TypeUseLocation;
@@ -94,11 +94,13 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
     /**Annotators are executed by the added order. Same for Type Annotator*/
     @Override
     protected TreeAnnotator createTreeAnnotator() {
-        return new ListTreeAnnotator(
-                new PICONoInitAnnotatedTypeFactory.PICOPropagationTreeAnnotator(this),
-                new LiteralTreeAnnotator(this),
-                new PICONoInitAnnotatedTypeFactory.PICOSuperClauseAnnotator(this),
-                new PICONoInitAnnotatedTypeFactory.PICOTreeAnnotator(this));
+        List<TreeAnnotator> annotators = new ArrayList<>(5);
+        annotators.add(new InitializationFieldAccessTreeAnnotator(this));
+        annotators.add(new PICONoInitAnnotatedTypeFactory.PICOPropagationTreeAnnotator(this));
+        annotators.add(new LiteralTreeAnnotator(this));
+        annotators.add(new PICONoInitAnnotatedTypeFactory.PICOSuperClauseAnnotator(this));
+        annotators.add(new PICONoInitAnnotatedTypeFactory.PICOTreeAnnotator(this));
+        return new ListTreeAnnotator(annotators);
     }
 
     // TODO Refactor super class to remove this duplicate code

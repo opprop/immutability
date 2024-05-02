@@ -27,7 +27,7 @@ for i in "$@" ; do
 
     if [[ $i == "-i" ]] ; then
         echo "Typecheck using PICOInferenceChecker typechecking mode"
-        CHECKER="pico.inference.PICOInferenceChecker"
+        CHECKER="pico.inference.PICOChecker"
         continue
     fi
     ARGS[${#ARGS[@]}]="$i"

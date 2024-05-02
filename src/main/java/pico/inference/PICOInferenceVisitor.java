@@ -490,7 +490,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             bound = PICOTypeUtil.getBoundTypeOfEnclosingTypeDeclaration(node, atypeFactory);
         }
         assert bound != null;
-        assert !bound.hasAnnotation(POLY_MUTABLE) : "BOUND CANNOT BE POLY";
 
         // cannot infer poly, but can use it for type-check.
         mainCannotInferTo(executableType.getReturnType(), POLY_MUTABLE, "cannot.infer.poly", node);
@@ -545,7 +544,11 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 
         flexibleOverrideChecker(node);
 
-        // TODO Object identity check
+        // ObjectIdentityMethod check
+        if (PICOTypeUtil.isObjectIdentityMethod(node, atypeFactory)) {
+            ObjectIdentityMethodEnforcer.check(
+                    atypeFactory.getPath(node.getBody()), (PICOInferenceRealTypeFactory) atypeFactory, checker);
+        }
         return super.visitMethod(node, p);
     }
     /*
@@ -1011,6 +1014,12 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         checkSuperClauseEquals(node, bound);
         // Always reach this point. Do not suppress errors.
         super.processClassTree(node);
+    }
+
+    @Override
+    protected void checkExtendsAndImplements(ClassTree classTree) {
+        // do not use CF's checkExtendsImplements which will generate subtype constraints.
+        // maybe extract a method between class bound and extends/implements annos and override that.
     }
 
     /**

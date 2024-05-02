@@ -1,7 +1,6 @@
 import qual.Immutable;
 import qual.Mutable;
 import qual.ReceiverDependantMutable;
-
 public class BoundIncompatible implements java.io.Serializable{}
 
 @Mutable
