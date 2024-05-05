@@ -81,6 +81,7 @@ sourceSets {
 compileJava {
     options.compilerArgs = [
             '-implicit:class',
+            '-Xlint:deprecation',
             '-Awarns',
             '-Xmaxwarns', '10000',
     ]

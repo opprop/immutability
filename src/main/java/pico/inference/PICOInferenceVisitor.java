@@ -121,14 +121,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 }
                 isAdaptedSubtype(useType, declarationType, "type.invalid.annotations.on.use", tree);
                 // type-check
-                return !AnnotationUtils.areSame(enclosingBound, MUTABLE) ||
-                            ifAnnoIsThenMainIsOneOf(extractVarAnnot(declarationType), MUTABLE, useType,
-                            new AnnotationMirror[]{MUTABLE, RECEIVER_DEPENDANT_MUTABLE});
-//                if(declarationType.hasAnnotation(MUTABLE)
-//                && useType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
-//                && AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
-//                    return true;
-//                }
+                return isAdaptedSubtype(useType.getAnnotationInHierarchy(READONLY), declarationType.getAnnotationInHierarchy(READONLY));
             }
 
         }
@@ -159,6 +152,13 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         mainIsSubtype(adapted, extractVarAnnot(lhs), msgKey, node);
     }
 
+    private boolean isAdaptedSubtype(AnnotationMirror lhs, AnnotationMirror rhs) {
+        ExtendedViewpointAdapter vpa =
+                ((ViewpointAdapterGettable) atypeFactory).getViewpointAdapter();
+        AnnotationMirror adapted = vpa.rawCombineAnnotationWithAnnotation(lhs, rhs);
+        return atypeFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(adapted, lhs);
+    }
+
     private Constraint createAdaptedSubtypeConstraint(AnnotatedTypeMirror lhs, AnnotatedTypeMirror rhs) {
         assert infer;
         final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
@@ -171,16 +171,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 slotManager.getSlot(lhs)
         );
     }
-
-//    @Override
-//    public boolean mainIsSubtype(AnnotatedTypeMirror ty, AnnotationMirror mod) {
-//        // TODO push change to cfi
-//        boolean s = super.mainIsSubtype(ty, mod); // execute only once to avoid side-effects
-//        if (!s) {
-//            return atypeFactory.getQualifierHierarchy().isSubtype(ty.getAnnotationInHierarchy(mod), mod);
-//        }
-//        return true;
-//    }
 
     @Override
     public void mainIsSubtype(AnnotatedTypeMirror ty, AnnotationMirror mod, String msgkey, Tree node) {
@@ -247,23 +237,23 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
 //        // extends clause kind = IDENTIFIER. an annotator is added for defaulting
 //    }
 
-    // TODO This might not be correct for infer mode. Maybe returning as it is
-    @Override
-    public boolean validateType(Tree tree, AnnotatedTypeMirror type) {
-
-        if (!typeValidator.isValid(type, tree)) {  // in inference, isValid never return false
-                return false;
-        }
-        // The initial purpose of always returning true in validateTypeOf in inference mode
-        // might be that inference we want to generate constraints over all the ast location,
-        // but not like in typechecking mode, if something is not valid, we abort checking the
-        // remaining parts that are based on the invalid type. For example, in assignment, if
-        // rhs is not valid, we don't check the validity of assignment. But in inference,
-        // we always generate constraints on all places and let solver to decide if there is
-        // solution or not. This might be the reason why we have a always true if statement and
-        // validity check always returns true.
-        return true;
-    }
+//    // TODO This might not be correct for infer mode. Maybe returning as it is
+//    @Override
+//    public boolean validateType(Tree tree, AnnotatedTypeMirror type) {
+//
+//        if (!typeValidator.isValid(type, tree)) {  // in inference, isValid never return false
+//                return false;
+//        }
+//        // The initial purpose of always returning true in validateTypeOf in inference mode
+//        // might be that inference we want to generate constraints over all the ast location,
+//        // but not like in typechecking mode, if something is not valid, we abort checking the
+//        // remaining parts that are based on the invalid type. For example, in assignment, if
+//        // rhs is not valid, we don't check the validity of assignment. But in inference,
+//        // we always generate constraints on all places and let solver to decide if there is
+//        // solution or not. This might be the reason why we have a always true if statement and
+//        // validity check always returns true.
+//        return true;
+//    }
 
     @Override
     protected void checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
@@ -271,7 +261,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         if (infer) {
             mainIsSubtype(invocation, constructorReturn, "constructor.invocation.invalid", newClassTree);
         } else {
-
+            if (!atypeFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(invocation.getAnnotationInHierarchy(READONLY), constructorReturn)) {
+                checker.reportError(newClassTree, "constructor.invocation.invalid", invocation.getAnnotations().toString(), constructorReturn.toString());
+            }
         }
 
         super.checkConstructorInvocation(invocation, constructor, newClassTree);
@@ -344,7 +336,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 }
             }
 
-            Set<AnnotationMirror> declAnno = atypeFactory.getTypeDeclarationBounds(type.getUnderlyingType());
+            AnnotationMirrorSet declAnno = atypeFactory.getTypeDeclarationBounds(type.getUnderlyingType());
             if ((declAnno != null && AnnotationUtils.containsSameByName(declAnno, IMMUTABLE)) ||
                     element.getKind() != ElementKind.FIELD || !type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
                 checkAndReportInvalidAnnotationOnUse(type, node);
@@ -367,9 +359,9 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                     defaultAnno = anno;
                 }
             }
-            AnnotatedTypeMirror declATM = type.deepCopy();
-            declATM.replaceAnnotation(defaultAnno);
-            isAdaptedSubtype(type, declATM, "type.invalid.annotations.on.use", tree);
+            if (!isAdaptedSubtype(useAnno, defaultAnno)) {
+                checker.reportError(tree, "type.invalid.annotations.on.use", defaultAnno, useAnno);
+            }
         }
     }
 
@@ -982,6 +974,13 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
 
         if (!infer) {
+            // Has to be either @Mutable, @ReceiverDependantMutable or @Immutable, nothing else
+            if (!bound.hasAnnotation(MUTABLE)
+                    && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
+                    && !bound.hasAnnotation(IMMUTABLE)) {
+                checker.reportError(node, "class.bound.invalid", bound);
+                return; // Doesn't process the class tree anymore
+            }
             if (bound.hasAnnotation(IMMUTABLE) || bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
                 for(Tree member : node.getMembers()) {
                     if(member.getKind() == Kind.VARIABLE) {
@@ -995,7 +994,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                         }
                         if (AnnotationUtils.containsSameByName(
                                 atypeFactory.getTypeDeclarationBounds(ty), MUTABLE)
-                                && !noDefaultMirror.isAnnotatedInHierarchy(READONLY)) {
+                                && !noDefaultMirror.hasAnnotationInHierarchy(READONLY)) {
                             checker.reportError(member, "implicit.shallow.immutable");
                         }
 

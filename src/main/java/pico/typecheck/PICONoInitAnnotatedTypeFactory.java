@@ -663,7 +663,7 @@ public class PICONoInitAnnotatedTypeFactory
             // Here only explicit annotation on super clause have effect because framework default
             // rule is overriden
             if (isSuperClause(path)
-                    && (!mirror.isAnnotatedInHierarchy(READONLY)
+                    && (!mirror.hasAnnotationInHierarchy(READONLY)
                             || atypeFactory
                                             .getQualifierHierarchy()
                                             .findAnnotationInHierarchy(
