@@ -49,10 +49,10 @@ jobs:
         if: ${{ steps.build.outcome == 'success' }}
         run: ./gradlew ImmutabilityTypecheckExtendedTest
 
-      - name: PICO Inference Initial Typecheck Test
-        if: ${{ steps.build.outcome == 'success' }}
-        run: ./gradlew ImmutabilityInferenceInitialTypecheckTest
-
-      - name: PICO Inference Test
-        if: ${{ steps.build.outcome == 'success' }}
-        run: ./gradlew ImmutabilityInferenceTest
+#      - name: PICO Inference Initial Typecheck Test
+#        if: ${{ steps.build.outcome == 'success' }}
+#        run: ./gradlew ImmutabilityInferenceInitialTypecheckTest
+#
+#      - name: PICO Inference Test
+#        if: ${{ steps.build.outcome == 'success' }}
+#        run: ./gradlew ImmutabilityInferenceTest

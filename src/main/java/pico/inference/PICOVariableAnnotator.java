@@ -115,7 +115,7 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         AnnotationMirror declSlot = getClassDeclVarAnnot(classDecl);
         if (declSlot == null) {
             // if a explicit annotation presents on the class DECL, use that directly
-            if (type.isDeclaration() && type.isAnnotatedInHierarchy(READONLY) && !type.hasAnnotation(READONLY)) {
+            if (type.isDeclaration() && type.hasAnnotationInHierarchy(READONLY) && !type.hasAnnotation(READONLY)) {
                 Slot constantSlot = slotManager.getSlot(type.getAnnotationInHierarchy(READONLY));
 //                TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
                 super.getOrCreateDeclBound(type);
@@ -163,7 +163,7 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         // If an explicit bound exists, the annotator will still place a constant slot on the bound,
         // which will considered invalid by CF.
         // Maybe not putting an anno at all during bound slot generation would be better?
-        if (atm.hasAnnotation(VarAnnot.class) && atm.isAnnotatedInHierarchy(READONLY)) {
+        if (atm.hasAnnotation(VarAnnot.class) && atm.hasAnnotationInHierarchy(READONLY)) {
             atm.removeAnnotationInHierarchy(READONLY);
         }
         super.storeElementType(element, atm);
@@ -288,7 +288,7 @@ public class PICOVariableAnnotator extends VariableAnnotator {
 
     @Override
     public void handleBinaryTree(AnnotatedTypeMirror atm, BinaryTree binaryTree) {
-        if (atm.isAnnotatedInHierarchy(inferenceTypeFactory.getVarAnnot())) {
+        if (atm.hasAnnotationInHierarchy(inferenceTypeFactory.getVarAnnot())) {
             // Happens for binary trees whose atm is implicitly immutable and already handled by
             // PICOInferencePropagationTreeAnnotator
             return;

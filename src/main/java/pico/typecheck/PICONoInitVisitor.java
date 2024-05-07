@@ -465,7 +465,7 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
         return super.visitVariable(node, p);
     }
 
-    private void checkAndReportInvalidAnnotationOnUse(AnnotatedTypeMirror type, Tree node) {
+    private void checkAndReportInvalidAnnotationOnUse(AnnotatedTypeMirror type, Tree tree) {
         AnnotationMirror useAnno = type.getAnnotationInHierarchy(READONLY);
         // FIXME rm after poly vp
         if (useAnno != null && AnnotationUtils.areSame(useAnno, POLY_MUTABLE)) {
@@ -484,7 +484,7 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
                 }
             }
             if (!isAdaptedSubtype(useAnno, defaultAnno)) {
-                checker.reportError(node, "type.invalid.annotations.on.use", defaultAnno, useAnno);
+                checker.reportError(tree, "type.invalid.annotations.on.use", defaultAnno, useAnno);
             }
         }
     }
@@ -629,7 +629,7 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
                     }
                     if (AnnotationUtils.containsSameByName(
                                     atypeFactory.getTypeDeclarationBounds(ty), MUTABLE)
-                            && !noDefaultMirror.isAnnotatedInHierarchy(READONLY)) {
+                            && !noDefaultMirror.hasAnnotationInHierarchy(READONLY)) {
                         checker.reportError(member, "implicit.shallow.immutable");
                     }
                 }

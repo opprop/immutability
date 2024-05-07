@@ -197,8 +197,8 @@ public class PICOTypeUtil {
 
     public static boolean isObjectIdentityMethod(MethodTree node,
                                                  AnnotatedTypeFactory annotatedTypeFactory) {
-        Element element = TreeUtils.elementFromTree(node);
-        return isObjectIdentityMethod((ExecutableElement) element, annotatedTypeFactory);
+        ExecutableElement element = TreeUtils.elementFromDeclaration(node);
+        return isObjectIdentityMethod(element, annotatedTypeFactory);
 
     }
 
@@ -241,14 +241,14 @@ public class PICOTypeUtil {
         if (element != null && element.getKind() == ElementKind.FIELD) {
            if (ElementUtils.isStatic(element)) {
                AnnotatedTypeMirror explicitATM = annotatedTypeFactory.fromElement(element);
-               if (!explicitATM.isAnnotatedInHierarchy(READONLY)) {
+               if (!explicitATM.hasAnnotationInHierarchy(READONLY)) {
                    if (!PICOTypeUtil.isImplicitlyImmutableType(explicitATM)) {
                        annotatedTypeMirror.replaceAnnotation(MUTABLE);
                    }
                }
            } else {
                AnnotatedTypeMirror explicitATM = annotatedTypeFactory.fromElement(element);
-               if (!explicitATM.isAnnotatedInHierarchy(READONLY)) {
+               if (!explicitATM.hasAnnotationInHierarchy(READONLY)) {
                    if (explicitATM instanceof AnnotatedDeclaredType) {
                        AnnotatedDeclaredType adt = (AnnotatedDeclaredType) explicitATM;
                        Element typeElement = adt.getUnderlyingType().asElement();

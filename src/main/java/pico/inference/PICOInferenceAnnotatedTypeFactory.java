@@ -243,7 +243,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         @Override
         public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
             applyImmutableIfImplicitlyImmutable(type);// Must run before calling super method to respect existing annotation
-            if (type.isAnnotatedInHierarchy(READONLY)) {
+            if (type.hasAnnotationInHierarchy(READONLY)) {
                 // VarAnnot is guarenteed to not exist on type, because PropagationTreeAnnotator has the highest previledge
                 // So VarAnnot hasn't been inserted to cast type yet.
                 PICOTypeUtil.applyConstant(type, type.getAnnotationInHierarchy(READONLY));

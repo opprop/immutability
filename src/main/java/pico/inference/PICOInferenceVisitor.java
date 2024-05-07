@@ -992,7 +992,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                         }
                         if (AnnotationUtils.containsSameByName(
                                 atypeFactory.getTypeDeclarationBounds(ty), MUTABLE)
-                                && !noDefaultMirror.isAnnotatedInHierarchy(READONLY)) {
+                                && !noDefaultMirror.hasAnnotationInHierarchy(READONLY)) {
                             checker.reportError(member, "implicit.shallow.immutable");
                         }
 

@@ -239,7 +239,7 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
         }
         AnnotationMirror mainBound = enclosing.getAnnotationInHierarchy(READONLY);
         AnnotatedTypeMirror fromTypeTree = this.getAnnotatedTypeFromTypeTree(clause);
-        if (!fromTypeTree.isAnnotatedInHierarchy(READONLY)) {
+        if (!fromTypeTree.hasAnnotationInHierarchy(READONLY)) {
             fromTypeTree.addAnnotation(mainBound);
         }
 
