@@ -6,6 +6,7 @@ import org.checkerframework.checker.initialization.InitializationFieldAccessSubc
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
+import org.checkerframework.common.reflection.MethodValChecker;
 import org.checkerframework.framework.source.SupportedOptions;
 import pico.typecheck.PICOAnnotationMirrorHolder;
 
@@ -13,8 +14,9 @@ import java.util.Set;
 
 /**
  * Main entry class
+ * useForInference is a key for inference task only as the current inference does not support initialization inference
  */
-@SupportedOptions({"upcast", "anycast", "comparablecast", "optimalSolution", "useOptimisticUncheckedDefaults"})
+@SupportedOptions({"upcast", "anycast", "comparablecast", "optimalSolution", "useOptimisticUncheckedDefaults", "useForInference"})
 public class PICOInferenceChecker extends BaseInferrableChecker {
 
     @Override
@@ -43,11 +45,17 @@ public class PICOInferenceChecker extends BaseInferrableChecker {
         return (PICOInferenceRealTypeFactory) super.getTypeFactory();
     }
 
+    private Set<Class<? extends BaseTypeChecker>> cachedCheckers = null;
+
     @Override
     protected Set<Class<? extends BaseTypeChecker>> getImmediateSubcheckerClasses() {
-        Set<Class<? extends BaseTypeChecker>> checkers = super.getImmediateSubcheckerClasses();
-        checkers.add(InitializationFieldAccessSubchecker.class);
-        return checkers;
+        if (cachedCheckers == null) {
+            cachedCheckers = super.getImmediateSubcheckerClasses();
+            if (!hasOption("useForInference")) {
+                cachedCheckers.add(InitializationFieldAccessSubchecker.class);
+            }
+        }
+        return cachedCheckers;
     }
 
     @Override

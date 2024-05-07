@@ -25,6 +25,8 @@ import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.qual.TypeUseLocation;
 import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.NoElementQualifierHierarchy;
+import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
@@ -95,7 +97,9 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
     @Override
     protected TreeAnnotator createTreeAnnotator() {
         List<TreeAnnotator> annotators = new ArrayList<>(5);
-        annotators.add(new InitializationFieldAccessTreeAnnotator(this));
+        if(!checker.hasOption("useForInference")){
+            annotators.add(new InitializationFieldAccessTreeAnnotator(this));
+        }
         annotators.add(new PICONoInitAnnotatedTypeFactory.PICOPropagationTreeAnnotator(this));
         annotators.add(new LiteralTreeAnnotator(this));
         annotators.add(new PICONoInitAnnotatedTypeFactory.PICOSuperClauseAnnotator(this));
@@ -126,6 +130,11 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
         typeAnnotators.add(new PICONoInitAnnotatedTypeFactory.PICODefaultForTypeAnnotator(this));
         typeAnnotators.add(new PICONoInitAnnotatedTypeFactory.PICOEnumDefaultAnnotator(this));
         return new ListTypeAnnotator(typeAnnotators);
+    }
+
+    @Override
+    public QualifierHierarchy createQualifierHierarchy() {
+        return new NoElementQualifierHierarchy(getSupportedTypeQualifiers(), elements, this);
     }
 
     @Override

@@ -19,8 +19,8 @@ export JDK_JAR=$CF/checker/dist/jdk8.jar
 
 CHECKER=pico.inference.PICOInferenceChecker
 
-SOLVER=pico.inference.solver.PICOSolverEngine
-#SOLVER=checkers.inference.solver.DebugSolver
+#SOLVER=pico.inference.solver.PICOSolverEngine
+SOLVER=checkers.inference.solver.DebugSolver
 
 STUBS="src/main/java/pico/inference/jdk.astub"
 
@@ -41,7 +41,13 @@ TRUE=true
 # echo "${ARGS[@]}"
 
 # Start the inference
-$CFI/scripts/inference-dev -m ROUNDTRIP --checker "$CHECKER" --solver "$SOLVER" \
+$CFI/scripts/inference-dev -m ROUNDTRIP_TYPECHECK --checker "$CHECKER" --solver "$SOLVER" \
     --solverArgs="useGraph=false,collectStatistic=true" --hacks="$TRUE" \
-    --cfArgs="-Astubs=$STUBS" --makeDefaultsExplicit="$TRUE" \
+    --cfArgs="-Astubs=$STUBS" --cfArgs="-AuseForInference" --makeDefaultsExplicit="$TRUE" \
     -afud ./annotated "${ARGS[@]}"
+
+## Debug the inference
+#$CFI/scripts/inference-dev -m ROUNDTRIP_TYPECHECK --checker "$CHECKER" --solver "$SOLVER" \
+#    --solverArgs="useGraph=false,collectStatistic=true" --hacks="$TRUE" \
+#    --cfArgs="-Astubs=$STUBS" --makeDefaultsExplicit="$TRUE" \
+#    -afud ./annotated "${ARGS[@]}"

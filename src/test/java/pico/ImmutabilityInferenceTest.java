@@ -18,6 +18,7 @@ public class ImmutabilityInferenceTest extends CFInferenceTest {
     public ImmutabilityInferenceTest(File testFile) {
         super(testFile, PICOInferenceChecker.class, "",
               "-Anomsgtext",
+                "-AuseForInference",
                 "-Astubs=src/main/java/pico/typecheck/jdk.astub",
                 "-d", "testdata/inference/inferrable");
     }
