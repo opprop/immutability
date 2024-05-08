@@ -130,10 +130,7 @@ public class PICONoInitAnnotatedTypeFactory
 
     @Override
     public ParameterizedExecutableType constructorFromUse(NewClassTree tree) {
-        boolean hasExplicitAnnos = false;
-        if (!getExplicitNewClassAnnos(tree).isEmpty()) {
-            hasExplicitAnnos = true;
-        }
+        boolean hasExplicitAnnos = !getExplicitNewClassAnnos(tree).isEmpty();
         ParameterizedExecutableType mType = super.constructorFromUse(tree);
         AnnotatedExecutableType method = mType.executableType;
         if (!hasExplicitAnnos && method.getReturnType().hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
@@ -173,10 +170,7 @@ public class PICONoInitAnnotatedTypeFactory
         public Void visitNewArray(NewArrayTree tree, AnnotatedTypeMirror type) {
             AnnotatedTypeMirror componentType =
                     ((AnnotatedTypeMirror.AnnotatedArrayType) type).getComponentType();
-            boolean noExplicitATM = false;
-            if (!componentType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
-                noExplicitATM = true;
-            }
+            boolean noExplicitATM = !componentType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE);
             super.visitNewArray(tree, type);
             // if new explicit anno before, but RDM after, the RDM must come from the type
             // declaration bound
@@ -189,28 +183,12 @@ public class PICONoInitAnnotatedTypeFactory
 
         @Override
         public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
-            boolean hasExplicitAnnos = false;
-            if (!type.getAnnotations().isEmpty()) {
-                hasExplicitAnnos = true;
-            }
+            boolean hasExplicitAnnos = !type.getAnnotations().isEmpty();
             super.visitTypeCast(node, type);
             if (!hasExplicitAnnos && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
                 type.replaceAnnotation(MUTABLE);
             }
             return null;
-        }
-
-        //
-        /**
-         * Because TreeAnnotator runs before DefaultForTypeAnnotator, implicitly immutable types are
-         * not guaranteed to always have immutable annotation. If this happens, we manually add
-         * immutable to type. We use addMissingAnnotations because we want to respect existing
-         * annotation on type
-         */
-        private void applyImmutableIfImplicitlyImmutable(AnnotatedTypeMirror type) {
-            if (PICOTypeUtil.isImplicitlyImmutableType(type)) {
-                type.addMissingAnnotations(new HashSet<>(Collections.singletonList(IMMUTABLE)));
-            }
         }
 
         @Override
@@ -360,17 +338,14 @@ public class PICONoInitAnnotatedTypeFactory
             // for now: default array in receiver, parameter and return type to RDM
             if (t.getReceiverType() != null) {
                 if (PICOTypeUtil.isArrayType(t.getReceiverType(), atypeFactory)) {
-                    switch (t.toString()) {
-                        case "Object clone(Array this)":
-                            // Receiver type will not be viewpoint adapted:
-                            // SyntheticArrays.replaceReturnType() will rollback the viewpoint adapt
-                            // result.
-                            // Use readonly to allow all invocations.
-                            if (!t.getReceiverType().hasAnnotationInHierarchy(READONLY))
-                                t.getReceiverType().replaceAnnotation(READONLY);
-                            // The return type will be fixed by SyntheticArrays anyway.
-                            // Qualifiers added here will not have effect.
-                            break;
+                    if (t.toString().equals("Object clone(Array this)")) {// Receiver type will not be viewpoint adapted:
+                        // SyntheticArrays.replaceReturnType() will rollback the viewpoint adapt
+                        // result.
+                        // Use readonly to allow all invocations.
+                        if (!t.getReceiverType().hasAnnotationInHierarchy(READONLY))
+                            t.getReceiverType().replaceAnnotation(READONLY);
+                        // The return type will be fixed by SyntheticArrays anyway.
+                        // Qualifiers added here will not have effect.
                     }
                 }
             }

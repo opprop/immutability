@@ -51,15 +51,13 @@ import pico.common.ExtendedViewpointAdapter;
 import pico.common.PICOTypeUtil;
 import pico.common.ViewpointAdapterGettable;
 
-/** Created by mier on 20/06/17. Enforce PICO type rules. */
 public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFactory> {
 
-    private final boolean shouldOutputFbcError;
     final Map<String, Integer> fbcViolatedMethods;
 
     public PICONoInitVisitor(BaseTypeChecker checker) {
         super(checker);
-        shouldOutputFbcError = checker.hasOption("printFbcErrors");
+        boolean shouldOutputFbcError = checker.hasOption("printFbcErrors");
         fbcViolatedMethods = shouldOutputFbcError ? new HashMap<>() : null;
     }
 
@@ -105,33 +103,6 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
         // That simply means that any use is valid except bottom.
         AnnotationMirror used = type.getAnnotationInHierarchy(READONLY);
         return !AnnotationUtils.areSame(used, BOTTOM);
-    }
-
-    private static boolean isAnnoValidUse(AnnotationMirror declared, AnnotationMirror used) {
-        if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE)
-                || AnnotationUtils.areSame(declared, READONLY)) {
-            // Element is declared with @ReceiverDependantMutable bound, any instantiation is
-            // allowed. We don't use
-            // a subtype check to validate the correct usage here. Because @Readonly is the super
-            // type of
-            // @ReceiverDependantMutable, but it's still considered valid usage.
-            return true;
-        }
-
-        if (AnnotationUtils.areSame(declared, MUTABLE)
-                && !(AnnotationUtils.areSame(used, IMMUTABLE)
-                        || AnnotationUtils.areSame(used, RECEIVER_DEPENDANT_MUTABLE))) {
-            return true;
-        }
-
-        if (AnnotationUtils.areSame(declared, IMMUTABLE)
-                && !(AnnotationUtils.areSame(used, MUTABLE)
-                        || AnnotationUtils.areSame(used, RECEIVER_DEPENDANT_MUTABLE))) {
-            return true;
-        }
-
-        // All valid cases are listed above. So returns false here.
-        return false;
     }
 
     private boolean isAdaptedSubtype(AnnotationMirror lhs, AnnotationMirror rhs) {
@@ -362,17 +333,13 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
         // the field
         // is declared as final, Java compiler will catch that, and we couldn't have reached this
         // point
+        // If the receiver is mutable, we allow assigning/reassigning
+        //        } else if (TreeUtils.elementFromUse(variable)) {
+        //            // If the field is not initialized, we allow assigning/reassigning
+        //            return true;
         if (PICOTypeUtil.isAssigningAssignableField(variable, atypeFactory)) {
             return isAllowedAssignableField(receiverType, variable);
-        } else if (receiverType.hasAnnotation(MUTABLE)) {
-            // If the receiver is mutable, we allow assigning/reassigning
-            return true;
-            //        } else if (TreeUtils.elementFromUse(variable)) {
-            //            // If the field is not initialized, we allow assigning/reassigning
-            //            return true;
-        }
-
-        return false;
+        } else return receiverType.hasAnnotation(MUTABLE);
     }
 
     private boolean isAllowedAssignableField(
@@ -493,17 +460,6 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
             checkMethodInvocability(invokedMethod, node);
         }
         return null;
-    }
-
-    private void saveFbcViolatedMethods(
-            ExecutableElement method, String actualReceiver, String declaredReceiver) {
-        if (actualReceiver.contains("@UnderInitialization")
-                && declaredReceiver.contains("@Initialized")) {
-            String key = ElementUtils.enclosingTypeElement(method) + "#" + method;
-            Integer times =
-                    fbcViolatedMethods.get(key) == null ? 1 : fbcViolatedMethods.get(key) + 1;
-            fbcViolatedMethods.put(key, times);
-        }
     }
 
     @Override
