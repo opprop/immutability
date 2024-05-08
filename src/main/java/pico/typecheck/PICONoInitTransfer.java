@@ -39,7 +39,6 @@ public class PICONoInitTransfer
                 return new RegularTransferResult<>(finishValue(value, store), store);
             }
         }
-        TransferResult<PICONoInitValue, PICONoInitStore> result = super.visitAssignment(n, in);
-        return result;
+        return super.visitAssignment(n, in);
     }
 }
