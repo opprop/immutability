@@ -93,26 +93,6 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
             return true;
         }
 
-        //        // allow RDM on mutable fields with enclosing class bounded with mutable
-        //        if (tree instanceof VariableTree && useType.isDeclaration()) {
-        //            VariableElement element =
-        // TreeUtils.elementFromDeclaration((VariableTree)tree);
-        //            if (element.getKind() == ElementKind.FIELD &&
-        // ElementUtils.enclosingClass(element) != null) {
-        //                Set<AnnotationMirror> enclosingBound =
-        //                        atypeFactory.getTypeDeclarationBounds(
-        //
-        // Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType());
-        //
-        //                if(declarationType.hasAnnotation(MUTABLE)
-        //                && useType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
-        //                && AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
-        //                    return true;
-        //                }
-        //            }
-        //
-        //        }
-
         AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
         AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
 
@@ -224,20 +204,6 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
             invocation = AnnotatedTypes.asSuper(atypeFactory, invocation, returnType);
         }
         /*Copied Code End*/
-
-        // TODO fix inference counterpart, not here
-        //        // CF base check disabled by InitializationVisitor
-        //        // if no explicit anno it must inherited from class decl
-        //        AnnotationMirror declAnno =
-        // constructor.getReturnType().getAnnotationInHierarchy(READONLY);
-        //        AnnotationMirror useAnno = invocation.getAnnotationInHierarchy(READONLY);
-        //        declAnno = declAnno == null ? MUTABLE : declAnno;
-        //
-        //        if(useAnno != null && !AnnotationUtils.areSameByName(declAnno, POLY_MUTABLE) &&
-        // !isAdaptedSubtype(useAnno, declAnno)) {
-        //            checker.reportError(newClassTree, "type.invalid.annotations.on.use", declAnno,
-        // useAnno);
-        //        }
 
         // The immutability return qualifier of the constructor (returnType) must be supertype of
         // the
@@ -540,39 +506,6 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
         }
     }
 
-    //    @Override
-    //    protected void checkFieldsInitialized(
-    //            Tree blockNode,
-    //            boolean staticFields,
-    //            PICONoInitStore store,
-    //            List<? extends AnnotationMirror> receiverAnnotations) {
-    //        // If a class doesn't have constructor, it cannot be initialized as @Immutable,
-    // therefore no
-    //        // need to check uninitialized fields
-    //        if (TreeUtils.isClassTree(blockNode)) return;
-    //        if (blockNode.getKind() == Kind.METHOD && TreeUtils.isConstructor((MethodTree)
-    // blockNode)) {
-    //            // Only raise errors when in @Immutable or @ReceiverDependantMutable constructors.
-    // As
-    //            // @Mutable constructor can initialized
-    //            // those fields out of constructor
-    //            MethodTree methodTree = (MethodTree) blockNode;
-    //            AnnotatedExecutableType executableType =
-    // atypeFactory.getAnnotatedType(methodTree);
-    //            AnnotatedDeclaredType constructorReturnType =
-    //                    (AnnotatedDeclaredType) executableType.getReturnType();
-    //            // Only care abstract state initialization in @Immutable and
-    // @ReceiverDependantMutable
-    //            // constructors, as @Mutable constructors
-    //            // only allows instantiating @Mutable objects and fields can be initialized later
-    //            if (!(constructorReturnType.hasAnnotation(IMMUTABLE)
-    //                    || constructorReturnType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE))) {
-    //                return;
-    //            }
-    //        }
-    //        super.checkFieldsInitialized(blockNode, staticFields, store, receiverAnnotations);
-    //    }
-
     @Override
     protected AnnotationMirrorSet getExceptionParameterLowerBoundAnnotations() {
         AnnotationMirrorSet result = new AnnotationMirrorSet();
@@ -635,25 +568,6 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
                 }
             }
         }
-
-        //        // field of mutable class cannot use RDM in immutable class
-        //        // Condition:
-        //        //  * Class decl == Immutable
-        //        //  * Member is field (variable)
-        //        //  * Member's declared bound == Mutable
-        //        //  * Member's use anno == RDM
-        //        if (bound.hasAnnotation(IMMUTABLE)) {
-        //            for(Tree member : node.getMembers()) {
-        //                if(member.getKind() == Kind.VARIABLE) {
-        //                    AnnotatedTypeMirror fieldAtm = atypeFactory.getAnnotatedType(member);
-        //                    if (fieldAtm.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) &&
-        //
-        // AnnotationUtils.containsSameByName(atypeFactory.getTypeDeclarationBounds(fieldAtm.getUnderlyingType()), MUTABLE)) {
-        //                        checker.reportError(member, "test-key-1");
-        //                    }
-        //                }
-        //            }
-        //        }
         super.processClassTree(node);
     }
 

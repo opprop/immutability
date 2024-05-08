@@ -142,26 +142,6 @@ public class PICONoInitAnnotatedTypeFactory
         return mType;
     }
 
-    //    /** Just to transfer the method from super class to package */
-    //    @Override
-    //    protected boolean isInitializationAnnotation(AnnotationMirror anno) {
-    //        return super.isInitializationAnnotation(anno);
-    //    }
-    //
-    //    @Override
-    //    public AnnotationMirror getFieldInvariantAnnotation() {
-    //        return IMMUTABLE;
-    //    }
-    //
-    //        /** This affects what fields pico warns not initialized in constructors */
-    //        @Override
-    //        protected boolean hasFieldInvariantAnnotation(
-    //                AnnotatedTypeMirror type, VariableElement fieldElement) {
-    //            // This affects which fields should be guaranteed to be initialized:
-    //            // Fields of any immutability should be initialized.
-    //            return !PICOTypeUtil.isAssignableField(fieldElement, this);
-    //        }
-
     /** Forbid applying top annotations to type variables if they are used on local variables */
     @Override
     public boolean getShouldDefaultTypeVarLocals() {
@@ -179,134 +159,6 @@ public class PICONoInitAnnotatedTypeFactory
         //        PICOTypeUtil.applyImmutableToEnumAndEnumConstant(type);
         super.addComputedTypeAnnotations(elt, type);
     }
-
-    /** This method gets lhs WITH flow sensitive refinement */
-    // TODO Should refactor super class to avoid too much duplicate code.
-    // This method is pretty hacky right now.
-    //    @Override
-    //    public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
-    //        boolean oldComputingAnnotatedTypeMirrorOfLHS = computingAnnotatedTypeMirrorOfLHS;
-    //        computingAnnotatedTypeMirrorOfLHS = true;
-    //
-    //        AnnotatedTypeMirror result;
-    //        boolean oldShouldCache = shouldCache;
-    //        // Don't cache the result because getAnnotatedType(lhsTree) could
-    //        // be called from elsewhere and would expect flow-sensitive type refinements.
-    //        shouldCache = false;
-    //        switch (lhsTree.getKind()) {
-    //            case VARIABLE:
-    //            case IDENTIFIER:
-    //            case MEMBER_SELECT:
-    //            case ARRAY_ACCESS:
-    //                result = getAnnotatedType(lhsTree);
-    //                break;
-    //            default:
-    //                if (TreeUtils.isTypeTree(lhsTree)) {
-    //                    // lhsTree is a type tree at the pseudo assignment of a returned
-    // expression to declared return type.
-    //                    result = getAnnotatedType(lhsTree);
-    //                } else {
-    //                    throw new BugInCF(
-    //                            "GenericAnnotatedTypeFactory: Unexpected tree passed to
-    // getAnnotatedTypeLhs. "
-    //                                    + "lhsTree: "
-    //                                    + lhsTree
-    //                                    + " Tree.Kind: "
-    //                                    + lhsTree.getKind());
-    //                }
-    //        }
-    //        shouldCache = oldShouldCache;
-    //
-    //        computingAnnotatedTypeMirrorOfLHS = oldComputingAnnotatedTypeMirrorOfLHS;
-    //        return result;
-    //    }
-
-    //    /**Handles invoking static methods with polymutable on its declaration*/
-    //    @Override
-    //    public ParameterizedExecutableType methodFromUse(ExpressionTree tree, ExecutableElement
-    // methodElt, AnnotatedTypeMirror receiverType) {
-    //        ParameterizedExecutableType pair = super.methodFromUse(tree, methodElt, receiverType);
-    //        // We want to replace polymutable with substitutablepolymutable when we invoke static
-    // methods
-    //        if (ElementUtils.isStatic(methodElt)) {
-    //            AnnotatedExecutableType methodType = pair.executableType;
-    //            AnnotatedTypeMirror returnType = methodType.getReturnType();
-    //            if (returnType.hasAnnotation(POLY_MUTABLE)) {
-    //                // Only substitute polymutable but not other qualifiers! Missing the if
-    // statement
-    //                // caused bugs before!
-    //                returnType.replaceAnnotation(SUBSTITUTABLE_POLY_MUTABLE);
-    //            }
-    //            List<AnnotatedTypeMirror> parameterTypes = methodType.getParameterTypes();
-    //            for (AnnotatedTypeMirror p : parameterTypes) {
-    //                if (returnType.hasAnnotation(POLY_MUTABLE)) {
-    //                    p.replaceAnnotation(SUBSTITUTABLE_POLY_MUTABLE);
-    //                }
-    //            }
-    //        }
-    //        return pair;
-    //    }
-
-    //    protected class PICOQualifierHierarchy extends MostlyNoElementQualifierHierarchy {
-    //        protected PICOQualifierHierarchy(Collection<Class<? extends Annotation>>
-    // qualifierClasses, Elements elements, GenericAnnotatedTypeFactory<?, ?, ?, ?> atypeFactory) {
-    //            super(qualifierClasses, elements, atypeFactory);
-    //        }
-    //
-    //        //        public PICOQualifierHierarchy(MultiGraphFactory f, Object[] arg) {
-    //        //            super(f, arg);
-    //        //        }
-    //
-    //        //        @Override
-    //        //        public boolean isSubtype(AnnotationMirror subAnno, AnnotationMirror
-    // superAnno) {
-    //        //            if (isInitializationAnnotation(subAnno) ||
-    //        // isInitializationAnnotation(superAnno)) {
-    //        //                return this.isSubtypeInitialization(subAnno, superAnno);
-    //        //            }
-    //        //            return super.isSubtype(subAnno, superAnno);
-    //        //        }
-    //
-    //        @Override
-    //        protected boolean isSubtypeWithElements(
-    //                AnnotationMirror subAnno,
-    //                QualifierKind subKind,
-    //                AnnotationMirror superAnno,
-    //                QualifierKind superKind) {
-    //            return super.isSubtypeQualifiersOnly(subAnno, superAnno);
-    //        }
-    //
-    //        //        @Override
-    //        //        public AnnotationMirror leastUpperBound(AnnotationMirror a1,
-    // AnnotationMirror a2)
-    //        // {
-    //        //            if (isInitializationAnnotation(a1) || isInitializationAnnotation(a2)) {
-    //        //                return this.leastUpperBoundInitialization(a1, a2);
-    //        //            }
-    //        //            return super.leastUpperBound(a1, a2);
-    //        //        }
-    //
-    //        @Override
-    //        protected AnnotationMirror leastUpperBoundWithElements(
-    //                AnnotationMirror a1,
-    //                QualifierKind q1,
-    //                AnnotationMirror a2,
-    //                QualifierKind q2,
-    //                QualifierKind lub) {
-    //            return super.leastUpperBoundQualifiersOnly(a1, a2);
-    //        }
-    //
-    //        @Override
-    //        protected AnnotationMirror greatestLowerBoundWithElements(
-    //                AnnotationMirror annotationMirror,
-    //                QualifierKind qualifierKind,
-    //                AnnotationMirror annotationMirror1,
-    //                QualifierKind qualifierKind1,
-    //                QualifierKind qualifierKind2) {
-    //            return super.greatestLowerBoundQualifiersOnly(annotationMirror,
-    // annotationMirror1);
-    //        }
-    //    }
 
     /** Tree Annotators */
     public static class PICOPropagationTreeAnnotator extends PropagationTreeAnnotator {
@@ -335,29 +187,6 @@ public class PICONoInitAnnotatedTypeFactory
             return null;
         }
 
-        //
-        //        /**Add immutable to the result type of a binary operation if the result type is
-        // implicitly immutable*/
-        //        @Override
-        //        public Void visitBinary(BinaryTree node, AnnotatedTypeMirror type) {
-        //            applyImmutableIfImplicitlyImmutable(type);// Usually there isn't existing
-        // annotation on binary trees, but to be safe, run it first
-        //            super.visitBinary(node, type);
-        //            // NullnessPropagationTreeAnnotator says result type of binary tree is always
-        // @Initialized. So replace it
-        //            // with COMMITED here.
-        //            applyCommitedIfSupported(atypeFactory, type);
-        //            return null;
-        //        }
-
-        //        @Override
-        //        public Void visitUnary(UnaryTree node, AnnotatedTypeMirror type) {
-        //            super.visitUnary(node, type);
-        //            // Same reason as above
-        //            applyCommitedIfSupported(atypeFactory, type);
-        //            return null;
-        //        }
-        //
         @Override
         public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
             boolean hasExplicitAnnos = false;
@@ -389,12 +218,6 @@ public class PICONoInitAnnotatedTypeFactory
             return null;
         }
 
-        //        private void applyCommitedIfSupported(AnnotatedTypeFactory annotatedTypeFactory,
-        // AnnotatedTypeMirror type) {
-        //            if (annotatedTypeFactory.isSupportedQualifier(COMMITED)) {
-        //                type.replaceAnnotation(COMMITED);
-        //            }
-        //        }
     }
 
     public ExtendedViewpointAdapter getViewpointAdapter() {

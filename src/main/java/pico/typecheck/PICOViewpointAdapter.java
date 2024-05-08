@@ -20,9 +20,6 @@ import org.checkerframework.javacutil.BugInCF;
 import exceptions.UnkownImmutabilityQualifierException;
 import pico.common.ExtendedViewpointAdapter;
 
-/**
- * Created by mier on 20/06/17.
- */
 public class PICOViewpointAdapter extends AbstractViewpointAdapter implements ExtendedViewpointAdapter {
 
     public PICOViewpointAdapter(AnnotatedTypeFactory atypeFactory) {
@@ -60,18 +57,6 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter implements Ex
             throw new BugInCF("Unknown declared modifier: " + declaredAnnotation, new UnkownImmutabilityQualifierException());
         }
     }
-//
-//    @Override
-//    protected AnnotatedTypeMirror combineAnnotationWithType(AnnotationMirror receiverAnnotation, AnnotatedTypeMirror declared) {
-//        boolean prevRdm = declared.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE);
-//        AnnotatedTypeMirror raw =  super.combineAnnotationWithType(receiverAnnotation, declared);
-//        if(prevRdm &&
-//                AnnotationUtils.containsSameByName(atypeFactory.getTypeDeclarationBounds(declared.getUnderlyingType()), MUTABLE)
-//                && (raw.hasAnnotation(IMMUTABLE) || raw.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE))) {
-//            raw.replaceAnnotation(MUTABLE);
-//        }
-//        return raw;
-//    }
 
     public AnnotatedTypeMirror rawCombineAnnotationWithType(AnnotationMirror anno, AnnotatedTypeMirror type) {
 //        System.err.println("VPA: " + anno + " ->" + type);
@@ -83,15 +68,4 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter implements Ex
 //        System.err.println("VPA: " + anno + " ->" + type);
         return combineAnnotationWithAnnotation(anno, type);
     }
-
-    //
-//    @Override
-//    protected AnnotationMirror getModifier(AnnotatedTypeMirror atm, AnnotatedTypeFactory f) {
-//        return atm.getAnnotationInHierarchy(READONLY);
-//    }
-
-//    @Override
-//    protected <TypeFactory extends AnnotatedTypeFactory> AnnotationMirror extractModifier(AnnotatedTypeMirror atm, TypeFactory f) {
-//        return null;
-//    }
 }

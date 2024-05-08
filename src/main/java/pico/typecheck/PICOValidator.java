@@ -72,10 +72,6 @@ public class PICOValidator extends BaseTypeValidator {
                 }
             }
         }
-//        if (TreeUtils.isLocalVariable(tree)) {
-//            return true;
-//        }
-
         return super.shouldCheckTopLevelDeclaredOrPrimitiveType(type, tree);
     }
 
