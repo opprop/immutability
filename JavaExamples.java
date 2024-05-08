@@ -25,16 +25,14 @@ public class JavaExamples {
         new_s.add("x"); // OK
     }
 
-    // Type parameter mutability
-    void foo3(Set<List<String>> s, List<String> l) {
-        assert s.get(l) != null;
+    void foo3(List<@Immutable List<String>> s, int l) {
         List<String> v = s.get(l);
         @Mutable List<String> v2 = s.get(l); // ERROR
         v.add("x"); // ERROR
     }
 
     void foo4(Person p) {
-        p.name = "Jenny"; // ERROR, this should be forbid by compiler by adding final before String
+        p.name = "Jenny"; // Ok, this should be forbid by compiler by adding final before String
         p.family.add("Jenny"); // ERROR, can not mutate immut list
     }
 
@@ -57,7 +55,7 @@ class Person {
     }
 
     void setName(String n) {
-        this.name = n; // ERROR, this should be forbid by compiler by adding final before String
+        this.name = n; // Ok, this should be forbid by compiler by adding final before String
     }
 
     @Mutable List<String> getFamily() {
@@ -84,3 +82,12 @@ class MutPerson {
         return family; // OK
     }
 }
+
+class ImmutSet<T> {
+    void foo1 (ImmutSet<MutList<T>> s) {  // ERROR
+    }
+    void foo2(MutList<ImmutSet<T>> s) {  // OK
+    }
+}
+
+@Mutable class MutList<@Mutable T> {}
