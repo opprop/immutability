@@ -26,7 +26,6 @@ import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -38,7 +37,6 @@ import org.checkerframework.javacutil.*;
 import pico.common.ExtendedViewpointAdapter;
 import pico.common.ViewpointAdapterGettable;
 import pico.common.PICOTypeUtil;
-import qual.ReceiverDependantMutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -50,11 +48,8 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
@@ -203,57 +198,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // declType == @Immutable -> useType != @ReceiverDependantMutable
         constraintManager.addImplicationConstraint(Arrays.asList(isImmutable), notRDM);
     }
-
-//    @Override
-//    public boolean validateTypeOf(Tree tree) {
-//        AnnotatedTypeMirror type;
-//        // It's quite annoying that there is no TypeTree
-//        switch (tree.getKind()) {
-//            case PRIMITIVE_TYPE:
-//            case PARAMETERIZED_TYPE:
-//            case TYPE_PARAMETER:
-//            case ARRAY_TYPE:
-//            case UNBOUNDED_WILDCARD:
-//            case EXTENDS_WILDCARD:
-//            case SUPER_WILDCARD:
-//            case ANNOTATED_TYPE:
-//                type = atypeFactory.getAnnotatedTypeFromTypeTree(tree);
-//                break;
-//            case METHOD:
-//                type = atypeFactory.getMethodReturnType((MethodTree) tree);
-//                if (type == null ||
-//                        type.getKind() == TypeKind.VOID) {
-//                    // Nothing to do for void methods.
-//                    // Note that for a constructor the AnnotatedExecutableType does
-//                    // not use void as return type.
-//                    return true;
-//                }
-//                break;
-//            default:
-//                type = atypeFactory.getAnnotatedType(tree);
-//        }
-//
-//        return validateType(tree, type);
-//        // extends clause kind = IDENTIFIER. an annotator is added for defaulting
-//    }
-
-//    // TODO This might not be correct for infer mode. Maybe returning as it is
-//    @Override
-//    public boolean validateType(Tree tree, AnnotatedTypeMirror type) {
-//
-//        if (!typeValidator.isValid(type, tree)) {  // in inference, isValid never return false
-//                return false;
-//        }
-//        // The initial purpose of always returning true in validateTypeOf in inference mode
-//        // might be that inference we want to generate constraints over all the ast location,
-//        // but not like in typechecking mode, if something is not valid, we abort checking the
-//        // remaining parts that are based on the invalid type. For example, in assignment, if
-//        // rhs is not valid, we don't check the validity of assignment. But in inference,
-//        // we always generate constraints on all places and let solver to decide if there is
-//        // solution or not. This might be the reason why we have a always true if statement and
-//        // validity check always returns true.
-//        return true;
-//    }
 
     @Override
     protected void checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
@@ -1050,7 +994,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
     }
 
-
     /**
      * extends/implements clause use anno is adapted subtype of bound anno
      * <p> Could be subtype, but recall Readonly and Bottom is not usable on class init bound.</p>
@@ -1068,7 +1011,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         }
     }
 
-
     private void boundVsExtImpClause(AnnotatedDeclaredType classBound, AnnotatedTypeMirror superType, String errorKey, Tree tree) {
         // atypeFactory.getTypeDeclarationBounds does not work correctly: getting the real annos instead of slots
         AnnotatedTypeMirror superBound =
@@ -1081,19 +1023,6 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         // consider replace with isValidUse?
         isAdaptedSubtype(classBound, superType, errorKey, tree);
     }
-
-
-//    private boolean checkCompatabilityBetweenBoundAndSuperClassesBounds(ClassTree node, TypeElement typeElement, AnnotatedDeclaredType bound) {
-//        // Must have compatible bound annotation as the direct super types
-//        List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
-//        for (AnnotatedDeclaredType superBound : superBounds) {
-//            if (!isAdaptedSubtype(bound, superBound)) {
-//                checker.reportError(node, "subclass.bound.incompatible", bound, superBound);
-//                return false; // do not stop processing if failed
-//            }
-//        }
-//        return true;
-//    }
 
     /**
      * commonAssignmentCheck() method that adapts to PICOInfer.
