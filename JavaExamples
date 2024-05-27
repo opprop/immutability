@@ -1,0 +1,78 @@
+/// Java Examples
+
+// Mutating immut set, `s` is immut
+void foo(Set<String> s) {
+  Set<String> new_s = s;
+  new_s.add("x"); // ERROR
+}
+
+// Mutating immut set, `new_s` is immut
+void foo(@Mutable Set<String> s) {
+  Set<String> new_s = new HashSet<>(s);
+  new_s.add("x"); // ERROR
+}
+
+// Mutating mut set
+void foo(Set<String> s) {
+  @Mutable Set<String> new_s = new HashSet<>(s);
+  new_s.add("x"); // OK
+}
+
+// Type parameter mutability
+void foo(Set<List<String>> s, List<String> l) {
+  assert s.get(l) != null;
+  List<String> v = s.get(l);
+  l.add("x"); // ERROR
+  v.add("x"); // ERROR
+}
+
+// Immut class and its members
+class Person {
+  String name;
+  List<String> family;
+
+  Person(String n, List<String> f) {
+    this.name = n; // OK
+    this.family = f; // OK
+  }
+
+  void setName(String n) {
+    this.name = n; // ERROR
+  }
+
+  @Mutable List<String> getFamily() {
+    return family; // ERROR
+  }
+}
+
+void foo(Person p) {
+  p.name = "Jenny"; // ERROR
+  p.family.add("Jenny"); // ERROR
+  p.family.getFamily().add("Jenny"); // OK
+}
+
+// Mut class and its members
+@Mutable class Person {
+  String name;
+  List<String> family;
+
+  Person(String n, List<String> f) {
+    this.name = n; // OK
+    this.family = f; // OK
+  }
+
+  void setName(String n) {
+    this.name = n; // OK
+  }
+
+  List<String> getFamily() {
+    return family; // OK
+  }
+}
+
+void foo(Person p) {
+  p.name = "Jenny"; // OK
+  p.family.add("Jenny"); // OK
+  p.family.getFamily().add("Jenny"); // ERROR
+}
+
