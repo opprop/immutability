@@ -3,6 +3,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.lang.Double;
 
 // This testcase is realted to StrangeReadonly, see its documentation for details.
 public class NoBoundTypeOfAnonymousClass {
@@ -16,7 +17,7 @@ public class NoBoundTypeOfAnonymousClass {
         return executor.submit(new Callable<Double>() {
             @Override
             public Double call() throws Exception {
-                return new Double(1.0);
+                return Double.valueOf(1.0);
             }
         });
     }

@@ -2,15 +2,15 @@ package typecheck;
 
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.Date;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class SuperClass3 {
-    @ReceiverDependantMutable Date p;
+    @ReceiverDependentMutable Date p;
 
-    @ReceiverDependantMutable SuperClass3(@ReceiverDependantMutable Date p) {
+    @ReceiverDependentMutable SuperClass3(@ReceiverDependentMutable Date p) {
         this.p = p;
     }
 }
@@ -28,9 +28,9 @@ class AnotherSubClass3 extends SuperClass3 {
     }
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class ThirdSubClass3 extends SuperClass3 {
-    @ReceiverDependantMutable ThirdSubClass3(){
-        super(new @ReceiverDependantMutable Date(1L));
+    @ReceiverDependentMutable ThirdSubClass3(){
+        super(new @ReceiverDependentMutable Date(1L));
     }
 }

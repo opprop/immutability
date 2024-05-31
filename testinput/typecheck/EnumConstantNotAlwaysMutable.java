@@ -1,7 +1,7 @@
 import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 // It's equivalent to having @Immutable on every enum type
 enum Kind {
@@ -15,12 +15,12 @@ public class EnumConstantNotAlwaysMutable {
     // Enum is implicitly @Immutable, so using explicit @Immutable is allowed
     @Immutable Kind kind;
     // :: error: (type.invalid.annotations.on.use)
-    @ReceiverDependantMutable Kind invalidKind;
+    @ReceiverDependentMutable Kind invalidKind;
     // :: error: (type.invalid.annotations.on.use)
     @Mutable Kind invalidKind2;
-    // :: error: (type.invalid.annotations.on.use)
+    // no error now
     @Readonly Kind invalidKind3;
-
+    // :: error: (initialization.fields.uninitialized)
     EnumConstantNotAlwaysMutable() {
         // Kind.SOME should be @Immutable
         kind = Kind.SOME;

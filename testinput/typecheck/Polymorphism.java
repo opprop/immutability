@@ -4,9 +4,9 @@ import qual.Readonly;
 import qual.Mutable;
 import qual.Immutable;
 import qual.PolyMutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class B{
     @PolyMutable B getObject(){return null;}
     @PolyMutable B getSecondObject(@PolyMutable B this){return null;}

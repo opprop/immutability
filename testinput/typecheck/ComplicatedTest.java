@@ -2,18 +2,18 @@ package typecheck;
 
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 import qual.Readonly;
 import java.util.ArrayList;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class Person {
 
     protected String name;
     protected int age;
-    protected  @ReceiverDependantMutable ArrayList<String> friends;
+    protected  @ReceiverDependentMutable ArrayList<String> friends;
 
-    public @ReceiverDependantMutable Person(String name, int age, @ReceiverDependantMutable ArrayList<String> friends) {
+    public @ReceiverDependentMutable Person(String name, int age, @ReceiverDependentMutable ArrayList<String> friends) {
         this.name = name;
         this.age = age;
         this.friends = friends;
@@ -31,7 +31,7 @@ class Person {
         return age;
     }
 
-    public @ReceiverDependantMutable ArrayList<String> getFriends(@ReceiverDependantMutable Person this) {
+    public @ReceiverDependentMutable ArrayList<String> getFriends(@ReceiverDependentMutable Person this) {
         return friends;
     }
 }

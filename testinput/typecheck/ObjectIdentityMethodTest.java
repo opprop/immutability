@@ -1,9 +1,9 @@
 import qual.*;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class A {
-    @Assignable B b;
-    @ReceiverDependantMutable A() {}
+    @Assignable @Mutable B b;
+    @ReceiverDependentMutable A() {}
     void bar(@Readonly A this) {}
 }
 
@@ -26,7 +26,7 @@ public class ObjectIdentityMethodTest extends Super{
     @Immutable A a5;
     final A a6;
     final @Immutable A a7;
-
+    // :: error: (initialization.fields.uninitialized)
     ObjectIdentityMethodTest() {
         a6 = new A();
         a7 = new @Immutable A();

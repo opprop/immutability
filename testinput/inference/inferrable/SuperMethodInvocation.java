@@ -1,11 +1,11 @@
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 public class SuperMethodInvocation {
 
-    @ReceiverDependantMutable Object f;
+    @ReceiverDependentMutable Object f;
 
     void foo(@UnderInitialization SuperMethodInvocation this) {
         // :: fixable-error: (assignment.type.incompatible)

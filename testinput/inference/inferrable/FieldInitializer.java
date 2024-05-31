@@ -1,19 +1,19 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 public class FieldInitializer {
     // :: fixable-error: (assignment.type.incompatible)
-    @ReceiverDependantMutable Object o = new @Immutable Object();
+    @ReceiverDependentMutable Object o = new @Immutable Object();
 }
 
 class A {
-    @ReceiverDependantMutable Object o = new @Mutable Object();
+    @ReceiverDependentMutable Object o = new @Mutable Object();
 }
 
 class B {
     // :: fixable-error: (assignment.type.incompatible)
-    @ReceiverDependantMutable Object o = new @ReceiverDependantMutable Object();
+    @ReceiverDependentMutable Object o = new @ReceiverDependentMutable Object();
 }
 
 @Immutable
@@ -21,7 +21,7 @@ class C {
     @Mutable Object o = new Object();
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class D {
     @Mutable Object o = new Object();
 }

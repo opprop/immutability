@@ -3,7 +3,7 @@ import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 // :: error: (class.bound.invalid)
 @Readonly public class InvalidBound {}
@@ -18,4 +18,4 @@ import qual.ReceiverDependantMutable;
 @Mutable class D{}
 
 // ok
-@ReceiverDependantMutable class E{}
+@ReceiverDependentMutable class E{}

@@ -1,13 +1,13 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.Date;
 
 // Immutable class
 @Immutable
 class A {
-    @ReceiverDependantMutable Date d = new @Immutable Date();
+    @ReceiverDependentMutable Date d = new @Immutable Date();
 
     {
         // Bound annotation applies to "this" perfectly now. So no need to take action.
@@ -19,8 +19,8 @@ class A {
     }
 
     // :: error: (type.invalid.annotations.on.use)
-    @ReceiverDependantMutable A(Object o1) {
-        d = new @ReceiverDependantMutable Date();
+    @ReceiverDependentMutable A(Object o1) {
+        d = new @ReceiverDependentMutable Date();
     }
 
     // :: error: (type.invalid.annotations.on.use)
@@ -31,23 +31,23 @@ class A {
 
 @Immutable class AIMS extends A {}
 
-// :: error: (subclass.bound.incompatible)
-@ReceiverDependantMutable class ARDMS extends A {}
+// :: error: (type.invalid.annotations.on.use) :: error: (super.invocation.invalid)
+@ReceiverDependentMutable class ARDMS extends A {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (type.invalid.annotations.on.use) :: error: (super.invocation.invalid)
 @Mutable class AMS extends A {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (type.invalid.annotations.on.use) :: error: (super.invocation.invalid)
 class AUNKS extends A {}
 
-// ReceiverDependantMutable class
-@ReceiverDependantMutable
+// ReceiverDependentMutable class
+@ReceiverDependentMutable
 class B {
-    @ReceiverDependantMutable Date d = new @ReceiverDependantMutable Date();
+    @ReceiverDependentMutable Date d = new @ReceiverDependentMutable Date();
 
     {
         // Bound annotation applies to "this" perfectly now. So no need to take action.
-        d = new @ReceiverDependantMutable Date();
+        d = new @ReceiverDependentMutable Date();
     }
 
     // ok
@@ -56,8 +56,8 @@ class B {
     }
 
     // ok
-    @ReceiverDependantMutable B(Object o1) {
-        d = new @ReceiverDependantMutable Date();
+    @ReceiverDependentMutable B(Object o1) {
+        d = new @ReceiverDependentMutable Date();
     }
 
     // ok
@@ -68,20 +68,20 @@ class B {
 
 @Immutable class BIMS extends B {}
 
-// :: error: (super.constructor.invocation.incompatible)
-@ReceiverDependantMutable class BRDMS extends B {}
+// :: error: (super.invocation.invalid)
+@ReceiverDependentMutable class BRDMS extends B {}
 
-// :: error: (super.constructor.invocation.incompatible)
+// :: error: (super.invocation.invalid)
 @Mutable class BMS extends B {}
 
 // mutable by default(TODO Does this make sense compared to defaulting to receiver-dependant-mutable?)
-// :: error: (super.constructor.invocation.incompatible)
+// :: error: (super.invocation.invalid)
 class BUNKS extends B {}
 
 // Mutable class
 @Mutable
 class C {
-    @ReceiverDependantMutable Date d = new @Mutable Date();
+    @ReceiverDependentMutable Date d = new @Mutable Date();
 
     {
         // Bound annotation applies to "this" perfectly now. So no need to take action.
@@ -94,8 +94,8 @@ class C {
     }
 
     // :: error: (type.invalid.annotations.on.use)
-    @ReceiverDependantMutable C(Object o1) {
-        d = new @ReceiverDependantMutable Date();
+    @ReceiverDependentMutable C(Object o1) {
+        d = new @ReceiverDependentMutable Date();
     }
 
     @Mutable C(Object o1, Object o2) {
@@ -103,20 +103,20 @@ class C {
     }
 }
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (type.invalid.annotations.on.use)
 @Immutable class CIMS extends C {}
 
-// :: error: (subclass.bound.incompatible)
-@ReceiverDependantMutable class CRDMS extends C {}
+// :: error: (type.invalid.annotations.on.use) :: error: (super.invocation.invalid)
+@ReceiverDependentMutable class CRDMS extends C {}
 
-// :: error: (super.constructor.invocation.incompatible)
+// :: error: (super.invocation.invalid)
 @Mutable class CMS extends C {}
 
-// :: error: (super.constructor.invocation.incompatible)
+// :: error: (super.invocation.invalid)
 class CUNKS extends C {}
 
 class D {
-    @ReceiverDependantMutable Date d = new @Mutable Date();
+    @ReceiverDependentMutable Date d = new @Mutable Date();
 
     {
         d = new @Mutable Date();

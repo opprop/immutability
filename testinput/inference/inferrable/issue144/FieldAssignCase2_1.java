@@ -1,8 +1,8 @@
 import qual.Immutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 public class FieldAssignCase2_1 {
-    @ReceiverDependantMutable Object o;
+    @ReceiverDependentMutable Object o;
     FieldAssignCase2_1(@Immutable Object ao) {
         // :: fixable-error: (assignment.type.incompatible)
         o = ao;

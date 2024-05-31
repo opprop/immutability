@@ -1,10 +1,10 @@
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 public class DeepStaticRDMForbidden {
 
-    // :: error: (static.receiverdependantmutable.forbidden)
-    static <T extends @ReceiverDependantMutable Object> void foo(T p) {
-        // :: error: (static.receiverdependantmutable.forbidden)
+    // :: error: (static.receiverdependentmutable.forbidden)
+    static <T extends @ReceiverDependentMutable Object> void foo(T p) {
+        // :: error: (static.receiverdependentmutable.forbidden)
         p = null;
     }
 }

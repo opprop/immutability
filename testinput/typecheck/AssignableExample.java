@@ -3,16 +3,16 @@ package typecheck;
 import qual.Immutable;
 import qual.Mutable;
 import qual.Assignable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.Date;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class AssignableExample {
     @Immutable Object o;
     @Immutable Date date;
     @Assignable @Immutable Date assignableDate;
-
+    // :: error: (initialization.fields.uninitialized)
     @Mutable AssignableExample() {
         o = new @Immutable Object();
     }
@@ -28,8 +28,8 @@ public class AssignableExample {
     }
 }
 
-// :: error: (super.constructor.invocation.incompatible)
-@ReceiverDependantMutable class Subclass extends AssignableExample {
+// :: error: (super.invocation.invalid)
+@ReceiverDependentMutable class Subclass extends AssignableExample {
     void bar(@Immutable Subclass this) {
         // :: error: (illegal.field.write)
         this.date = new @Immutable Date();

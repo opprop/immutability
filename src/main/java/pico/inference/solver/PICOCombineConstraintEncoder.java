@@ -2,6 +2,7 @@ package pico.inference.solver;
 
 import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.VariableSlot;
+import checkers.inference.model.CombVariableSlot;
 import checkers.inference.solver.backend.encoder.combine.CombineConstraintEncoder;
 import checkers.inference.solver.backend.maxsat.MathUtils;
 import checkers.inference.solver.backend.maxsat.VectorUtils;
@@ -37,7 +38,7 @@ public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncode
         return typeToInt.get(am);
     }
 
-    private boolean isReceiverDependantMutable(ConstantSlot cSlot) {
+    private boolean isReceiverDependentMutable(ConstantSlot cSlot) {
         if (AnnotationUtils.areSame(cSlot.getValue(), RECEIVER_DEPENDANT_MUTABLE)) {
             return true;
         } else if (AnnotationUtils.areSame(cSlot.getValue(), READONLY) ||
@@ -51,7 +52,7 @@ public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncode
     }
 
     @Override
-    public VecInt[] encodeVariable_Variable(VariableSlot target, VariableSlot declared, VariableSlot result) {
+    public VecInt[] encodeVariable_Variable(VariableSlot target, VariableSlot declared, CombVariableSlot result) {
         List<VecInt> resultClauses = new ArrayList<VecInt>();
         resultClauses.add(VectorUtils.asVec(
                 -MathUtils.mapIdToMatrixEntry(declared.getId(), id(READONLY), lattice),
@@ -89,9 +90,9 @@ public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncode
     }
 
     @Override
-    public VecInt[] encodeVariable_Constant(VariableSlot target, ConstantSlot declared, VariableSlot result) {
+    public VecInt[] encodeVariable_Constant(VariableSlot target, ConstantSlot declared, CombVariableSlot result) {
         List<VecInt> resultClauses = new ArrayList<VecInt>();
-        if (!isReceiverDependantMutable(declared)) {
+        if (!isReceiverDependentMutable(declared)) {
             resultClauses.add(VectorUtils.asVec(
                     MathUtils.mapIdToMatrixEntry(result.getId(), id(declared.getValue()), lattice)));
         } else {
@@ -116,7 +117,7 @@ public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncode
     }
 
     @Override
-    public VecInt[] encodeConstant_Variable(ConstantSlot target, VariableSlot declared, VariableSlot result) {
+    public VecInt[] encodeConstant_Variable(ConstantSlot target, VariableSlot declared, CombVariableSlot result) {
         List<VecInt> resultClauses = new ArrayList<VecInt>();
         resultClauses.add(VectorUtils.asVec(
                 -MathUtils.mapIdToMatrixEntry(declared.getId(), id(READONLY), lattice),
@@ -137,9 +138,9 @@ public class PICOCombineConstraintEncoder extends MaxSATAbstractConstraintEncode
     }
 
     @Override
-    public VecInt[] encodeConstant_Constant(ConstantSlot target, ConstantSlot declared, VariableSlot result) {
+    public VecInt[] encodeConstant_Constant(ConstantSlot target, ConstantSlot declared, CombVariableSlot result) {
         List<VecInt> resultClauses = new ArrayList<VecInt>();
-        if (!isReceiverDependantMutable(declared)) {
+        if (!isReceiverDependentMutable(declared)) {
             resultClauses.add(VectorUtils.asVec(
                     MathUtils.mapIdToMatrixEntry(result.getId(), id(declared.getValue()), lattice)));
         } else {

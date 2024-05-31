@@ -34,7 +34,7 @@ e.g. /home/mier/jsr308/colt/src/cern/jet/stat/quantile/UnknownDoubleQuantileEsti
 // Solved: Another way is to still keep @Readonly as the default for java.lang.Object, and in downcasting locations, use @Mutable always
 if no annotation exist(instead of copying @Readonly from the casted expression)
 
-8. toString() has @Readonly declared receiver. clone() has @ReceiverDependantMutable declared receiver. Any call to instance
+8. toString() has @Readonly declared receiver. clone() has @ReceiverDependentMutable declared receiver. Any call to instance
 method with defaulted @Mutable causes warnings.
 e.g. DoubleQuantileEstimator.java:251
 A: toString(), hashCode(), equals() should have @Readonly receiver, and @Readonly parameter for equals() because they shouldn't change
@@ -166,7 +166,7 @@ caused inference to give no solution and triggers explanation.
 
 Without optimization:
 TotalSlots,120,100%
-@qual.ReceiverDependantMutable,1,0.83%
+@qual.ReceiverDependentMutable,1,0.83%
 @qual.Readonly,2,1.67%
 @qual.Bottom,12,10.00%
 @qual.Immutable,55,45.83%
@@ -174,7 +174,7 @@ TotalSlots,120,100%
 
 With optimization:
 TotalSlots,120,100%
-@qual.ReceiverDependantMutable,1,0.83%
+@qual.ReceiverDependentMutable,1,0.83%
 @qual.Readonly,19,15.83%
 @qual.Immutable,50,41.67%
 @qual.Mutable,41,34.17%
@@ -184,7 +184,7 @@ TotalSlots,120,100%
 https://github.com/typetools/annotation-tools/issues/155
 Without optimization
 TotalSlots,914,100%
-@qual.ReceiverDependantMutable,46,5.03%
+@qual.ReceiverDependentMutable,46,5.03%
 @qual.Bottom,81,8.86%
 @qual.Immutable,440,48.14%
 @qual.Readonly,80,8.75%
@@ -196,7 +196,7 @@ TotalSlots,915,100%
 @qual.Bottom,76,8.31%
 @qual.Mutable,268,29.29%
 @qual.Immutable,281,30.71%
-@qual.ReceiverDependantMutable,40,4.37%
+@qual.ReceiverDependentMutable,40,4.37%
 
 3. bdoorProto(1299 lines): gets inferred solutions, but wasn't able to insert back.
 This is due to bug https://github.com/typetools/annotation-tools/issues/154.
@@ -214,7 +214,7 @@ Doesn't have fbc errors.
 
 Without optimization:
 TotalSlots,168,100%
-@qual.ReceiverDependantMutable,12,7.14%
+@qual.ReceiverDependentMutable,12,7.14%
 @qual.Immutable,86,51.19%
 @qual.Readonly,10,5.95%
 @qual.Mutable,58,34.52%
@@ -224,7 +224,7 @@ With optimization:
 TotalSlots,170,100%
 @qual.Immutable,84,49.41%
 @qual.Bottom,1,0.59%
-@qual.ReceiverDependantMutable,4,2.35%
+@qual.ReceiverDependentMutable,4,2.35%
 @qual.Mutable,47,27.65%
 @qual.Readonly,34,20.00%
 
@@ -245,7 +245,7 @@ TotalSlots,739,100%
 @qual.Immutable,221,29.91%
 @qual.Mutable,382,51.69%
 @qual.Bottom,47,6.36%
-@qual.ReceiverDependantMutable,2,0.27%
+@qual.ReceiverDependentMutable,2,0.27%
 
 5. jump(2096 lines): inferred solutions, but failed to insert. The same insertion failure reason.
 Without optimization:
@@ -254,14 +254,14 @@ TotalSlots,2049,100%
 @qual.Mutable,256,12.49%
 @qual.Bottom,52,2.54%
 @qual.Readonly,800,39.04%
-@qual.ReceiverDependantMutable,6,0.29%
+@qual.ReceiverDependentMutable,6,0.29%
 
 With optimization:
 TotalSlots,2049,100%
 @qual.Readonly,1010,49.29%
 @qual.Bottom,53,2.59%
 @qual.Immutable,738,36.02%
-@qual.ReceiverDependantMutable,2,0.10%
+@qual.ReceiverDependentMutable,2,0.10%
 @qual.Mutable,246,12.01%
 
 6. ECC-RSA-Backdoor(2822 lines): Gets inferred solutions, and solutions were inserted back to source code. This project has
@@ -279,17 +279,17 @@ Before and after adding @UnderInitialization:
         this.num = new @Mutable ALB().addA(num);
     }
 
-    private void copy(@UnderInitialization @ReceiverDependantMutable BinNum this, @Readonly BinNum that){
+    private void copy(@UnderInitialization @ReceiverDependentMutable BinNum this, @Readonly BinNum that){
         this.num = new @Mutable ALB().addA(that.get());
     }
 
     /*---------------------------INITIALIZERS----------------------*/
 
-    public @ReceiverDependantMutable BinNum(){
+    public @ReceiverDependentMutable BinNum(){
         this.num = new @Mutable ALB();
     }
 
-    public @ReceiverDependantMutable BinNum(@Readonly BinNum that){
+    public @ReceiverDependentMutable BinNum(@Readonly BinNum that){
         copy(that);
     }
 
@@ -300,7 +300,7 @@ Before and after adding @UnderInitialization:
 Ran typecheckin side. Detect 5 errors. Once causes StackOverFlowError, which is a bug of TypeArgInferenceUtil.
 Without optimization:
 TotalSlots,2556,100%
-@qual.ReceiverDependantMutable,47,1.84%
+@qual.ReceiverDependentMutable,47,1.84%
 @qual.Bottom,195,7.63%
 @qual.Readonly,403,15.77%
 @qual.Mutable,1411,55.20%
@@ -308,7 +308,7 @@ TotalSlots,2556,100%
 
 With optimization:
 TotalSlots,2556,100%
-@qual.ReceiverDependantMutable,18,0.70%
+@qual.ReceiverDependentMutable,18,0.70%
 @qual.Readonly,743,29.07%
 @qual.Immutable,391,15.30%
 @qual.Bottom,180,7.04%
@@ -320,7 +320,7 @@ make the error gone.()
 New inference with preference constraints succeed to infer and insert solutions.
 Without optimize:
 TotalSlots,2774,100%
-@qual.ReceiverDependantMutable,16,0.58%
+@qual.ReceiverDependentMutable,16,0.58%
 @qual.Mutable,887,31.98%
 @qual.Readonly,33,1.19%
 @qual.Immutable,1422,51.26%
@@ -329,7 +329,7 @@ TotalSlots,2774,100%
 With optimize:
 TotalSlots,2774,100%
 @qual.Immutable,1399,50.43%
-@qual.ReceiverDependantMutable,21,0.76%
+@qual.ReceiverDependentMutable,21,0.76%
 @qual.Readonly,319,11.50%
 @qual.Mutable,633,22.82%
 @qual.Bottom,402,14.49%
@@ -343,7 +343,7 @@ TotalSlots,4531,100%
 @qual.Mutable,2297,50.70%
 @qual.Immutable,1215,26.82%
 @qual.Bottom,289,6.38%
-@qual.ReceiverDependantMutable,154,3.40%
+@qual.ReceiverDependentMutable,154,3.40%
 
 With optimization:
 TotalSlots,4532,100%
@@ -351,7 +351,7 @@ TotalSlots,4532,100%
 @qual.Bottom,310,6.84%
 @qual.Immutable,1329,29.32%
 @qual.Mutable,1896,41.84%
-@qual.ReceiverDependantMutable,136,3.00%
+@qual.ReceiverDependentMutable,136,3.00%
 
 9. jdepend(6936 lines): found non-compliance code that modifies abstract state of receiver object in toString() method.
 class AfferentNode extends PackageNode {
@@ -408,7 +408,7 @@ TotalSlots,14002,100%
 @qual.Readonly,1691,12.08%
 @qual.Mutable,7276,51.96%
 @qual.Immutable,3839,27.42%
-@qual.ReceiverDependantMutable,596,4.26%
+@qual.ReceiverDependentMutable,596,4.26%
 @qual.Bottom,600,4.29%
 
 With optimize:
@@ -416,7 +416,7 @@ TotalSlots,14003,100%
 @qual.Readonly,4788,34.19%
 @qual.Mutable,5472,39.08%
 @qual.Immutable,2500,17.85%
-@qual.ReceiverDependantMutable,672,4.80%
+@qual.ReceiverDependentMutable,672,4.80%
 @qual.Bottom,571,4.08%
 
 11. jReactPhysics3D(10454 lines): inferred solutions but failed to insert solutions to source code. The same reason as above.
@@ -430,7 +430,7 @@ TotalSlots,10593,100%
 @qual.Readonly,1014,9.57%
 @qual.Bottom,767,7.24%
 @qual.Immutable,4884,46.11%
-@qual.ReceiverDependantMutable,13,0.12%
+@qual.ReceiverDependentMutable,13,0.12%
 
 With optimization:
 TotalSlots,10594,100%
@@ -438,7 +438,7 @@ TotalSlots,10594,100%
 @qual.Mutable,3423,32.31%
 @qual.Immutable,4394,41.48%
 @qual.Readonly,2013,19.00%
-@qual.ReceiverDependantMutable,33,0.31%
+@qual.ReceiverDependentMutable,33,0.31%
 
 13. jblas(11841 lines): inference failed and triggerred explanation
 Update: successfully inferred results for jblas, but annotation-tools wasn't successful to insert solutions back to source.
@@ -450,14 +450,14 @@ TotalSlots,21304,100%
 @qual.Bottom,817,3.83%
 @qual.Readonly,997,4.68%
 @qual.Mutable,10114,47.47%
-@qual.ReceiverDependantMutable,223,1.05%
+@qual.ReceiverDependentMutable,223,1.05%
 
 With optimization:
 TotalSlots,21309,100%
 @qual.Readonly,8088,37.96%
 @qual.Immutable,7094,33.29%
 @qual.Mutable,5397,25.33%
-@qual.ReceiverDependantMutable,110,0.52%
+@qual.ReceiverDependentMutable,110,0.52%
 @qual.Bottom,620,2.91%
 
 14. exp4j(31327 lines): successfully inferred results, but wasn't fully inserted solutions. Insertion failure reason is the
@@ -468,13 +468,13 @@ TotalSlots,1583,100%
 @qual.Immutable,945,59.70%
 @qual.Readonly,138,8.72%
 @qual.Mutable,349,22.05%
-@qual.ReceiverDependantMutable,38,2.40%
+@qual.ReceiverDependentMutable,38,2.40%
 
 With optimization:
 TotalSlots,1583,100%
 @qual.Immutable,616,38.91%
 @qual.Bottom,111,7.01%
-@qual.ReceiverDependantMutable,54,3.41%
+@qual.ReceiverDependentMutable,54,3.41%
 @qual.Readonly,336,21.23%
 @qual.Mutable,466,29.44%
 

@@ -1,5 +1,5 @@
 import qual.Immutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.Date;
 
@@ -18,11 +18,11 @@ public class NewAnnonymousClass {
             Date d = new @Immutable Date();
             // Below are not allowed by Java. Will get "Illegal static declaration in inner
             // class <anonymous NewAnnonymousClass$1>"
-            // static @ReceiverDependantMutable Object o;
+            // static @ReceiverDependentMutable Object o;
             // static {
             //    o = null;
             // }
-            // static @ReceiverDependantMutable Object foo() {return null;}
+            // static @ReceiverDependentMutable Object foo() {return null;}
         };
     }
 }

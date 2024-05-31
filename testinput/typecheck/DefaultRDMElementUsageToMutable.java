@@ -15,7 +15,7 @@ class B {
 
 public class DefaultRDMElementUsageToMutable {
     void foo() {
-        // ArrayList didn't inherit with @ReceiverDependantMutable
+        // ArrayList didn't inherit with @ReceiverDependentMutable
         // and is defaulted to @Mutable
         @Mutable List<String> list = new ArrayList<>();
         // @Mutable type element gets inheritted @Mutable

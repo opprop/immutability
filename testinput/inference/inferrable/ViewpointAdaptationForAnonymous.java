@@ -1,9 +1,9 @@
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 class ViewpointAdaptationForAnonymous {
 
     // :: fixable-error: (type.invalid.annotations.on.use)
-    @ReceiverDependantMutable ViewpointAdaptationForAnonymous(String s) {}
+    @ReceiverDependentMutable ViewpointAdaptationForAnonymous(String s) {}
 }
 
 class Test {

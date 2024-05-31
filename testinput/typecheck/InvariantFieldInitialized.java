@@ -3,12 +3,12 @@ package typecheck;
 import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 @Immutable
 public class InvariantFieldInitialized {
     @Immutable Object o1;
-    @ReceiverDependantMutable Object o2;
+    @ReceiverDependentMutable Object o2;
     // Below two lines still need initialization, as otherwise there won't
     // be opportunity for them to be initialized after @Immutable object is
     // constructed. Yes, but they are still outside abstract state.

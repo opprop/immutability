@@ -4,24 +4,24 @@ import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.Date;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class Thief {
-    @NotOnlyInitialized @ReceiverDependantMutable
+    @NotOnlyInitialized @ReceiverDependentMutable
     SuperClass2 victimCaptured;
 
-    @ReceiverDependantMutable Thief(@UnderInitialization @ReceiverDependantMutable SuperClass2 victimCaptured) {
+    @ReceiverDependentMutable Thief(@UnderInitialization @ReceiverDependentMutable SuperClass2 victimCaptured) {
         this.victimCaptured = victimCaptured;
     }
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class SuperClass2{
-    @ReceiverDependantMutable Date p;
-    @NotOnlyInitialized @ReceiverDependantMutable
+    @ReceiverDependentMutable Date p;
+    @NotOnlyInitialized @ReceiverDependentMutable
     Thief thief;
 
     @Mutable SuperClass2(@Mutable Date p){
@@ -35,16 +35,16 @@ public class SuperClass2{
 class SubClass2 extends SuperClass2{
     @Immutable SubClass2(){
         // This is not ok any more
-        // :: error: (super.constructor.invocation.incompatible)
+        // :: error: (super.invocation.invalid)
         super(new @Mutable Date());
     }
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class AnotherSubClass2 extends SuperClass2{
-    @ReceiverDependantMutable AnotherSubClass2(){
+    @ReceiverDependentMutable AnotherSubClass2(){
         // This is not ok any more
-        // :: error: (super.constructor.invocation.incompatible)
+        // :: error: (super.invocation.invalid)
         super(new @Mutable Date());
     }
 }

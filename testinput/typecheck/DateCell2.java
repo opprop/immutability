@@ -3,12 +3,12 @@ package typecheck;
 import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.Date;
 
-// :: error: (initialization.fields.uninitialized)
-@ReceiverDependantMutable public class DateCell2 {
+@ReceiverDependentMutable public class DateCell2 {
+    // :: error: (initialization.field.uninitialized)
     @Immutable Date imdate;
 
     @Immutable Date getImmutableDate(@PolyMutable DateCell2 this) {

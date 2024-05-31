@@ -4,16 +4,16 @@ import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class Static{
-    // :: error: (static.receiverdependantmutable.forbidden)
-    static @ReceiverDependantMutable Object o = new @ReceiverDependantMutable Object();
+    // :: error: (static.receiverdependentmutable.forbidden)
+    static @ReceiverDependentMutable Object o = new @ReceiverDependentMutable Object();
     static Object oo;
 
-    @ReceiverDependantMutable Object f;
-    @ReceiverDependantMutable Static() {
+    @ReceiverDependentMutable Object f;
+    @ReceiverDependentMutable Static() {
         f = o;
     }
 
@@ -26,22 +26,22 @@ public class Static{
         // ....
     }
 
-    // :: error: (static.receiverdependantmutable.forbidden)
-    static @ReceiverDependantMutable Object readStaticReceiverDependantMutableField(@ReceiverDependantMutable Object p) {
+    // :: error: (static.receiverdependentmutable.forbidden)
+    static @ReceiverDependentMutable Object readStaticReceiverDependentMutableField(@ReceiverDependentMutable Object p) {
         return o;
-        // TODO Avoid warnings for receiverdependantmutable fields in anonymous class
+        // TODO Avoid warnings for receiverdependentmutable fields in anonymous class
     }
 
     static {
         oo = new @Mutable Object();
-        // :: error: (static.receiverdependantmutable.forbidden)
-        @Readonly Object ro = (@ReceiverDependantMutable Object) o;
-        // :: error: (static.receiverdependantmutable.forbidden)
-        new @ReceiverDependantMutable Object();
+        // :: error: (static.receiverdependentmutable.forbidden)
+        @Readonly Object ro = (@ReceiverDependentMutable Object) o;
+        // :: error: (static.receiverdependentmutable.forbidden)
+        new @ReceiverDependentMutable Object();
     }
 
-    // :: error: (static.receiverdependantmutable.forbidden)
-    static @Readonly Object o2 = new @ReceiverDependantMutable Object();
+    // :: error: (static.receiverdependentmutable.forbidden)
+    static @Readonly Object o2 = new @ReceiverDependentMutable Object();
 
     static @PolyMutable Object createPolyObject(@Immutable Object p) {
         return new @PolyMutable Object();

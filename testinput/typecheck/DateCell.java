@@ -2,17 +2,16 @@ package typecheck;
 
 import qual.Mutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.lang.SuppressWarnings;
 import java.util.Date;
 
-// :: error: (initialization.fields.uninitialized)
-@ReceiverDependantMutable public class DateCell {
+@ReceiverDependentMutable public class DateCell {
 
-    @ReceiverDependantMutable Date date;
+    @ReceiverDependentMutable Date date;
 
-    @ReceiverDependantMutable Date getDate(@ReceiverDependantMutable DateCell this) {
+    @ReceiverDependentMutable Date getDate(@ReceiverDependentMutable DateCell this) {
         return this.date;
     }
 

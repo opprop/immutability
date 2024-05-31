@@ -1,4 +1,4 @@
-package pico.typecheck;
+package pico.common;
 
 import checkers.inference.InferenceMain;
 import checkers.inference.SlotManager;
@@ -6,15 +6,16 @@ import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.ConstraintManager;
 import checkers.inference.model.Slot;
 import checkers.inference.util.InferenceUtil;
-import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import org.checkerframework.framework.qual.ImplicitFor;
+import com.sun.tools.javac.code.Symbol;
+import org.checkerframework.framework.qual.DefaultFor;
 import org.checkerframework.framework.qual.TypeKind;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -23,8 +24,10 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclared
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationProvider;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TypesUtils;
 import qual.Assignable;
 import qual.Immutable;
@@ -41,10 +44,12 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
@@ -64,27 +69,27 @@ public class PICOTypeUtil {
         sideEffectingUnaryOperators.add(Tree.Kind.PREFIX_DECREMENT);
     }
 
-    private static boolean isInTypesOfImplicitForOfImmutable(AnnotatedTypeMirror atm) {
-        ImplicitFor implicitFor = Immutable.class.getAnnotation(ImplicitFor.class);
-        assert implicitFor != null;
-        assert implicitFor.types() != null;
-        for (TypeKind typeKind : implicitFor.types()) {
-            if (typeKind.name() == atm.getKind().name()) return true;
+    private static boolean isInTypeKindsOfDefaultForOfImmutable(AnnotatedTypeMirror atm) {
+        DefaultFor defaultFor = Immutable.class.getAnnotation(DefaultFor.class);
+        assert defaultFor != null;
+        for (TypeKind typeKind : defaultFor.typeKinds()) {
+            if (typeKind.name().equals(atm.getKind().name())) return true;
         }
         return false;
     }
 
-    private static boolean isInTypeNamesOfImplicitForOfImmutable(AnnotatedTypeMirror atm) {
-        if (atm.getKind().name() != TypeKind.DECLARED.name()) {
+    private static boolean isInTypesOfDefaultForOfImmutable(AnnotatedTypeMirror atm) {
+        if (!atm.getKind().name().equals(TypeKind.DECLARED.name())) {
             return false;
         }
-        ImplicitFor implicitFor = Immutable.class.getAnnotation(ImplicitFor.class);
-        assert implicitFor != null;
-        assert implicitFor.typeNames() != null;
-        Class<?>[] typeNames = implicitFor.typeNames();
+        DefaultFor defaultFor = Immutable.class.getAnnotation(DefaultFor.class);
+        assert defaultFor != null;
+        Class<?>[] types = defaultFor.types();
         String fqn = TypesUtils.getQualifiedName((DeclaredType) atm.getUnderlyingType()).toString();
-        for (int i = 0; i < typeNames.length; i++) {
-            if (typeNames[i].getCanonicalName().toString().contentEquals(fqn)) return true;
+        for (Class<?> type : types) {
+            if (type.getCanonicalName().contentEquals(fqn)) {
+                return true;
+            }
         }
         return false;
     }
@@ -92,9 +97,8 @@ public class PICOTypeUtil {
     /**Method to determine if the underlying type is implicitly immutable. This method is consistent
      * with the types and typeNames that are in @ImplicitFor in the definition of @Immutable qualifier*/
     public static boolean isImplicitlyImmutableType(AnnotatedTypeMirror atm) {
-        return isInTypesOfImplicitForOfImmutable(atm)
-                || isInTypeNamesOfImplicitForOfImmutable(atm)
-                || isEnumOrEnumConstant(atm);
+        return isInTypeKindsOfDefaultForOfImmutable(atm)
+                || isInTypesOfDefaultForOfImmutable(atm);
     }
 
     /**
@@ -115,12 +119,12 @@ public class PICOTypeUtil {
         if (node instanceof MethodTree) {
             MethodTree methodTree = (MethodTree) node;
             ExecutableElement element = TreeUtils.elementFromDeclaration(methodTree);
-            typeElement = ElementUtils.enclosingClass(element);
+            typeElement = ElementUtils.enclosingTypeElement(element);
         } else if(node instanceof VariableTree) {
             VariableTree variableTree = (VariableTree) node;
             VariableElement variableElement = TreeUtils.elementFromDeclaration(variableTree);
             assert variableElement!= null && variableElement.getKind().isField();
-            typeElement = ElementUtils.enclosingClass(variableElement);
+            typeElement = ElementUtils.enclosingTypeElement(variableElement);
         }
 
         if (typeElement != null) {
@@ -131,7 +135,7 @@ public class PICOTypeUtil {
     }
 
     public static AnnotatedDeclaredType getBoundTypeOfEnclosingTypeDeclaration(Element element, AnnotatedTypeFactory atypeFactory) {
-        TypeElement typeElement = ElementUtils.enclosingClass(element);
+        TypeElement typeElement = ElementUtils.enclosingTypeElement(element);
         if (typeElement != null) {
             return getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
         }
@@ -152,7 +156,7 @@ public class PICOTypeUtil {
             supertypecls = null;
         }
 
-        if (supertypecls != null && supertypecls.getKind().name() != TypeKind.NONE.name()) {
+        if (supertypecls != null && !supertypecls.getKind().name().equals(TypeKind.NONE.name())) {
             TypeElement supercls = (TypeElement) ((DeclaredType) supertypecls).asElement();
             boundsOfSupers.add(getBoundTypeOfTypeDeclaration(supercls, atypeFactory));
         }
@@ -187,10 +191,14 @@ public class PICOTypeUtil {
         // places, at some time.
     }
 
+    public static AnnotatedDeclaredType getBoundTypeOfTypeDeclaration(TypeMirror typeMirror, AnnotatedTypeFactory atypeFactory) {
+        return getBoundTypeOfTypeDeclaration(TypesUtils.getTypeElement(typeMirror), atypeFactory);
+    }
+
     public static boolean isObjectIdentityMethod(MethodTree node,
                                                  AnnotatedTypeFactory annotatedTypeFactory) {
-        Element element = TreeUtils.elementFromTree(node);
-        return isObjectIdentityMethod((ExecutableElement) element, annotatedTypeFactory);
+        ExecutableElement element = TreeUtils.elementFromDeclaration(node);
+        return isObjectIdentityMethod(element, annotatedTypeFactory);
 
     }
 
@@ -233,17 +241,27 @@ public class PICOTypeUtil {
         if (element != null && element.getKind() == ElementKind.FIELD) {
            if (ElementUtils.isStatic(element)) {
                AnnotatedTypeMirror explicitATM = annotatedTypeFactory.fromElement(element);
-               if (!explicitATM.isAnnotatedInHierarchy(READONLY)) {
+               if (!explicitATM.hasAnnotationInHierarchy(READONLY)) {
                    if (!PICOTypeUtil.isImplicitlyImmutableType(explicitATM)) {
                        annotatedTypeMirror.replaceAnnotation(MUTABLE);
                    }
                }
            } else {
                AnnotatedTypeMirror explicitATM = annotatedTypeFactory.fromElement(element);
-               if (!explicitATM.isAnnotatedInHierarchy(READONLY)) {
+               if (!explicitATM.hasAnnotationInHierarchy(READONLY)) {
                    if (explicitATM instanceof AnnotatedDeclaredType) {
                        AnnotatedDeclaredType adt = (AnnotatedDeclaredType) explicitATM;
                        Element typeElement = adt.getUnderlyingType().asElement();
+
+                       // add RDM if bound=M and enclosingBound=M/RDM
+                       Set<AnnotationMirror> enclosingBound = annotatedTypeFactory.getTypeDeclarationBounds(
+                               Objects.requireNonNull(ElementUtils.enclosingTypeElement(element)).asType());
+                       Set<AnnotationMirror> declBound = annotatedTypeFactory.getTypeDeclarationBounds(element.asType());
+                       if (AnnotationUtils.containsSameByName(declBound, MUTABLE)) {
+                           if (AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
+                               annotatedTypeMirror.replaceAnnotation(RECEIVER_DEPENDANT_MUTABLE);
+                           }
+                       }
                        if (typeElement instanceof TypeElement) {
                            AnnotatedDeclaredType bound = getBoundTypeOfTypeDeclaration((TypeElement) typeElement, annotatedTypeFactory);
                            if (bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
@@ -269,6 +287,15 @@ public class PICOTypeUtil {
 
     }
 
+    public static boolean isEnumOrEnumConstant(TypeMirror type) {
+        if (!(type instanceof DeclaredType)) {
+            return false;
+        }
+        Element element = ((DeclaredType)type).asElement();
+        return element != null
+                && (element.getKind() == ElementKind.ENUM_CONSTANT || element.getKind() == ElementKind.ENUM);
+    }
+
     public static void applyImmutableToEnumAndEnumConstant(AnnotatedTypeMirror annotatedTypeMirror) {
         if (isEnumOrEnumConstant(annotatedTypeMirror)) {
             // I guess enum constant can't have explicit annotation, am I right?
@@ -292,7 +319,7 @@ public class PICOTypeUtil {
         // Might be null. It's normal. In typechecking side, we use addMissingAnnotations(). Only if
         // there is existing annotation in code, then here is non-null. Otherwise, VariableAnnotator
         // hasn't come into the picture yet, so no VarAnnot exists here, which is normal.
-        Slot shouldBeAppliedTo = slotManager.getVariableSlot(type);
+        Slot shouldBeAppliedTo = slotManager.getSlot(type);
         ConstantSlot constant = slotManager.createConstantSlot(am);
         if (shouldBeAppliedTo == null) {
             // Here, we are adding VarAnnot that represents @Immutable. There won't be solution for this ConstantSlot for this type,
@@ -301,7 +328,7 @@ public class PICOTypeUtil {
             // back to the original source code, BUT this ConstantSlot(representing @Immutable) will be used for constraint generation
             // that affects the solutions for other VariableSlots
             type.addAnnotation(slotManager.getAnnotation(constant));// Insert Constant VarAnnot that represents @Immutable
-            type.addAnnotation(am);// Insert real @Immutable. This should be removed if INF-FR only uses VarAnnot
+//            type.addAnnotation(am);// Insert real @Immutable. This should be removed if INF-FR only uses VarAnnot
         } else {
             constraintManager.addEqualityConstraint(shouldBeAppliedTo, constant);
         }
@@ -309,13 +336,13 @@ public class PICOTypeUtil {
 
     /**Check if a field is final or not.*/
     public static boolean isFinalField(Element variableElement) {
-        assert variableElement instanceof VariableElement;
+        assert variableElement instanceof VariableElement;  // FIXME consider rm
         return ElementUtils.isFinal(variableElement);
     }
 
     /**Check if a field is assignable or not.*/
     public static boolean isAssignableField(Element variableElement, AnnotationProvider provider) {
-        if (!(variableElement instanceof VariableElement)) {
+        if (!(variableElement instanceof VariableElement)) {  // FIXME consider rm
             return false;
         }
         boolean hasExplicitAssignableAnnotation = provider.getDeclAnnotation(variableElement, Assignable.class) != null;
@@ -361,7 +388,7 @@ public class PICOTypeUtil {
     public static boolean isEnclosedByAnonymousClass(Tree tree, AnnotatedTypeFactory atypeFactory) {
         TreePath path = atypeFactory.getPath(tree);
         if (path != null) {
-            ClassTree classTree = TreeUtils.enclosingClass(path);
+            ClassTree classTree = TreePathUtil.enclosingClass(path);
             return classTree != null && InferenceUtil.isAnonymousClass(classTree);
         }
         return false;
@@ -373,7 +400,7 @@ public class PICOTypeUtil {
             return null;
         }
         AnnotatedDeclaredType enclosingType = null;
-        Tree newclassTree = TreeUtils.enclosingOfKind(path, Tree.Kind.NEW_CLASS);
+        Tree newclassTree = TreePathUtil.enclosingOfKind(path, Tree.Kind.NEW_CLASS);
         if (newclassTree != null) {
             enclosingType = (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(newclassTree);
         }
@@ -388,10 +415,10 @@ public class PICOTypeUtil {
 
     public static boolean inStaticScope(TreePath treePath) {
         boolean in = false;
-        if (TreeUtils.isTreeInStaticScope(treePath)) {
+        if (TreePathUtil.isTreeInStaticScope(treePath)) {
             in = true;
             // Exclude case in which enclosing class is static
-            ClassTree classTree = TreeUtils.enclosingClass(treePath);
+            ClassTree classTree = TreePathUtil.enclosingClass(treePath);
             if (classTree != null && classTree.getModifiers().getFlags().contains((Modifier.STATIC))) {
                 in = false;
             }
@@ -399,35 +426,44 @@ public class PICOTypeUtil {
         return in;
     }
 
-    public static void dragAnnotationFromBoundToExtendsAndImplements(Tree node,
-                                                                     AnnotatedTypeMirror annotatedTypeMirror,
-                                                                     AnnotatedTypeFactory atypeFactory) {
-        boolean onExtendsOrImplements = false;
-        ClassTree classTree = null;
-        TreePath path = atypeFactory.getPath(node);
-        if (path != null) {
-            final TreePath parentPath = path.getParentPath();
-            if (parentPath != null) {
-                final Tree parentNode = parentPath.getLeaf();
-                if (TreeUtils.isClassTree(parentNode)) {
-                    onExtendsOrImplements = true;
-                    classTree = (ClassTree) parentNode;
-                }
-            }
-        }
-
-        if (onExtendsOrImplements) {
-            // Respect explicitly written annotation still. However, if the there is annotation here, but it's
-            // inheritted from type element bound, then we still flush them out, because they are not explicit
-            // usage.
-            if (annotatedTypeMirror.getExplicitAnnotations().isEmpty()) {
-                annotatedTypeMirror.replaceAnnotation(
-                        getBoundTypeOfTypeDeclaration(classTree, atypeFactory).getAnnotationInHierarchy(READONLY));
-            }
-        }
-    }
-
     public static boolean isSideEffectingUnaryTree(final UnaryTree tree) {
         return sideEffectingUnaryOperators.contains(tree.getKind());
+    }
+
+    /**
+     * !! Experimental !!
+     * <p>
+     * CF's isAnonymous cannot recognize some anonymous classes with annotation on new clause.
+     * This one hopefully will provide a workaround when the class tree is available.
+     * <p>
+     * This will work if an anonymous class decl tree is always a child node of a {@code NewClassTree}.
+     * i.e. an anonymous class declaration is always inside a new clause.
+     *
+     * @param tree a class decl tree.
+     * @param atypeFactory used to get the path. Any factory should be ok.
+     * @return whether the class decl tree is of an anonymous class
+     */
+    public static boolean isAnonymousClassTree(ClassTree tree,  AnnotatedTypeFactory atypeFactory) {
+        TreePath path = atypeFactory.getPath(tree);
+        Tree parent = path.getParentPath().getLeaf();
+        return parent instanceof NewClassTree && ((NewClassTree) parent).getClassBody() != null;
+    }
+
+    /**
+     * !! Experimental !!
+     * Check whether the type is actually an array.
+     * @param type AnnotatedDeclaredType
+     * @param typeFactory any AnnotatedTypeFactory
+     * @return true if the type is array
+     */
+    public static boolean isArrayType(AnnotatedDeclaredType type, AnnotatedTypeFactory typeFactory) {
+        Element ele = typeFactory.getProcessingEnv().getTypeUtils().asElement(type.getUnderlyingType());
+
+        // If it is a user-declared "Array" class without package, a class / source file should be there.
+        // Otherwise, it is the java inner type.
+        return ele instanceof Symbol.ClassSymbol
+                && ElementUtils.getQualifiedName(ele).equals("Array")
+                && ((Symbol.ClassSymbol) ele).classfile == null
+                && ((Symbol.ClassSymbol) ele).sourcefile == null;
     }
 }

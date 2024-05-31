@@ -1,11 +1,11 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 @Immutable
 public class ViewpointAdaptToBound {
     // :: fixable-error: (assignment.type.incompatible)
-    @ReceiverDependantMutable Object o = new Object();
+    @ReceiverDependentMutable Object o = new Object();
     // :: fixable-error: (assignment.type.incompatible)
     @Immutable Object x = new Object();
     @Mutable Object y = new Object();
@@ -18,7 +18,7 @@ public class ViewpointAdaptToBound {
 
 @Mutable
 class A {
-    @ReceiverDependantMutable Object o = new Object();
+    @ReceiverDependentMutable Object o = new Object();
     // :: fixable-error: (assignment.type.incompatible)
     @Immutable Object x = new Object();
     @Mutable Object y = new Object();
@@ -28,10 +28,10 @@ class A {
     }
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class B {
     // :: fixable-error: (assignment.type.incompatible)
-    @ReceiverDependantMutable Object o = new Object();
+    @ReceiverDependentMutable Object o = new Object();
     // :: fixable-error: (assignment.type.incompatible)
     @Immutable Object x = new Object();
     @Mutable Object y = new Object();

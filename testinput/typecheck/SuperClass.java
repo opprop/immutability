@@ -2,13 +2,13 @@ package typecheck;
 
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.Date;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class SuperClass{
-    @ReceiverDependantMutable Date p;
+    @ReceiverDependentMutable Date p;
     @Immutable SuperClass(@Immutable Date p){
         this.p = p;
     }
@@ -20,25 +20,25 @@ public class SuperClass{
 
 class SubClass extends SuperClass{
     @Mutable SubClass(){
-        // :: error: (super.constructor.invocation.incompatible)
+        // :: error: (super.invocation.invalid)
         super(new @Immutable Date(1L));
     }
 
     public static void main(String[] args) {
         @Mutable SubClass victim = new @Mutable SubClass();
-        victim.maliciouslyModifyDate();;
+        victim.maliciouslyModifyDate();
     }
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class AnotherSubClass extends SuperClass{
-    @ReceiverDependantMutable AnotherSubClass(){
-        // :: error: (super.constructor.invocation.incompatible)
+    @ReceiverDependentMutable AnotherSubClass(){
+        // :: error: (super.invocation.invalid)
         super(new @Immutable Date(1L));
     }
 
     public static void main(String[] args) {
         @Mutable SubClass victim = new @Mutable SubClass();
-        victim.maliciouslyModifyDate();;
+        victim.maliciouslyModifyDate();
     }
 }

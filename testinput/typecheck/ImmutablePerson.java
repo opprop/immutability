@@ -26,12 +26,12 @@ class ImmutablePerson {
     }
 }
 
-@ReceiverDependantMutable class Person {
+@ReceiverDependentMutable class Person {
     String name;
     int age;
     List<String> friends;
 
-    public Person(String name, int age, @ReceiverDependantMutable List<String> friends) {
+    public Person(String name, int age, @ReceiverDependentMutable List<String> friends) {
         this.name = name;
         this.age = age;
         this.friends = friends;

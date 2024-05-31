@@ -3,11 +3,11 @@ package typecheck;
 import qual.Readonly;
 import qual.Immutable;
 import qual.PolyMutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 class A{
-    @ReceiverDependantMutable Object read(@Readonly A this, @PolyMutable Object p) {
-        return new @ReceiverDependantMutable Object();
+    @ReceiverDependentMutable Object read(@Readonly A this, @PolyMutable Object p) {
+        return new @ReceiverDependentMutable Object();
     }
 }
 

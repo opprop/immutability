@@ -4,17 +4,17 @@ import qual.Assignable;
 import qual.Mutable;
 import qual.Immutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class ViewpointAdaptationRules {
 
     @Assignable @Readonly Object rof;
-    @ReceiverDependantMutable Object rdmf;
+    @ReceiverDependentMutable Object rdmf;
     @Immutable Object imf;
     @Assignable @Mutable Object mf;
 
-    @ReceiverDependantMutable ViewpointAdaptationRules(@Readonly Object rof, @ReceiverDependantMutable Object rdmf, @Immutable Object imf, @Mutable Object mf) {
+    @ReceiverDependentMutable ViewpointAdaptationRules(@Readonly Object rof, @ReceiverDependentMutable Object rdmf, @Immutable Object imf, @Mutable Object mf) {
         this.rof = rof;
         this.rdmf = rdmf;
         this.imf = imf;
@@ -22,7 +22,7 @@ public class ViewpointAdaptationRules {
     }
 
     void mutatableReceiver(@Mutable ViewpointAdaptationRules this,
-                           @Mutable Object mo, @ReceiverDependantMutable Object po, @Immutable Object io, @Readonly Object ro) {
+                           @Mutable Object mo, @ReceiverDependentMutable Object po, @Immutable Object io, @Readonly Object ro) {
         this.rof = mo;
         this.rdmf = mo;
         // :: error: (assignment.type.incompatible)
@@ -53,8 +53,8 @@ public class ViewpointAdaptationRules {
         this.mf = ro;
     }
 
-    void receiverDependantMutableReceiver(@ReceiverDependantMutable ViewpointAdaptationRules this,
-                               @Mutable Object mo, @ReceiverDependantMutable Object po, @Immutable Object io, @Readonly Object ro) {
+    void receiverDependentMutableReceiver(@ReceiverDependentMutable ViewpointAdaptationRules this,
+                               @Mutable Object mo, @ReceiverDependentMutable Object po, @Immutable Object io, @Readonly Object ro) {
 
         this.rof = mo;
         // :: error: (assignment.type.incompatible) :: error: (illegal.field.write)
@@ -90,7 +90,7 @@ public class ViewpointAdaptationRules {
     }
 
     void ImmutableReceiver(@Immutable ViewpointAdaptationRules this,
-                               @Mutable Object mo, @ReceiverDependantMutable Object po, @Immutable Object io, @Readonly Object ro) {
+                               @Mutable Object mo, @ReceiverDependentMutable Object po, @Immutable Object io, @Readonly Object ro) {
         this.rof = mo;
         // :: error: (assignment.type.incompatible) :: error: (illegal.field.write)
         this.rdmf = mo;
@@ -124,7 +124,7 @@ public class ViewpointAdaptationRules {
     }
 
     void ReadonlyReceiver(@Readonly ViewpointAdaptationRules this,
-                           @Mutable Object mo, @ReceiverDependantMutable Object po, @Immutable Object io, @Readonly Object ro) {
+                           @Mutable Object mo, @ReceiverDependentMutable Object po, @Immutable Object io, @Readonly Object ro) {
         //this.rof = mo;
         // :: error: (illegal.field.write)
         this.rdmf = mo;

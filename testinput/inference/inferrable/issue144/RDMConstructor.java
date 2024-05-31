@@ -2,7 +2,7 @@
 import qual.Assignable;
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.Date;
 
@@ -10,13 +10,13 @@ class A {
     @Assignable Date d;
     A() {
         // :: fixable-error: (assignment.type.incompatible)
-        d = new @ReceiverDependantMutable Date();
+        d = new @ReceiverDependentMutable Date();
     }
 }
 
 public class RDMConstructor {
     void test1() {
-        // :: fixable-error: (type.invalid.annotations.on.use)
+        // :: fixable-error: (type.invalid.annotations.on.use)  :: fixable-error: (assignment.type.incompatible)
         @Immutable A la = new A();
         la.toString();
     }

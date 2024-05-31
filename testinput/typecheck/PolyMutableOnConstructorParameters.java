@@ -4,7 +4,7 @@ import qual.Immutable;
 import qual.PolyMutable;
 
 @Immutable
-public class PolyMutableOnConstructorParameters<T extends @PolyMutable Object> {
+public class PolyMutableOnConstructorParameters<T> {
     @Immutable PolyMutableOnConstructorParameters(@PolyMutable Object o) {
     }
 

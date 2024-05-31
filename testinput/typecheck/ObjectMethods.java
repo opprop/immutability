@@ -1,7 +1,7 @@
 import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 public class ObjectMethods {
     // Don't have any warnings now
@@ -52,10 +52,10 @@ class ObjectMethods2 {
     }
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class ObjectMethods3 {
 
-    @ReceiverDependantMutable ObjectMethods3() {}
+    @ReceiverDependentMutable ObjectMethods3() {}
 
     @Override
     public int hashCode() {
@@ -68,7 +68,7 @@ class ObjectMethods3 {
     }
 
     @Override
-    protected @ReceiverDependantMutable Object clone(@ReceiverDependantMutable ObjectMethods3 this) throws CloneNotSupportedException {
+    protected @ReceiverDependentMutable Object clone(@ReceiverDependentMutable ObjectMethods3 this) throws CloneNotSupportedException {
         return super.clone();
     }
 
@@ -128,7 +128,7 @@ class ObjectMethods5 {
     }
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class ObjectMethods6 {
 
     @Immutable ObjectMethods6() {}
@@ -144,9 +144,9 @@ class ObjectMethods6 {
     }
 
     @Override
-    protected @ReceiverDependantMutable Object clone(@Readonly ObjectMethods6 this) throws CloneNotSupportedException {
-        // :: warning: (cast.unsafe)
-        return (@ReceiverDependantMutable Object) super.clone();
+    protected @ReceiverDependentMutable Object clone(@Readonly ObjectMethods6 this) throws CloneNotSupportedException {
+        // No cast.unsafe
+        return (@ReceiverDependentMutable Object) super.clone();
     }
 
     @Override

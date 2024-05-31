@@ -1,6 +1,6 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -10,7 +10,7 @@ abstract class C implements List<@Immutable Object> {}
 @Immutable
 abstract class D implements List<@Immutable Object> {}
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 abstract class E implements List<@Immutable Object> {}
 
 @Mutable
@@ -19,34 +19,32 @@ class F extends ArrayList<@Immutable Object> {}
 @Immutable
 class G extends ArrayList<@Immutable Object> {}
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class H extends ArrayList<@Immutable Object> {}
 
 @Mutable
 abstract class I implements @Mutable List<@Immutable Object> {}
 
-// :: error: (bound.implements.incompatabile)
+// :: error: (declaration.inconsistent.with.implements.clause)
 @Mutable abstract class J implements @Immutable List<@Immutable Object> {}
 
-// :: error: (bound.implements.incompatabile)
-@Mutable abstract class K implements @ReceiverDependantMutable List<@Immutable Object> {}
+@Mutable abstract class K implements @ReceiverDependentMutable List<@Immutable Object> {}
 
-// :: error: (bound.extends.incompatabile)
+// :: error: (declaration.inconsistent.with.extends.clause)
 @Immutable class L extends @Mutable ArrayList<@Immutable Object> {}
 
 @Immutable class M extends @Immutable ArrayList<@Immutable Object> {}
 
-// :: error: (bound.extends.incompatabile)
-@Immutable class N extends @ReceiverDependantMutable ArrayList<@Immutable Object> {}
+@Immutable class N extends @ReceiverDependentMutable ArrayList<@Immutable Object> {}
 
 abstract class O implements CharSequence {}
 
-@Immutable interface ImmutableInterface<E extends @ReceiverDependantMutable Object> {}
+@Immutable interface ImmutableInterface<E extends @ReceiverDependentMutable Object> {}
 
-// :: error: (subclass.bound.incompatible)
+// :: error: (type.invalid.annotations.on.use)
 @Mutable abstract class P implements ImmutableInterface<@Mutable Object> {}
 
 @Immutable abstract class Q implements ImmutableInterface<@Immutable Object> {}
 
-// :: error: (subclass.bound.incompatible)
-@ReceiverDependantMutable abstract class R implements ImmutableInterface<@ReceiverDependantMutable Object> {}
+// :: error: (type.invalid.annotations.on.use)
+@ReceiverDependentMutable abstract class R implements ImmutableInterface<@ReceiverDependentMutable Object> {}

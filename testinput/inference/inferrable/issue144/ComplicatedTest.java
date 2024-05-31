@@ -1,6 +1,6 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 import qual.Readonly;
 import java.util.ArrayList;
 
@@ -8,7 +8,7 @@ class Person {
 
     protected String name;
     protected int age;
-    protected @ReceiverDependantMutable ArrayList<String> friends;
+    protected @ReceiverDependentMutable ArrayList<String> friends;
 
     public Person(String name, int age, ArrayList<String> friends) {
         this.name = name;
@@ -38,7 +38,7 @@ public class ComplicatedTest {
         String name = "tamier";
         int age = 24;
         ArrayList<String> friends = new ArrayList<String>();
-        // :: fixable-error: (type.invalid.annotations.on.use)
+        // :: fixable-error: (constructor.invocation.invalid)
         Person p = new @Immutable Person(name, age, friends);
         // :: fixable-error: (method.invocation.invalid)
         p.getName();

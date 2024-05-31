@@ -3,7 +3,7 @@ package typecheck;
 import qual.Readonly;
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 @Immutable
 public class Primitive {
@@ -18,7 +18,7 @@ public class Primitive {
     // :: error: (type.invalid.annotations.on.use)
     @Mutable int invalidInt;
     // :: error: (type.invalid.annotations.on.use)
-    @ReceiverDependantMutable int invalidInt2;
+    @ReceiverDependentMutable int invalidInt2;
 
     // :: error: (initialization.fields.uninitialized)
     @Immutable Primitive() {

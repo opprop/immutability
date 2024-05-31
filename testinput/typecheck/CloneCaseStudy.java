@@ -6,7 +6,7 @@
 // overriding check passes. For example, @Mutable class can override clone()
 // method as @Mutable Object clone(@Mutable A this) while @Immutable class
 // can override to @Immutable Object clone(@Immutable B this). But
-// @ReceiverDependantMutable class should keep the exact same signature as that
+// @ReceiverDependentMutable class should keep the exact same signature as that
 // in jdk.astub, because both @Mutable and @Immutable might be the client.
 // Overriding to either @Mutable or @Immutable may cause existing client to break.
 
