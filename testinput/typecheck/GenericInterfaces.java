@@ -13,6 +13,7 @@ class GenericInterfaces {
 
         // Using optimictic uninferred type arguments, so it is
         // allowed
+        // :: error: (assignment.type.incompatible)
         @Immutable Object ro = raw.next();
     }
 }

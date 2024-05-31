@@ -1,6 +1,7 @@
 package pico.typecheck;
 
 import org.checkerframework.checker.initialization.InitializationChecker;
+import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.SupportedOptions;
 
@@ -13,8 +14,11 @@ import java.util.Set;
 @SupportedOptions({"printFbcErrors"})
 public class PICOChecker extends InitializationChecker {
 
-    public PICOChecker() {
-        super(true);
+    public PICOChecker() {}
+
+    @Override
+    public Class<? extends BaseTypeChecker> getTargetCheckerClass() {
+        return PICONoInitSubchecker.class;
     }
 
     @Override
@@ -24,8 +28,8 @@ public class PICOChecker extends InitializationChecker {
     }
 
     @Override
-    protected BaseTypeVisitor<?> createSourceVisitor() {
-        return new PICOVisitor(this);
+    public boolean checkPrimitives() {
+        return true;
     }
 
     @Override
@@ -42,7 +46,7 @@ public class PICOChecker extends InitializationChecker {
     }
 
     private void printFbcViolatedMethods() {
-        Set<Entry<String, Integer>> entries = ((PICOVisitor) visitor).fbcViolatedMethods.entrySet();
+        Set<Entry<String, Integer>> entries = ((PICONoInitVisitor) visitor).fbcViolatedMethods.entrySet();
         if (entries.isEmpty()) {
             System.out.println("\n=============== Congrats! No Fbc Violations Found. ===============\n");
         } else {

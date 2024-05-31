@@ -6,19 +6,26 @@ import com.sun.source.tree.VariableTree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
-import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TreePathUtil;
+import pico.common.PICOTypeUtil;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.VariableElement;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
+import java.util.Objects;
+import java.util.Set;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
+import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 
 /**
  * Created by mier on 29/09/17.
@@ -35,7 +42,41 @@ public class PICOValidator extends BaseTypeValidator {
         checkStaticReceiverDependantMutableError(type, tree);
         checkImplicitlyImmutableTypeError(type, tree);
         checkOnlyOneAssignabilityModifierOnField(tree);
+
         return super.visitDeclared(type, tree);
+
+    }
+
+    @Override
+    protected boolean shouldCheckTopLevelDeclaredOrPrimitiveType(AnnotatedTypeMirror type, Tree tree) {
+        // check top annotations in extends/implements clauses
+        if ((tree.getKind() == Kind.IDENTIFIER || tree.getKind() == Kind.PARAMETERIZED_TYPE) &&
+                PICONoInitAnnotatedTypeFactory.PICOSuperClauseAnnotator.isSuperClause(atypeFactory.getPath(tree))) {
+            return true;
+        }
+        // allow RDM on mutable fields with enclosing class bounded with mutable
+        if (tree instanceof VariableTree) {
+            VariableElement element = TreeUtils.elementFromDeclaration((VariableTree)tree);
+            if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingTypeElement(element) != null) {
+                Set<AnnotationMirror> enclosingBound =
+                        atypeFactory.getTypeDeclarationBounds(
+                                Objects.requireNonNull(ElementUtils.enclosingTypeElement(element)).asType());
+
+                Set<AnnotationMirror> declaredBound =
+                        atypeFactory.getTypeDeclarationBounds(type.getUnderlyingType());
+
+                if(AnnotationUtils.containsSameByName(declaredBound, MUTABLE)
+                        && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
+                        && AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
+                    return false;
+                }
+            }
+        }
+//        if (TreeUtils.isLocalVariable(tree)) {
+//            return true;
+//        }
+
+        return super.shouldCheckTopLevelDeclaredOrPrimitiveType(type, tree);
     }
 
     @Override
@@ -52,14 +93,16 @@ public class PICOValidator extends BaseTypeValidator {
     }
 
     private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
-        if (PICOTypeUtil.inStaticScope(visitor.getCurrentPath())
-                && !"".contentEquals(TreeUtils.enclosingClass(visitor.getCurrentPath()).getSimpleName())// Exclude @RDM usages in anonymous classes
+        if (!type.isDeclaration()  // variables in static contexts and static fields use class decl as enclosing type
+                && PICOTypeUtil.inStaticScope(visitor.getCurrentPath())
+                && !"".contentEquals(Objects.requireNonNull(TreePathUtil.enclosingClass(visitor.getCurrentPath())).getSimpleName())  // Exclude @RDM usages in anonymous classes
                 && type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
             reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
         }
     }
 
-    /**Check that implicitly immutable type has immutable or bottom type. Dataflow might refine immtable type to @Bottom,
+    /**Check that implicitly immutable type has immutable or bottom type. Dataflow might refine immutable type to
+     * {@code @Bottom} (see RefineFromNull.java),
      * so we accept @Bottom as a valid qualifier for implicitly immutable types*/
     private void checkImplicitlyImmutableTypeError(AnnotatedTypeMirror type, Tree tree) {
         if (PICOTypeUtil.isImplicitlyImmutableType(type) && !type.hasAnnotation(IMMUTABLE) && !type.hasAnnotation(BOTTOM)) {
@@ -79,7 +122,7 @@ public class PICOValidator extends BaseTypeValidator {
     }
 
     private void reportFieldMultipleAssignabilityModifiersError(VariableElement field) {
-        checker.report(Result.failure("one.assignability.invalid", field), field);
+        checker.reportError(field, "one.assignability.invalid", field);
         isValid = false;
     }
 }

@@ -16,7 +16,7 @@ class A {
 
     @Override
     public boolean equals(Object obj) {
-        // :: warning: (cast.unsafe)
+        // No cast.unsafe
         return isIn == ((A)obj).isIn;
     }
 }

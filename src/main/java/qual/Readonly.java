@@ -1,7 +1,6 @@
 package qual;
 
-import org.checkerframework.framework.qual.DefaultInUncheckedCodeFor;
-import org.checkerframework.framework.qual.ImplicitFor;
+import org.checkerframework.framework.qual.DefaultFor;
 import org.checkerframework.framework.qual.SubtypeOf;
 import org.checkerframework.framework.qual.TypeUseLocation;
 
@@ -15,5 +14,5 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@DefaultInUncheckedCodeFor({TypeUseLocation.PARAMETER, TypeUseLocation.RECEIVER})
+@DefaultFor({TypeUseLocation.IMPLICIT_UPPER_BOUND})
 public @interface Readonly {}
