@@ -28,7 +28,6 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 
 /**
- * Created by mier on 29/09/17.
  * Enforce correct usage of immutability and assignability qualifiers.
  * TODO @PolyMutable is only used on constructor/method parameters or method return
  */
