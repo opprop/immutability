@@ -481,7 +481,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         flexibleOverrideChecker(node);
 
         // ObjectIdentityMethod check
-        if (PICOTypeUtil.isObjectIdentityMethod(node, atypeFactory)) {
+        if (!infer && PICOTypeUtil.isObjectIdentityMethod(node, atypeFactory)) {
             ObjectIdentityMethodEnforcer.check(
                     atypeFactory.getPath(node.getBody()), (PICOInferenceRealTypeFactory) atypeFactory, checker);
         }
