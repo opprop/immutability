@@ -2,7 +2,7 @@ package typecheck;
 
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 import qual.Readonly;
 
 // ok
@@ -11,7 +11,7 @@ import qual.Readonly;
 }
 
 // ok
-@Immutable class ImmutableClass3<T extends @ReceiverDependantMutable Object>{
+@Immutable class ImmutableClass3<T extends @ReceiverDependentMutable Object>{
     @Immutable ImmutableClass3(){}
 }
 

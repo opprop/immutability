@@ -37,7 +37,7 @@ public class PICOInferenceValidator extends InferenceValidator{
 
     @Override
     public Void visitDeclared(AnnotatedDeclaredType type, Tree tree) {
-        checkStaticReceiverDependantMutableError(type, tree);
+        checkStaticReceiverDependentMutableError(type, tree);
         checkImplicitlyImmutableTypeError(type, tree);
         checkOnlyOneAssignabilityModifierOnField(tree);
 //        AnnotatedDeclaredType defaultType =
@@ -70,7 +70,7 @@ public class PICOInferenceValidator extends InferenceValidator{
 
     @Override
     public Void visitArray(AnnotatedArrayType type, Tree tree) {
-        checkStaticReceiverDependantMutableError(type, tree);
+        checkStaticReceiverDependentMutableError(type, tree);
         return super.visitArray(type, tree);
     }
 
@@ -114,15 +114,15 @@ public class PICOInferenceValidator extends InferenceValidator{
         return super.shouldCheckTopLevelDeclaredOrPrimitiveType(type, tree);
     }
 
-    private void checkStaticReceiverDependantMutableError(AnnotatedTypeMirror type, Tree tree) {
+    private void checkStaticReceiverDependentMutableError(AnnotatedTypeMirror type, Tree tree) {
         // Static inner class is considered within the static scope.
         // Added condition to ensure not class decl.
         if (PICOTypeUtil.inStaticScope(visitor.getCurrentPath()) && !type.isDeclaration()) {
             if (infer) {
-                ((PICOInferenceVisitor)visitor).mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverdependantmutable.forbidden", tree);
+                ((PICOInferenceVisitor)visitor).mainIsNot(type, RECEIVER_DEPENDANT_MUTABLE, "static.receiverDependentMutable.forbidden", tree);
             } else {
                 if (type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
-                    reportValidityResult("static.receiverdependantmutable.forbidden", type, tree);
+                    reportValidityResult("static.receiverDependentMutable.forbidden", type, tree);
                 }
             }
             // TODO set isValid or move to visitor

@@ -38,7 +38,7 @@ import org.checkerframework.javacutil.*;
 import pico.common.ExtendedViewpointAdapter;
 import pico.common.ViewpointAdapterGettable;
 import pico.common.PICOTypeUtil;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -203,14 +203,14 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         Constraint isMutable = constraintManager.createEqualityConstraint(declSlot, mutable);
         Constraint notImmutable = constraintManager.createInequalityConstraint(useSlot, immutable);
         constraintManager.addImplicationConstraint(Arrays.asList(isMutable), notImmutable);
-        // declType == @Mutable -> useType != @ReceiverDependantMutable
+        // declType == @Mutable -> useType != @ReceiverDependentMutable
         Constraint notRDM = constraintManager.createInequalityConstraint(useSlot, rdm);
         constraintManager.addImplicationConstraint(Arrays.asList(isMutable), notRDM);
         // declType == @Immutable -> useType != @Mutable
         Constraint isImmutable = constraintManager.createEqualityConstraint(declSlot, immutable);
         Constraint notMutable = constraintManager.createInequalityConstraint(useSlot, mutable);
         constraintManager.addImplicationConstraint(Arrays.asList(isImmutable), notMutable);
-        // declType == @Immutable -> useType != @ReceiverDependantMutable
+        // declType == @Immutable -> useType != @ReceiverDependentMutable
         constraintManager.addImplicationConstraint(Arrays.asList(isImmutable), notRDM);
     }
 
@@ -517,7 +517,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 Slot rdmSlot = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
                 Constraint inequalityConstraint = constraintManager.createInequalityConstraint(boundSlot, rdmSlot);
                 Constraint subtypeConstraint = constraintManager.createSubtypeConstraint(consRetSlot, boundSlot);
-                // bound != @ReceiverDependantMutable -> consRet <: bound
+                // bound != @ReceiverDependentMutable -> consRet <: bound
                 constraintManager.addImplicationConstraint(Collections.singletonList(inequalityConstraint), subtypeConstraint);
                 // TODO Add typecheck for this?
             }
@@ -779,7 +779,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     private void checkInitializingObject(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) { // todo: haifeng we only need to do this in one statement
         // TODO rm infer after mainIsNot returns bool
         if (infer) {
-            // Can be anything from mutable, immutable or receiverdependantmutable
+            // Can be anything from mutable, immutable or ReceiverDependentMutable
             mainIsNot(receiverType, READONLY, "illegal.field.write", node);
         } else {
             if (receiverType.hasAnnotation(READONLY)) {
@@ -886,7 +886,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     private void checkNewInstanceCreation(Tree node) {
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
         if (infer) {
-            // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable are inferred on new instance creation
+            // Ensure only @Mutable/@Immutable/@ReceiverDependentMutable are inferred on new instance creation
             mainIsNoneOf(type, new AnnotationMirror[]{READONLY, BOTTOM}, "pico.new.invalid", node);
         } else {
             if (!(type.hasAnnotation(IMMUTABLE) || type.hasAnnotation(MUTABLE) ||

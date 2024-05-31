@@ -1,18 +1,18 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class NotEveryInstFieldDefaultToRDM {
     // :: error: (assignment.type.incompatible)
-    @ReceiverDependantMutable B b1 = new B();
-    B b2 = new @ReceiverDependantMutable B();
+    @ReceiverDependentMutable B b1 = new B();
+    B b2 = new @ReceiverDependentMutable B();
     @Mutable C c = new @Mutable C();
     @Mutable D d = new @Mutable D();
     E e = new @Immutable E();
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class B {}
 
 class C {}

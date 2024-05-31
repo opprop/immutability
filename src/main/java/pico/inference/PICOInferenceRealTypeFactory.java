@@ -44,7 +44,7 @@ import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
@@ -80,7 +80,7 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
                         PolyMutable.class,
                         Readonly.class,
                         Mutable.class,
-                        ReceiverDependantMutable.class,
+                        ReceiverDependentMutable.class,
                         Immutable.class,
                         Bottom.class));
     }

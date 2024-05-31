@@ -3,17 +3,17 @@ package typecheck;
 import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.Date;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class SupportedBuilderPattern {
     private final int id;
     private String address;
     private @Immutable Date date;
 
-    private @ReceiverDependantMutable SupportedBuilderPattern(Builder builder) {
+    private @ReceiverDependentMutable SupportedBuilderPattern(Builder builder) {
         this.id = builder.id;
         this.address = builder.address;
         this.date = builder.date;

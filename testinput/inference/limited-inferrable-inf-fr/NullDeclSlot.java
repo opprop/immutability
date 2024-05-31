@@ -1,7 +1,7 @@
 import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 // https://github.com/opprop/checker-framework-inference/issues/130
 

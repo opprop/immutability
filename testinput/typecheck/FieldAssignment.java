@@ -3,12 +3,12 @@ package typecheck;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import qual.Mutable;
 import qual.Immutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class FieldAssignment {
 
-    @ReceiverDependantMutable Object f;
+    @ReceiverDependentMutable Object f;
 
     void setFWithMutableReceiver(@UnderInitialization @Mutable FieldAssignment this, @Mutable Object o) {
         this.f = new @Mutable Object();
@@ -21,7 +21,7 @@ public class FieldAssignment {
         setFWithMutableReceiver(new @Mutable Object());
     }
 
-    void setFWithReceiverDependantMutableReceiver(@ReceiverDependantMutable FieldAssignment this, @ReceiverDependantMutable Object pimo) {
+    void setFWithReceiverDependentMutableReceiver(@ReceiverDependentMutable FieldAssignment this, @ReceiverDependentMutable Object pimo) {
         // :: error: (illegal.field.write)
         this.f = pimo;
     }

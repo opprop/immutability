@@ -8,7 +8,7 @@ import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.util.Elements;
@@ -31,7 +31,7 @@ public class PICOAnnotationMirrorHolder {
         READONLY = AnnotationBuilder.fromClass(elements, Readonly.class);
         MUTABLE = AnnotationBuilder.fromClass(elements, Mutable.class);
         POLY_MUTABLE = AnnotationBuilder.fromClass(elements, PolyMutable.class);
-        RECEIVER_DEPENDANT_MUTABLE = AnnotationBuilder.fromClass(elements, ReceiverDependantMutable.class);
+        RECEIVER_DEPENDANT_MUTABLE = AnnotationBuilder.fromClass(elements, ReceiverDependentMutable.class);
         IMMUTABLE = AnnotationBuilder.fromClass(elements, Immutable.class);
         BOTTOM = AnnotationBuilder.fromClass(elements, Bottom.class);
 

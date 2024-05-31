@@ -1,8 +1,8 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class BoundsCompatible {}
 
 // @Mutable propagates here

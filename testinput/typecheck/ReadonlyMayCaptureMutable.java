@@ -3,14 +3,14 @@ package typecheck;
 import qual.Immutable;
 import qual.Readonly;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class ReadonlyMayCaptureMutable {
     static @Mutable Object smf = new @Mutable Object();
 
     @Readonly Object rof;
-    @ReceiverDependantMutable ReadonlyMayCaptureMutable() {
+    @ReceiverDependentMutable ReadonlyMayCaptureMutable() {
         // Not a problem anymore, because readonly field is out of the abstract state
         rof = smf;
     }

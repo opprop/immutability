@@ -3,14 +3,14 @@ import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 // Inspire by: https://docs.oracle.com/javase/tutorial/essential/concurrency/imstrat.html
 // Allow both mutable and immutable instance creation
 // Allow having getters and setters, don't need to remove them
 // fields don't need to be declared with "final"
 // Don't need defensive copy(even though not applicable in this example)
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class RGB {
 
     // Values must be between 0 and 255.

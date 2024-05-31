@@ -2,7 +2,7 @@ package typecheck;
 
 import qual.Immutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 /**
  * This builder pattern is NOT supported if the builder internally holds the constructed
@@ -10,7 +10,7 @@ import qual.ReceiverDependantMutable;
  * Update: this is fake builder pattern from Wikipedia!
  */
 public class UnsupportedCarBuilder {
-    @ReceiverDependantMutable
+    @ReceiverDependentMutable
     class Car {
         private int wheels;
         private String color;

@@ -1,5 +1,5 @@
 import qual.Immutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.List;
 
@@ -8,8 +8,8 @@ class A{}
 @Immutable
 class B{ @Immutable B(){} }
 
-@ReceiverDependantMutable
-class C{ @ReceiverDependantMutable C(){} }
+@ReceiverDependentMutable
+class C{ @ReceiverDependentMutable C(){} }
 
 public class WildcardExplicitLowerBound {
 

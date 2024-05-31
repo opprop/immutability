@@ -7,26 +7,26 @@ public class RDMFieldInst{
     @Immutable
     private static class ImmutableBox {}
 
-    @ReceiverDependantMutable
+    @ReceiverDependentMutable
     private static class RDMBox {}
 
     @Immutable
     private static class ImmutableClass {
         // :: error: (type.invalid.annotations.on.use)
-        @ReceiverDependantMutable MutableBox mutableBoxInRDM;
+        @ReceiverDependentMutable MutableBox mutableBoxInRDM;
     }
 
     @Mutable
     private static class MutableClass {
-        @ReceiverDependantMutable MutableBox mutableBoxInRDM = new MutableBox();
+        @ReceiverDependentMutable MutableBox mutableBoxInRDM = new MutableBox();
 
-        @ReceiverDependantMutable RDMBox rdmBoxInRDMnewM = new @Mutable RDMBox();
+        @ReceiverDependentMutable RDMBox rdmBoxInRDMnewM = new @Mutable RDMBox();
         // :: error: (assignment.type.incompatible)
-        @ReceiverDependantMutable RDMBox rdmBoxInRDMnewI = new @Immutable RDMBox();
+        @ReceiverDependentMutable RDMBox rdmBoxInRDMnewI = new @Immutable RDMBox();
         // :: error: (assignment.type.incompatible)
-        @ReceiverDependantMutable RDMBox rdmBoxInRDMnewRDM = new @ReceiverDependantMutable RDMBox();
+        @ReceiverDependentMutable RDMBox rdmBoxInRDMnewRDM = new @ReceiverDependentMutable RDMBox();
         // :: error: (type.invalid.annotations.on.use)
-        @ReceiverDependantMutable ImmutableBox immutableBoxInRDM = new ImmutableBox();
+        @ReceiverDependentMutable ImmutableBox immutableBoxInRDM = new ImmutableBox();
     }
 
 

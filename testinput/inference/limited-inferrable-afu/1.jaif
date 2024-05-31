@@ -8,7 +8,7 @@ package qual:
   annotation @Readonly:
 
 package qual:
-  annotation @ReceiverDependantMutable:
+  annotation @ReceiverDependentMutable:
 
 package qual:
   annotation @Immutable:

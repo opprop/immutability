@@ -1,6 +1,6 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 import qual.Readonly;
 import java.util.ArrayList;
 
@@ -8,7 +8,7 @@ class Person {
 
     protected String name;
     protected int age;
-    protected @ReceiverDependantMutable ArrayList<String> friends;
+    protected @ReceiverDependentMutable ArrayList<String> friends;
 
     public Person(String name, int age, ArrayList<String> friends) {
         this.name = name;

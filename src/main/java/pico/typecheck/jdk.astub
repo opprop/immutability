@@ -1,20 +1,20 @@
 import qual.Mutable;
 import qual.Immutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 import qual.Readonly;
 import qual.ObjectIdentityMethod;
 import java.util.Collection;
 
 package java.lang;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class Object {
-  @ReceiverDependantMutable Object();
+  @ReceiverDependentMutable Object();
   Class<?> getClass(@Readonly Object this);
   String toString(@Readonly Object this);
   int hashCode(@Readonly Object this);
   boolean equals(@Readonly Object this, @Readonly Object var1);
-  @ReceiverDependantMutable Object clone(@ReceiverDependantMutable Object this);
+  @ReceiverDependentMutable Object clone(@ReceiverDependentMutable Object this);
   @ObjectIdentityMethod
   final native Class<?> getClass();
 }
@@ -50,17 +50,17 @@ class StringBuffer {
   int lastIndexOf(@Readonly StringBuffer this, String str, int fromIndex);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class Throwable {
-  String getMessage(@ReceiverDependantMutable Throwable this);
-  String getLocalizedMessage(@ReceiverDependantMutable Throwable this);
-  Throwable getCause(@ReceiverDependantMutable Throwable this);
-  void printStackTrace(@ReceiverDependantMutable Throwable this);
-  void printStackTrace(@ReceiverDependantMutable Throwable this, PrintStream var1);
-  void printStackTrace(@ReceiverDependantMutable Throwable this, Throwable.PrintStreamOrWriter var1);
+  String getMessage(@ReceiverDependentMutable Throwable this);
+  String getLocalizedMessage(@ReceiverDependentMutable Throwable this);
+  Throwable getCause(@ReceiverDependentMutable Throwable this);
+  void printStackTrace(@ReceiverDependentMutable Throwable this);
+  void printStackTrace(@ReceiverDependentMutable Throwable this, PrintStream var1);
+  void printStackTrace(@ReceiverDependentMutable Throwable this, Throwable.PrintStreamOrWriter var1);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 interface CharSequence {
   int length(@Readonly CharSequence this);
   char charAt(@Readonly CharSequence this, int index);
@@ -69,13 +69,13 @@ interface CharSequence {
   public default IntStream codePoints(@Readonly CharSequence this);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class RuntimeException {
-  @ReceiverDependantMutable RuntimeException(@Readonly Throwable var1);
-  @ReceiverDependantMutable RuntimeException(String var1, @Readonly Throwable var2, boolean var3, boolean var4);
+  @ReceiverDependentMutable RuntimeException(@Readonly Throwable var1);
+  @ReceiverDependentMutable RuntimeException(String var1, @Readonly Throwable var2, boolean var3, boolean var4);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class IndexOutOfBoundsException {}
 
 @Immutable
@@ -84,42 +84,42 @@ class Enum<E extends @Immutable Enum<E>> {
   int ordinal(@Immutable Enum<E> this);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 interface Cloneable {}
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 interface Comparable<T> {}
 
 package java.util;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class Properties {
   @Readonly Object put(@Immutable Object key, @Readonly Object value);
 }
 
 interface Iterator<E extends @Readonly Object> {}
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class Date {
-  @ReceiverDependantMutable Date();
-  @ReceiverDependantMutable Date(long var1);
-  int getHours(@ReceiverDependantMutable Date this);
+  @ReceiverDependentMutable Date();
+  @ReceiverDependentMutable Date(long var1);
+  int getHours(@ReceiverDependentMutable Date this);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 interface Collection<E> {
   boolean contains(@Readonly Collection<E> this, @Readonly Object o);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public abstract class AbstractCollection<E> implements Collection<E> {
     public abstract int size(@Readonly AbstractCollection this);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class ArrayList<E> {
-  @ReceiverDependantMutable ArrayList();
-  @ReceiverDependantMutable ArrayList(@Readonly Collection<? extends E> var1);
+  @ReceiverDependentMutable ArrayList();
+  @ReceiverDependentMutable ArrayList(@Readonly Collection<? extends E> var1);
   boolean add(E var1);
   boolean addAll(@Readonly Collection<? extends E> c);
   E get(@Readonly ArrayList<E> this, int index);
@@ -131,7 +131,7 @@ class ArrayList<E> {
   Iterator<E> iterator(@Readonly ArrayList<E> this);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 interface List<E> {
   int size(@Readonly List<E> this);
   boolean isEmpty(@Readonly List<E> this);
@@ -151,13 +151,13 @@ interface List<E> {
   ListIterator<E> listIterator(@Readonly List<E> this, int index);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class AbstractList<E> {
-  @ReceiverDependantMutable AbstractList();
+  @ReceiverDependentMutable AbstractList();
   void add(@Mutable AbstractList<E> this, int var1, E var2);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 interface Set<E> {
   int size(@Readonly Set<E> this);
   boolean isEmpty(@Readonly Set<E> this);
@@ -170,15 +170,15 @@ interface Set<E> {
   boolean addAll(@Readonly Collection<? extends E> c);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class HashSet<E> {
-  @ReceiverDependantMutable HashSet();
-  @ReceiverDependantMutable HashSet(@Readonly Collection<? extends E> var1);
+  @ReceiverDependentMutable HashSet();
+  @ReceiverDependentMutable HashSet(@Readonly Collection<? extends E> var1);
   boolean contains(@Readonly HashSet<E> this, @Readonly Object var1);
   boolean remove(@Readonly Object var1);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 interface Map<K extends @Immutable Object, V> {
   int size(@Readonly Map<K, V> this);
   boolean isEmpty(@Readonly Map<K, V> this);
@@ -192,10 +192,10 @@ interface Map<K extends @Immutable Object, V> {
   Set<Map.Entry<K, V>> entrySet(@Readonly Map<K, V> this);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class HashMap<K extends @Immutable Object, V> {
-  @ReceiverDependantMutable HashMap();
-  @ReceiverDependantMutable HashMap(@Readonly Map<? extends K, ? extends V> var1);
+  @ReceiverDependentMutable HashMap();
+  @ReceiverDependentMutable HashMap(@Readonly Map<? extends K, ? extends V> var1);
   V get(@Readonly HashMap<K, V> this, @Readonly Object key);
   boolean containsKey(@Readonly HashMap<K, V> this, @Readonly Object key);
   boolean containsValue(@Readonly HashMap<K, V> this, @Readonly Object value);
@@ -224,18 +224,18 @@ class Objects {
   static boolean equals(@Readonly Object a, @Readonly Object b);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class Stack<E> {
-  E peek(@ReceiverDependantMutable Stack<E> this);
-  boolean empty(@ReceiverDependantMutable Stack<E> this);
+  E peek(@ReceiverDependentMutable Stack<E> this);
+  boolean empty(@ReceiverDependentMutable Stack<E> this);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class Vector<E> {
   boolean isEmpty(@Readonly Vector<E> this);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class Hashtable<K extends @Immutable Object,V> {
   V get(@Readonly Hashtable<K,V> this, @Readonly Object key);
   boolean containsKey(@Readonly Hashtable<K,V> this, @Readonly Object key);
@@ -258,21 +258,21 @@ class Pattern {
 
 package java.io;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class PrintStream {
-  void print(@ReceiverDependantMutable PrintStream this, String var1);
-  PrintStream printf(@ReceiverDependantMutable PrintStream this, String var1, @Readonly Object @Readonly ... var2);
+  void print(@ReceiverDependentMutable PrintStream this, String var1);
+  PrintStream printf(@ReceiverDependentMutable PrintStream this, String var1, @Readonly Object @Readonly ... var2);
   PrintStream format(String format, @Readonly Object @Readonly ... args);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class PrintWriter {
-  PrintWriter printf(@ReceiverDependantMutable PrintWriter this, String var1, @Readonly Object @Readonly ... var2);
+  PrintWriter printf(@ReceiverDependentMutable PrintWriter this, String var1, @Readonly Object @Readonly ... var2);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class File {
-  @ReceiverDependantMutable File(@Readonly File parent, String child);
+  @ReceiverDependentMutable File(@Readonly File parent, String child);
   boolean isFile(@Readonly File this);
   String[] list(@Readonly File this);
   String getPath(@Readonly File this);
@@ -280,21 +280,21 @@ class File {
   String getName(@Readonly File this);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class FileInputStream {
-  @ReceiverDependantMutable FileInputStream(@Readonly File file);
+  @ReceiverDependentMutable FileInputStream(@Readonly File file);
 }
 
 class ObjectOutputStream {
   void writeObject(@Readonly Object obj);
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 interface Serializable {}
 
 package java.awt;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class Container {
   void add(@Readonly Component comp, @Readonly Object constraints);
 }

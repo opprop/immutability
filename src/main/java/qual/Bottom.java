@@ -21,7 +21,7 @@ import java.lang.annotation.Target;
  * automatically inferred, and we have -AwarnRedundantAnnotations flag to warn about
  * redundant annotations.
  */
-@SubtypeOf({Mutable.class, Immutable.class, ReceiverDependantMutable.class})
+@SubtypeOf({Mutable.class, Immutable.class, ReceiverDependentMutable.class})
 @DefaultFor(typeKinds = {TypeKind.NULL})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

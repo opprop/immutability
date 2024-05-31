@@ -1,9 +1,9 @@
 import qual.*;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class A {
     @Assignable @Mutable B b;
-    @ReceiverDependantMutable A() {}
+    @ReceiverDependentMutable A() {}
     void bar(@Readonly A this) {}
 }
 

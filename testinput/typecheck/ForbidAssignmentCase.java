@@ -3,17 +3,17 @@ package typecheck;
 import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 import qual.Assignable;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class ForbidAssignmentCase {
-    @Assignable @ReceiverDependantMutable Object f;
-    @ReceiverDependantMutable ForbidAssignmentCase() {
-        f = new @ReceiverDependantMutable Object();
+    @Assignable @ReceiverDependentMutable Object f;
+    @ReceiverDependentMutable ForbidAssignmentCase() {
+        f = new @ReceiverDependentMutable Object();
     }
 
-    // Allowing assignment through @Readonly receiver to @Assignable @ReceiverDependantMutable
+    // Allowing assignment through @Readonly receiver to @Assignable @ReceiverDependentMutable
     // in either way causes errors. So I would forbid this combination in assignment.
     // Though we still allow reading this field by @Readonly receiver
     static void forbid(@Readonly ForbidAssignmentCase ro, @Mutable ForbidAssignmentCase mo) {

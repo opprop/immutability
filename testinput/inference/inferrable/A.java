@@ -1,11 +1,11 @@
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class A extends ArrayList<@Immutable String> {}
 
 class B extends A {}

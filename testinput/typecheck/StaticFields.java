@@ -13,9 +13,9 @@ public class StaticFields {
     // Update: d is equivalent to having explicit annotations now. TreeAnnotators belong to addComputedAnnotations()
     // phase, and they don't have any effect now(provided those TreeAnnotators don't always replaceAnnotations, and
     // this is true for PICOTreeAnnotators: they all repect existing annotations from source and elements)
-    // Update2: d no longer gets inheritted @ReceiverDependantMutable anymore. It goes back to original
+    // Update2: d no longer gets inheritted @ReceiverDependentMutable anymore. It goes back to original
     // implementation - PICOTreeAnnotator adds @Mutable to non-implicitly immutable type. This is the result
-    // of not inheritting @ReceiverDependantMutable to the usage because it creates unexpected noises.
+    // of not inheritting @ReceiverDependentMutable to the usage because it creates unexpected noises.
     // As a result, d has no annotation on it, and it falls through to PICOTreeAnnotator and gets added
     // @Mutable.
     static Date d;
@@ -24,7 +24,7 @@ public class StaticFields {
     static @Immutable Date d3;
 
     static {
-        // (not the case anymore) new instance creation also has @ReceiverDependantMutable type
+        // (not the case anymore) new instance creation also has @ReceiverDependentMutable type
         // which is from element declaration in stub file(bound)
         d = new Date();// (this case again) Handled by addComputedTypeAnnotations(Element, AnnotatedTypeMirror) when used
         i = 2;// Handled by PICOImplicitsTypeAnnotator when used

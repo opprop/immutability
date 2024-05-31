@@ -2,10 +2,10 @@ package typecheck;
 
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 class InitializationBlockProblem {
-    @ReceiverDependantMutable Object o;
+    @ReceiverDependentMutable Object o;
 
     {
         this.o = new @Mutable Object();

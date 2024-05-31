@@ -2,13 +2,13 @@ package typecheck;
 
 import qual.Immutable;
 import qual.Mutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 import java.util.Date;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class SuperClass{
-    @ReceiverDependantMutable Date p;
+    @ReceiverDependentMutable Date p;
     @Immutable SuperClass(@Immutable Date p){
         this.p = p;
     }
@@ -30,9 +30,9 @@ class SubClass extends SuperClass{
     }
 }
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 class AnotherSubClass extends SuperClass{
-    @ReceiverDependantMutable AnotherSubClass(){
+    @ReceiverDependentMutable AnotherSubClass(){
         // :: error: (super.invocation.invalid)
         super(new @Immutable Date(1L));
     }

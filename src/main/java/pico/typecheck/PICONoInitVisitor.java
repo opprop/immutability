@@ -435,7 +435,7 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
     }
 
     private void checkNewInstanceCreation(Tree node) {
-        // Ensure only @Mutable/@Immutable/@ReceiverDependantMutable/@PolyMutable are used on new
+        // Ensure only @Mutable/@Immutable/@ReceiverDependentMutable/@PolyMutable are used on new
         // instance creation
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
         if (!(type.hasAnnotation(IMMUTABLE)
@@ -489,7 +489,7 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
 
         AnnotatedDeclaredType bound =
                 PICOTypeUtil.getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
-        // Has to be either @Mutable, @ReceiverDependantMutable or @Immutable, nothing else
+        // Has to be either @Mutable, @ReceiverDependentMutable or @Immutable, nothing else
         if (!bound.hasAnnotation(MUTABLE)
                 && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
                 && !bound.hasAnnotation(IMMUTABLE)) {

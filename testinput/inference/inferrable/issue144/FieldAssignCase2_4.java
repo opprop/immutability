@@ -1,9 +1,9 @@
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import qual.Immutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
 public class FieldAssignCase2_4 {
-    @ReceiverDependantMutable Object o;
+    @ReceiverDependentMutable Object o;
     FieldAssignCase2_4() {
         init();
     }

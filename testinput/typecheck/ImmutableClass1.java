@@ -3,7 +3,7 @@ package typecheck;
 import qual.Immutable;
 import qual.Mutable;
 import qual.PolyMutable;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 import qual.Readonly;
 
 @Immutable
@@ -11,7 +11,7 @@ class ImmutableClass1{
     // :: error: (type.invalid.annotations.on.use)
     @Mutable ImmutableClass1(Object o) {}
     // :: error: (type.invalid.annotations.on.use)
-    @ReceiverDependantMutable ImmutableClass1() {}
+    @ReceiverDependentMutable ImmutableClass1() {}
     @Immutable ImmutableClass1(@Immutable Number n) {}
 
     void method1(@Readonly ImmutableClass1 this) {}
@@ -19,7 +19,7 @@ class ImmutableClass1{
     void method2(@Immutable ImmutableClass1 this) {}
 
     // :: error: (type.invalid.annotations.on.use) :: error: (method.receiver.incompatible)
-    void method3(@ReceiverDependantMutable ImmutableClass1 this) {}
+    void method3(@ReceiverDependentMutable ImmutableClass1 this) {}
 
     void method4(@PolyMutable ImmutableClass1 this) {}
 

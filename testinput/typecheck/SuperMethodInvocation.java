@@ -3,14 +3,14 @@ package typecheck;
 import qual.Immutable;
 import qual.Mutable;
 import qual.Readonly;
-import qual.ReceiverDependantMutable;
+import qual.ReceiverDependentMutable;
 
-@ReceiverDependantMutable
+@ReceiverDependentMutable
 public class SuperMethodInvocation {
-    @ReceiverDependantMutable Object f;
+    @ReceiverDependentMutable Object f;
 
-    @ReceiverDependantMutable SuperMethodInvocation() {
-        this.f = new @ReceiverDependantMutable Object();
+    @ReceiverDependentMutable SuperMethodInvocation() {
+        this.f = new @ReceiverDependentMutable Object();
     }
 
     void foo(@Mutable SuperMethodInvocation this) {
