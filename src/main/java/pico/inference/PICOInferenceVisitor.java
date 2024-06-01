@@ -747,25 +747,23 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
     private void checkAssignableField(ExpressionTree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         Element fieldElement = TreeUtils.elementFromUse(variable);
         assert fieldElement != null;
-        if (fieldElement != null) {//TODO Can this bu null?
-            AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
-            assert  fieldType != null;
-            if (infer) {
-                // Break the combination of readonly receiver + rdm assignable field
-                ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
-                SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
-                Slot receiverSlot = slotManager.getSlot(receiverType);
-                Slot fieldSlot = slotManager.getSlot(fieldType);
-                Slot readonly = slotManager.getSlot(READONLY);
-                Slot receiver_dependant_mutable = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
-                Constraint receiverReadOnly = constraintManager.createEqualityConstraint(receiverSlot, readonly);
-                Constraint fieldNotRDM = constraintManager.createInequalityConstraint(fieldSlot, receiver_dependant_mutable);
-                //  receiver = READONLY
-                constraintManager.addImplicationConstraint(Collections.singletonList(receiverReadOnly), fieldNotRDM);
-            } else {
-                if (receiverType.hasAnnotation(READONLY) && fieldType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
-                    reportFieldOrArrayWriteError(node, variable, receiverType);
-                }
+        AnnotatedTypeMirror fieldType = atypeFactory.getAnnotatedType(fieldElement);
+        assert  fieldType != null;
+        if (infer) {
+            // Break the combination of readonly receiver + rdm assignable field
+            ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
+            SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
+            Slot receiverSlot = slotManager.getSlot(receiverType);
+            Slot fieldSlot = slotManager.getSlot(fieldType);
+            Slot readonly = slotManager.getSlot(READONLY);
+            Slot receiver_dependant_mutable = slotManager.getSlot(RECEIVER_DEPENDANT_MUTABLE);
+            Constraint receiverReadOnly = constraintManager.createEqualityConstraint(receiverSlot, readonly);
+            Constraint fieldNotRDM = constraintManager.createInequalityConstraint(fieldSlot, receiver_dependant_mutable);
+            //  receiver = READONLY
+            constraintManager.addImplicationConstraint(Collections.singletonList(receiverReadOnly), fieldNotRDM);
+        } else {
+            if (receiverType.hasAnnotation(READONLY) && fieldType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+                reportFieldOrArrayWriteError(node, variable, receiverType);
             }
         }
     }
