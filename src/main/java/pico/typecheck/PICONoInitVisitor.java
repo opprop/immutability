@@ -47,9 +47,7 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
-import pico.common.ExtendedViewpointAdapter;
 import pico.common.PICOTypeUtil;
-import pico.common.ViewpointAdapterGettable;
 
 public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFactory> {
 
@@ -106,9 +104,9 @@ public class PICONoInitVisitor extends BaseTypeVisitor<PICONoInitAnnotatedTypeFa
     }
 
     private boolean isAdaptedSubtype(AnnotationMirror lhs, AnnotationMirror rhs) {
-        ExtendedViewpointAdapter vpa =
-                ((ViewpointAdapterGettable) atypeFactory).getViewpointAdapter();
-        AnnotationMirror adapted = vpa.rawCombineAnnotationWithAnnotation(lhs, rhs);
+        PICOViewpointAdapter vpa =
+                atypeFactory.getViewpointAdapter();
+        AnnotationMirror adapted = vpa.combineAnnotationWithAnnotation(lhs, rhs);
         return atypeFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(adapted, lhs);
     }
 

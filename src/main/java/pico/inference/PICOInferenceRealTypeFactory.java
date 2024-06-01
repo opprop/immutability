@@ -3,7 +3,6 @@ package pico.inference;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -19,7 +18,6 @@ import javax.lang.model.util.Elements;
 import checkers.inference.BaseInferenceRealTypeFactory;
 import com.sun.source.tree.NewClassTree;
 import com.sun.tools.javac.tree.JCTree;
-import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.qual.TypeUseLocation;
@@ -34,8 +32,6 @@ import org.checkerframework.javacutil.*;
 
 import com.sun.source.tree.Tree;
 
-import pico.common.ExtendedViewpointAdapter;
-import pico.common.ViewpointAdapterGettable;
 import pico.common.PICOTypeUtil;
 import pico.typecheck.PICONoInitAnnotatedTypeFactory;
 import pico.typecheck.PICOViewpointAdapter;
@@ -56,7 +52,7 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.*;
  * to InitializationAnnotatedTypeFactory as if there is only one mutability qualifier hierarchy.
  * This class has lots of copied code from PICOAnnotatedTypeFactory. The two should be in sync.
  */
-public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory implements ViewpointAdapterGettable {
+public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory {
 
     private static final List<String> IMMUTABLE_ALIASES = Arrays.asList(
             "com.google.errorprone.annotations.Immutable",
@@ -249,8 +245,8 @@ public class PICOInferenceRealTypeFactory extends BaseInferenceRealTypeFactory i
         return fromTypeTree;
     }
 
-    public ExtendedViewpointAdapter getViewpointAdapter() {
-        return (ExtendedViewpointAdapter) viewpointAdapter;
+    public PICOInferenceViewpointAdapter getViewpointAdapter() {
+        return (PICOInferenceViewpointAdapter) viewpointAdapter;
     }
 
     @Override

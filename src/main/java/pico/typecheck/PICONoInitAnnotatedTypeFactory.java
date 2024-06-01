@@ -36,9 +36,7 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
-import pico.common.ExtendedViewpointAdapter;
 import pico.common.PICOTypeUtil;
-import pico.common.ViewpointAdapterGettable;
 import qual.Bottom;
 import qual.Immutable;
 import qual.Mutable;
@@ -58,8 +56,7 @@ import qual.ReceiverDependantMutable;
 // and explicitly annotated classes with @Immutable on its declaration
 public class PICONoInitAnnotatedTypeFactory
         extends GenericAnnotatedTypeFactory<
-                PICONoInitValue, PICONoInitStore, PICONoInitTransfer, PICONoInitAnalysis>
-        implements ViewpointAdapterGettable {
+                PICONoInitValue, PICONoInitStore, PICONoInitTransfer, PICONoInitAnalysis> {
 
     public PICONoInitAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
@@ -198,8 +195,8 @@ public class PICONoInitAnnotatedTypeFactory
 
     }
 
-    public ExtendedViewpointAdapter getViewpointAdapter() {
-        return (ExtendedViewpointAdapter) viewpointAdapter;
+    public PICOViewpointAdapter getViewpointAdapter() {
+        return (PICOViewpointAdapter) viewpointAdapter;
     }
 
     @Override

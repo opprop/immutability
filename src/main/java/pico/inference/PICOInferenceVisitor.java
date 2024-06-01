@@ -26,7 +26,6 @@ import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -35,10 +34,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutab
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.*;
-import pico.common.ExtendedViewpointAdapter;
-import pico.common.ViewpointAdapterGettable;
 import pico.common.PICOTypeUtil;
-import qual.ReceiverDependantMutable;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -50,9 +46,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -153,8 +147,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
             return;
         }
         // todo:haifeng we should do the viewpointAdapt in baseTypeValidator.java#visitDeclared 299 function:getTypeDeclarationBounds
-        ExtendedViewpointAdapter vpa = ((ViewpointAdapterGettable)atypeFactory).getViewpointAdapter();
-        AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(extractVarAnnot(lhs),
+        PICOInferenceViewpointAdapter vpa = ((PICOInferenceRealTypeFactory)atypeFactory).getViewpointAdapter();
+        AnnotatedTypeMirror adapted = vpa.combineAnnotationWithType(extractVarAnnot(lhs),
                 rhs);
         mainIsSubtype(adapted, extractVarAnnot(lhs), msgKey, node);
     }
@@ -164,8 +158,8 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
         final ConstraintManager constraintManager = InferenceMain.getInstance().getConstraintManager();
         final SlotManager slotManager = InferenceMain.getInstance().getSlotManager();
 
-        ExtendedViewpointAdapter vpa = ((ViewpointAdapterGettable)atypeFactory).getViewpointAdapter();
-        AnnotatedTypeMirror adapted = vpa.rawCombineAnnotationWithType(extractVarAnnot(lhs), rhs);
+        PICOInferenceViewpointAdapter vpa = ((PICOInferenceAnnotatedTypeFactory)atypeFactory).getViewpointAdapter();
+        AnnotatedTypeMirror adapted = vpa.combineAnnotationWithType(extractVarAnnot(lhs), rhs);
         return constraintManager.createSubtypeConstraint(
                 slotManager.getSlot(adapted),
                 slotManager.getSlot(lhs)
@@ -589,7 +583,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                             types, atypeFactory, enclosingType, pair.getValue());
             // Viewpoint adapt super method executable type to current class bound(is this always class bound?)
             // to allow flexible overriding
-            ((ViewpointAdapterGettable) atypeFactory).getViewpointAdapter().viewpointAdaptMethod(enclosingType, pair.getValue() , overriddenMethod); // todo: should we cast it?
+            ((PICOInferenceRealTypeFactory)atypeFactory).getViewpointAdapter().viewpointAdaptMethod(enclosingType, pair.getValue() , overriddenMethod); // todo: should we cast it?
             AnnotatedExecutableType overrider = atypeFactory.getAnnotatedType(node);
             if (!checkOverride(node, overrider, enclosingType, overriddenMethod, overriddenType)) {
                 // Stop at the first mismatch; this makes a difference only if
@@ -1122,7 +1116,7 @@ public class PICOInferenceVisitor extends InferenceVisitor<PICOInferenceChecker,
                 AnnotatedTypeMirror varAdapted = var.shallowCopy(true);
                 // Viewpoint adapt varAdapted to the bound. PICOInferenceAnnotatedTypeFactory#viewpointAdaptMember()
                 // mutates varAdapted, so after the below method is called, varAdapted is the result adapted to bound
-                ((ViewpointAdapterGettable) atypeFactory).getViewpointAdapter().viewpointAdaptMember(bound, element, varAdapted);
+                ((PICOInferenceRealTypeFactory)atypeFactory).getViewpointAdapter().viewpointAdaptMember(bound, element, varAdapted);
                 // Pass varAdapted here as lhs type.
                 // Caution: cannot pass var directly. Modifying type in PICOInferenceTreeAnnotator#
                 // visitVariable() will cause wrong type to be gotton here, as on inference side,

@@ -17,9 +17,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 
-import pico.common.ExtendedViewpointAdapter;
-
-public class PICOViewpointAdapter extends AbstractViewpointAdapter implements ExtendedViewpointAdapter {
+public class PICOViewpointAdapter extends AbstractViewpointAdapter {
 
     public PICOViewpointAdapter(AnnotatedTypeFactory atypeFactory) {
         super(atypeFactory);
@@ -55,16 +53,5 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter implements Ex
         } else {
             throw new BugInCF("Unknown declared modifier: " + declaredAnnotation);
         }
-    }
-
-    public AnnotatedTypeMirror rawCombineAnnotationWithType(AnnotationMirror anno, AnnotatedTypeMirror type) {
-//        System.err.println("VPA: " + anno + " ->" + type);
-        return combineAnnotationWithType(anno, type);
-    }
-
-    @Override
-    public AnnotationMirror rawCombineAnnotationWithAnnotation(AnnotationMirror anno, AnnotationMirror type) {
-//        System.err.println("VPA: " + anno + " ->" + type);
-        return combineAnnotationWithAnnotation(anno, type);
     }
 }

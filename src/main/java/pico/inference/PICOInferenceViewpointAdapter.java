@@ -4,7 +4,6 @@ import checkers.inference.InferenceMain;
 import checkers.inference.util.InferenceViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import pico.common.ExtendedViewpointAdapter;
 import pico.common.PICOTypeUtil;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 
@@ -12,7 +11,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeKind;
 
-public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter implements ExtendedViewpointAdapter {
+public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter {
 
     public PICOInferenceViewpointAdapter(AnnotatedTypeFactory atypeFactory) {
         super(atypeFactory);
@@ -39,16 +38,6 @@ public class PICOInferenceViewpointAdapter extends InferenceViewpointAdapter imp
         }
 
         return super.combineAnnotationWithType(receiverAnnotation, declared);
-    }
-
-    @Override
-    public AnnotatedTypeMirror rawCombineAnnotationWithType(AnnotationMirror anno, AnnotatedTypeMirror type) {
-        return combineAnnotationWithType(anno, type);
-    }
-
-    @Override
-    public AnnotationMirror rawCombineAnnotationWithAnnotation(AnnotationMirror anno, AnnotationMirror type) {
-        return rawCombineAnnotationWithAnnotation(anno, type);
     }
 
     @Override
