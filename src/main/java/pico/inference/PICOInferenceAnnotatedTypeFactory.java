@@ -115,7 +115,7 @@ public class PICOInferenceAnnotatedTypeFactory extends InferenceAnnotatedTypeFac
         AnnotatedDeclaredType type = getAnnotatedType(enclosingClass);
 
         MethodTree enclosingMethod = TreePathUtil.enclosingMethod(path);
-        if (!enclosingClass.getSimpleName().isEmpty() && enclosingMethod != null) {
+        if (enclosingClass.getSimpleName().length() != 0 && enclosingMethod != null) {
             AnnotatedTypeMirror.AnnotatedDeclaredType methodReceiver;
             if (TreeUtils.isConstructor(enclosingMethod)) {
                 methodReceiver =
