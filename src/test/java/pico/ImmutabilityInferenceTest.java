@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.checkerframework.framework.test.TestUtilities;
-import org.checkerframework.javacutil.Pair;
 import org.junit.runners.Parameterized.Parameters;
 
 import checkers.inference.test.CFInferenceTest;

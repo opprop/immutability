@@ -16,21 +16,14 @@ import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 
-import com.sun.source.tree.AnnotatedTypeTree;
 import com.sun.source.tree.BinaryTree;
-import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.WildcardTree;
 
 import checkers.inference.InferenceAnnotatedTypeFactory;
 import checkers.inference.InferenceMain;
 import checkers.inference.InferrableChecker;
 import checkers.inference.SlotManager;
 import checkers.inference.VariableAnnotator;
-import checkers.inference.model.AnnotationLocation;
 import checkers.inference.model.ConstraintManager;
-import checkers.inference.model.VariableSlot;
-import checkers.inference.model.tree.ArtificialExtendsBoundTree;
 import org.checkerframework.javacutil.TypesUtils;
 import pico.common.PICOTypeUtil;
 

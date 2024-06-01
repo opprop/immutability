@@ -25,7 +25,6 @@ import java.util.Objects;
 import java.util.Set;
 
 import static pico.typecheck.PICOAnnotationMirrorHolder.*;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 
 /**
  * Enforce correct usage of immutability and assignability qualifiers.
