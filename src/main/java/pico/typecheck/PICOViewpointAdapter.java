@@ -17,7 +17,6 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 
-import exceptions.UnkownImmutabilityQualifierException;
 import pico.common.ExtendedViewpointAdapter;
 
 public class PICOViewpointAdapter extends AbstractViewpointAdapter implements ExtendedViewpointAdapter {
@@ -54,7 +53,7 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter implements Ex
         } else if (AnnotationUtils.areSame(declaredAnnotation, RECEIVER_DEPENDANT_MUTABLE)) {
             return receiverAnnotation;
         } else {
-            throw new BugInCF("Unknown declared modifier: " + declaredAnnotation, new UnkownImmutabilityQualifierException());
+            throw new BugInCF("Unknown declared modifier: " + declaredAnnotation);
         }
     }
 
