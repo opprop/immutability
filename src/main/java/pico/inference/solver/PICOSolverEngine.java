@@ -28,11 +28,11 @@ public class PICOSolverEngine extends SolverEngine {
 //    } // TODO: default write into statistic.txt
 
     public static void writeInferenceResult(String filename, Map<Integer, AnnotationMirror> result) {
-        String writePath = new File(new File("").getAbsolutePath()).toString() + File.separator + filename;
+        String writePath = new File(new File("").getAbsolutePath()) + File.separator + filename;
         StringBuilder sb = new StringBuilder();
 
         Map<AnnotationMirror, Integer> inferredAnnotationsCount = new HashMap<>();
-        for (AnnotationMirror inferedAnnotation : result.values()) {;
+        for (AnnotationMirror inferedAnnotation : result.values()) {
 
             if (!inferredAnnotationsCount.containsKey(inferedAnnotation)) {
                 inferredAnnotationsCount.put(inferedAnnotation, 1);

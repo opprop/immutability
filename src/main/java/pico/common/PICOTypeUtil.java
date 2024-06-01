@@ -84,7 +84,7 @@ public class PICOTypeUtil {
         DefaultFor defaultFor = Immutable.class.getAnnotation(DefaultFor.class);
         assert defaultFor != null;
         Class<?>[] types = defaultFor.types();
-        String fqn = TypesUtils.getQualifiedName((DeclaredType) atm.getUnderlyingType()).toString();
+        String fqn = TypesUtils.getQualifiedName((DeclaredType) atm.getUnderlyingType());
         for (Class<?> type : types) {
             if (type.getCanonicalName().contentEquals(fqn)) {
                 return true;
