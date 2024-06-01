@@ -18,9 +18,9 @@ public class EnumConstantNotAlwaysMutable {
     @ReceiverDependantMutable Kind invalidKind;
     // :: error: (type.invalid.annotations.on.use)
     @Mutable Kind invalidKind2;
-    // :: error: (type.invalid.annotations.on.use)
+    // no error now
     @Readonly Kind invalidKind3;
-
+    // :: error: (initialization.fields.uninitialized)
     EnumConstantNotAlwaysMutable() {
         // Kind.SOME should be @Immutable
         kind = Kind.SOME;

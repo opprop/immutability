@@ -1,37 +1,33 @@
 package pico.inference;
 
-import static pico.typecheck.PICOAnnotationMirrorHolder.BOTTOM;
-import static pico.typecheck.PICOAnnotationMirrorHolder.IMMUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
-
 import java.util.Arrays;
 import java.util.List;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 
+import checkers.inference.model.ExistentialVariableSlot;
+import checkers.inference.model.Slot;
+import checkers.inference.qual.VarAnnot;
+import com.sun.tools.javac.code.Symbol;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 
-import com.sun.source.tree.AnnotatedTypeTree;
 import com.sun.source.tree.BinaryTree;
-import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.WildcardTree;
 
 import checkers.inference.InferenceAnnotatedTypeFactory;
 import checkers.inference.InferenceMain;
 import checkers.inference.InferrableChecker;
 import checkers.inference.SlotManager;
 import checkers.inference.VariableAnnotator;
-import checkers.inference.model.AnnotationLocation;
 import checkers.inference.model.ConstraintManager;
-import checkers.inference.model.VariableSlot;
-import checkers.inference.model.tree.ArtificialExtendsBoundTree;
-import pico.typecheck.PICOTypeUtil;
+import org.checkerframework.javacutil.TypesUtils;
+import pico.common.PICOTypeUtil;
+
+import static pico.typecheck.PICOAnnotationMirrorHolder.*;
 
 public class PICOVariableAnnotator extends VariableAnnotator {
 
@@ -42,101 +38,166 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         super(typeFactory, realTypeFactory, realChecker, slotManager, constraintManager);
     }
 
-    @Override
-    protected void handleClassDeclaration(AnnotatedDeclaredType classType, ClassTree classTree) {
-        super.handleClassDeclaration(classType, classTree);
-        int interfaceIndex = 1;
-        for(Tree implementsTree : classTree.getImplementsClause()) {
-            final AnnotatedTypeMirror implementsType = inferenceTypeFactory.getAnnotatedTypeFromTypeTree(implementsTree);
-            AnnotatedTypeMirror supertype = classType.directSuperTypes().get(interfaceIndex);
-            assert supertype.getUnderlyingType() == implementsType.getUnderlyingType();
-            visit(supertype, implementsTree);
-            interfaceIndex++;
-        }
-    }
+//    @Override
+//    protected void handleClassDeclaration(AnnotatedDeclaredType classType, ClassTree classTree) {
+//        super.handleClassDeclaration(classType, classTree);
+//        int interfaceIndex = 1;
+//        for(Tree implementsTree : classTree.getImplementsClause()) {
+//            final AnnotatedTypeMirror implementsType = inferenceTypeFactory.getAnnotatedTypeFromTypeTree(implementsTree);
+//            AnnotatedTypeMirror supertype = classType.directSupertypes().get(interfaceIndex);
+//            assert supertype.getUnderlyingType() == implementsType.getUnderlyingType();
+//            visit(supertype, implementsTree);
+//            interfaceIndex++;
+//        }
+//    }
+
+//    @Override
+//    protected void handleClassDeclarationBound(AnnotatedDeclaredType classType) {
+//        TypeElement classElement = (TypeElement) classType.getUnderlyingType().asElement();
+//        if (classDeclAnnos.containsKey(classElement)) {
+//            classType.addAnnotation(slotManager.getAnnotation(classDeclAnnos.get(classElement)));
+//            classType.addAnnotation(READONLY);
+//            return;
+//        }
+//        AnnotatedDeclaredType bound = inferenceTypeFactory.fromElement(classElement);
+//
+//        VariableSlot boundSlot;
+//
+//        // Insert @Immutable VarAnnot directly to enum bound
+////        if (PICOTypeUtil.isEnumOrEnumConstant(bound)) {
+////            boundSlot = slotManager.createConstantSlot(IMMUTABLE);
+////            classType.addAnnotation(slotManager.getAnnotation(boundSlot));
+////            classDeclAnnos.put(classElement, boundSlot);
+////            return;
+////        }
+//
+//        Tree classTree = inferenceTypeFactory.declarationFromElement(classElement);
+//        if (classTree != null) {
+//            // Have source tree
+//            if (bound.isAnnotatedInHierarchy(READONLY)) {
+//                // Have bound annotation -> convert to equivalent ConstantSlot
+//                boundSlot = slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
+//            } else {
+//                // No existing annotation -> create new VariableSlot
+//                boundSlot = createVariable(treeToLocation(classTree));
+//            }
+//        } else {
+//            // No source tree: bytecode classes
+//            if (bound.isAnnotatedInHierarchy(READONLY)) {
+//                // Have bound annotation in stub file
+//                boundSlot = slotManager.createConstantSlot(bound.getAnnotationInHierarchy(READONLY));
+//            } else {
+//                // No stub file
+//                if (PICOTypeUtil.isImplicitlyImmutableType(classType)) {
+//                    // Implicitly immutable
+//                    boundSlot = slotManager.createConstantSlot(IMMUTABLE);
+//                } else {
+//                    // None of the above applies: use conservative @Mutable
+//                    boundSlot = slotManager.createConstantSlot(MUTABLE);
+//                }
+//            }
+//        }
+//        classType.addAnnotation(slotManager.getAnnotation(boundSlot));
+//        classDeclAnnos.put(classElement, boundSlot);
+//    }
 
     @Override
-    protected void handleClassDeclarationBound(AnnotatedDeclaredType classType) {
-        TypeElement classElement = (TypeElement) classType.getUnderlyingType().asElement();
-        if (classDeclAnnos.containsKey(classElement)) {
-            classType.addAnnotation(slotManager.getAnnotation(classDeclAnnos.get(classElement)));
-            classType.addAnnotation(READONLY);
-            return;
-        }
-        AnnotatedDeclaredType bound = inferenceTypeFactory.fromElement(classElement);
+    protected Slot getOrCreateDeclBound(AnnotatedDeclaredType type) {
+        TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
 
-        VariableSlot boundSlot;
-
-        // Insert @Immutable VarAnnot directly to enum bound
-        if (PICOTypeUtil.isEnumOrEnumConstant(bound)) {
-            boundSlot = createConstant(IMMUTABLE);
-            classType.addAnnotation(slotManager.getAnnotation(boundSlot));
-            classDeclAnnos.put(classElement, boundSlot);
-            return;
-        }
-
-        Tree classTree = inferenceTypeFactory.declarationFromElement(classElement);
-        if (classTree != null) {
-            // Have source tree
-            if (bound.isAnnotatedInHierarchy(READONLY)) {
-                // Have bound annotation -> convert to equivalent ConstantSlot
-                boundSlot = createConstant(bound.getAnnotationInHierarchy(READONLY));
-            } else {
-                // No existing annotation -> create new VariableSlot
-                boundSlot = createVariable(treeToLocation(classTree));
+        AnnotationMirror declSlot = getClassDeclVarAnnot(classDecl);
+        if (declSlot == null) {
+            // if a explicit annotation presents on the class DECL, use that directly
+            if (type.isDeclaration() && type.hasAnnotationInHierarchy(READONLY) && !type.hasAnnotation(READONLY)) {
+                Slot constantSlot = slotManager.getSlot(type.getAnnotationInHierarchy(READONLY));
+//                TypeElement classDecl = (TypeElement) type.getUnderlyingType().asElement();
+                super.getOrCreateDeclBound(type);
+//                // avoid duplicate annos
+//                type.removeAnnotationInHierarchy(READONLY);
+                return constantSlot;
+            } else if (PICOTypeUtil.isEnumOrEnumConstant(type)) {
+                return slotManager.createConstantSlot(IMMUTABLE);
             }
-        } else {
-            // No source tree: bytecode classes
-            if (bound.isAnnotatedInHierarchy(READONLY)) {
-                // Have bound annotation in stub file
-                boundSlot = createConstant(bound.getAnnotationInHierarchy(READONLY));
-            } else {
-                // No stub file
-                if (PICOTypeUtil.isImplicitlyImmutableType(classType)) {
-                    // Implicitly immutable
-                    boundSlot = createConstant(IMMUTABLE);
-                } else {
-                    // None of the above applies: use conservative @Mutable
-                    boundSlot = createConstant(MUTABLE);
+
+            // new class tree of an anonymous class is always visited before (enclosing tree).
+            // slot should be generated then.
+            // use that slot and avoid generating a new slot.
+            // push this change to inference IFF the slot on new class have same requirement with class bound
+            // e.g. existence slot on new class tree?
+            if (TypesUtils.isAnonymous(type.getUnderlyingType())) {
+                if (type.hasAnnotation(VarAnnot.class)) {
+                    return slotManager.getSlot(type.getAnnotation(VarAnnot.class));
                 }
             }
         }
-        classType.addAnnotation(slotManager.getAnnotation(boundSlot));
-        classDeclAnnos.put(classElement, boundSlot);
+        return super.getOrCreateDeclBound(type);
+    }
+
+//    @Override
+//    protected void handleExplicitExtends(Tree extendsTree) {
+//        // PICO cannot use base extends handling: not simply subtype relationship because of RDM
+//        // Constraints already generated in processClassTree
+//    }
+
+    @Override
+    public void storeElementType(Element element, AnnotatedTypeMirror atm) {
+        // this method is override the behavior of super.handleClassDeclaration before storing
+        // find a better way
+
+        Slot slot = slotManager.getSlot(atm);
+        // do not use potential slot generated on the class decl annotation
+        // PICO always have a annotation on the class bound, so Existential should always exist
+        // TODO make VariableAnnotator::getOrCreateDeclBound protected and override that instead of this method
+        if (element instanceof Symbol.ClassSymbol && slot instanceof ExistentialVariableSlot) {
+            AnnotationMirror potential = slotManager.getAnnotation(((ExistentialVariableSlot) slot).getPotentialSlot());
+            atm.replaceAnnotation(potential);
+        }
+
+        // If an explicit bound exists, the annotator will still place a constant slot on the bound,
+        // which will considered invalid by CF.
+        // Maybe not putting an anno at all during bound slot generation would be better?
+        if (atm.hasAnnotation(VarAnnot.class) && atm.hasAnnotationInHierarchy(READONLY)) {
+            atm.removeAnnotationInHierarchy(READONLY);
+        }
+        super.storeElementType(element, atm);
     }
 
     // Don't generate subtype constraint between use type and bound type
-    @Override
-    protected void handleInstantiationConstraint(AnnotatedTypeMirror.AnnotatedDeclaredType adt, VariableSlot instantiationSlot, Tree tree) {
-        return;
-    }
+//    @Override
+//    protected void handleInstantiationConstraint(AnnotatedTypeMirror.AnnotatedDeclaredType adt, VariableSlot instantiationSlot, Tree tree) {
+//        return;
+//    }
 
-    @Override
-    protected VariableSlot addPrimaryVariable(AnnotatedTypeMirror atm, Tree tree) {
-        if (PICOTypeUtil.isEnumOrEnumConstant(atm)) {
-            // Don't add new VarAnnot to type use of enum type
-            PICOTypeUtil.applyConstant(atm, IMMUTABLE);
-        }
-        return super.addPrimaryVariable(atm, tree);
-    }
+//    @Override
+//    protected VariableSlot addPrimaryVariable(AnnotatedTypeMirror atm, Tree tree) {
+////        if (PICOTypeUtil.isEnumOrEnumConstant(atm)) {
+////            // Don't add new VarAnnot to type use of enum type
+////            PICOTypeUtil.applyConstant(atm, IMMUTABLE);
+////        }
+//        if (atm instanceof AnnotatedTypeMirror.AnnotatedNullType) {
+//            PICOTypeUtil.applyConstant(atm, BOTTOM);
+//        }
+//        return super.addPrimaryVariable(atm, tree);
+//    }
 
     // Generates inequality constraint between every strict VariableSlot and @Bottom so that @Bottom is not inserted
     // back to source code, but can be within the internal state because of dataflow refinement
-    @Override
-    protected VariableSlot createVariable(AnnotationLocation location) {
-        VariableSlot varSlot = super.createVariable(location);
-        // Forbid any explicit use of @Bottom to be inserted back to source code(no VariableSlot instance is inferred
-        // @Bottom)
-        if (generateBottomInequality) {
-            constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(BOTTOM));
-        }
-        return varSlot;
-    }
+//    @Override
+//    protected VariableSlot createVariable(AnnotationLocation location) {
+//        VariableSlot varSlot = super.createVariable(location);
+//        // Forbid any explicit use of @Bottom to be inserted back to source code(no VariableSlot instance is inferred
+//        // @Bottom)
+//        if (generateBottomInequality) {
+//            constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(BOTTOM));
+//            constraintManager.addInequalityConstraint(varSlot, slotManager.createConstantSlot(POLY_MUTABLE));
+//        }
+//        return varSlot;
+//    }
 
     // Copied from super implementation
     @Override
     protected boolean handleWasRawDeclaredTypes(AnnotatedDeclaredType adt) {
-        if (adt.wasRaw() && adt.getTypeArguments().size() != 0) {
+        if (adt.isUnderlyingTypeRaw() && !adt.getTypeArguments().isEmpty()) {
             // the type arguments should be wildcards AND if I get the real type of "tree"
             // it corresponds to the declaration of adt.getUnderlyingType
             Element declarationEle = adt.getUnderlyingType().asElement();
@@ -173,58 +234,70 @@ public class PICOVariableAnnotator extends VariableAnnotator {
         }
     }
 
-    @Override
-    public Void visitWildcard(AnnotatedTypeMirror.AnnotatedWildcardType wildcardType, Tree tree) {
-        if (!(tree instanceof WildcardTree)) {
-            if (tree instanceof AnnotatedTypeTree) {
-                tree = ((AnnotatedTypeTree) tree).getUnderlyingType();
-            }
-            if (!(tree instanceof WildcardTree)) {
-                throw new IllegalArgumentException("Wildcard type ( " + wildcardType + " ) associated " +
-                        "with non-WildcardTree ( " + tree + " ) ");
-            }
-        }
-
-        final WildcardTree wildcardTree = (WildcardTree) tree;
-        final Tree.Kind wildcardKind = wildcardTree.getKind();
-        if (wildcardKind == Tree.Kind.UNBOUNDED_WILDCARD) {
-            boolean prev = generateBottomInequality;
-            generateBottomInequality = false;
-            // Visit super bound, use the wild card type tree to represents the superbound.
-            addPrimaryVariable(wildcardType.getSuperBound(), tree);
-            generateBottomInequality = prev;
-
-            // Visit extend bound, construct an artificial extends bound tree to represent the extendbound.
-            ArtificialExtendsBoundTree artificialExtendsBoundTree = new ArtificialExtendsBoundTree(wildcardTree);
-            addPrimaryVariable(wildcardType.getExtendsBound(), artificialExtendsBoundTree);
-
-        } else if (wildcardKind == Tree.Kind.EXTENDS_WILDCARD) {
-            boolean prev = generateBottomInequality;
-            generateBottomInequality = false;
-            addPrimaryVariable(wildcardType.getSuperBound(), tree);
-            generateBottomInequality = prev;
-
-            visit(wildcardType.getExtendsBound(), ((WildcardTree) tree).getBound());
-
-        } else if (wildcardKind == Tree.Kind.SUPER_WILDCARD) {
-            addPrimaryVariable(wildcardType.getExtendsBound(), tree);
-
-            boolean prev = generateBottomInequality;
-            generateBottomInequality = false;
-            visit(wildcardType.getSuperBound(), ((WildcardTree) tree).getBound());
-            generateBottomInequality = prev;
-        }
-
-        return null;
-    }
+//    @Override
+//    public Void visitWildcard(AnnotatedTypeMirror.AnnotatedWildcardType wildcardType, Tree tree) {
+//        if (!(tree instanceof WildcardTree)) {
+//            if (tree instanceof AnnotatedTypeTree) {
+//                tree = ((AnnotatedTypeTree) tree).getUnderlyingType();
+//            }
+//            if (!(tree instanceof WildcardTree)) {
+//                throw new IllegalArgumentException("Wildcard type ( " + wildcardType + " ) associated " +
+//                        "with non-WildcardTree ( " + tree + " ) ");
+//            }
+//        }
+//
+//        final WildcardTree wildcardTree = (WildcardTree) tree;
+//        final Tree.Kind wildcardKind = wildcardTree.getKind();
+//        if (wildcardKind == Tree.Kind.UNBOUNDED_WILDCARD) {
+//            boolean prev = generateBottomInequality;
+//            generateBottomInequality = false;
+//            // Visit super bound, use the wild card type tree to represents the superbound.
+//            addPrimaryVariable(wildcardType.getSuperBound(), tree);
+//            generateBottomInequality = prev;
+//
+//            // Visit extend bound, construct an artificial extends bound tree to represent the extendbound.
+//            ArtificialExtendsBoundTree artificialExtendsBoundTree = new ArtificialExtendsBoundTree(wildcardTree);
+//            addPrimaryVariable(wildcardType.getExtendsBound(), artificialExtendsBoundTree);
+//
+//        } else if (wildcardKind == Tree.Kind.EXTENDS_WILDCARD) {
+//            boolean prev = generateBottomInequality;
+//            generateBottomInequality = false;
+//            addPrimaryVariable(wildcardType.getSuperBound(), tree);
+//            generateBottomInequality = prev;
+//
+//            visit(wildcardType.getExtendsBound(), ((WildcardTree) tree).getBound());
+//
+//        } else if (wildcardKind == Tree.Kind.SUPER_WILDCARD) {
+//            addPrimaryVariable(wildcardType.getExtendsBound(), tree);
+//
+//            boolean prev = generateBottomInequality;
+//            generateBottomInequality = false;
+//            visit(wildcardType.getSuperBound(), ((WildcardTree) tree).getBound());
+//            generateBottomInequality = prev;
+//        }
+//
+//        return null;
+//    }
 
     @Override
     public void handleBinaryTree(AnnotatedTypeMirror atm, BinaryTree binaryTree) {
-        if (atm.isAnnotatedInHierarchy(varAnnot)) {
+        if (atm.hasAnnotationInHierarchy(inferenceTypeFactory.getVarAnnot())) {
             // Happens for binary trees whose atm is implicitly immutable and already handled by
             // PICOInferencePropagationTreeAnnotator
             return;
         }
         super.handleBinaryTree(atm, binaryTree);
     }
+
+    public AnnotationMirror getClassDeclAnno(Element ele) {
+        return getClassDeclVarAnnot((TypeElement) ele); // todo: solved
+    }
+
+
+    @Override
+    protected void addDeclarationConstraints(Slot declSlot, Slot instanceSlot) {
+        // RDM-related constraints cannot use subtype.
+        // Necessary constraints added in visitor instead.
+    }
+
 }

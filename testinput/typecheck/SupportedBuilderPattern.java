@@ -23,7 +23,7 @@ public class SupportedBuilderPattern {
         private final int id;
         private String address;
         private @Immutable Date date;
-
+        // :: error: (initialization.fields.uninitialized)
         public Builder(int id) {
             this.id = id;
         }

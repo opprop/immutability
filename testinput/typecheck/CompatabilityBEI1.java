@@ -32,18 +32,16 @@ class H extends Object {}
 @Mutable
 class I implements @Mutable Cloneable {}
 
-// :: error: (bound.implements.incompatabile)
+// :: error: (declaration.inconsistent.with.implements.clause)
 @Mutable class J implements @Immutable Cloneable {}
 
-// :: error: (bound.implements.incompatabile)
 @Mutable class K implements @ReceiverDependantMutable Cloneable {}
 
-// :: error: (bound.extends.incompatabile)
+// :: error: (declaration.inconsistent.with.extends.clause)
 @Immutable class L extends @Mutable Object {}
 
 @Immutable class M extends @Immutable Object {}
 
-// :: error: (bound.extends.incompatabile)
 @Immutable class N extends @ReceiverDependantMutable Object {}
 
 abstract class O implements CharSequence {}

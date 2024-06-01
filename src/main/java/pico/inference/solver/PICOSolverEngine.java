@@ -1,21 +1,15 @@
 package pico.inference.solver;
 
-import checkers.inference.BaseInferenceResult;
-import checkers.inference.InferenceResult;
-import checkers.inference.model.Constraint;
-import checkers.inference.model.Slot;
 import checkers.inference.solver.SolverEngine;
 import checkers.inference.solver.backend.SolverFactory;
 import checkers.inference.solver.backend.maxsat.MaxSatFormatTranslator;
 import checkers.inference.solver.backend.maxsat.MaxSatSolverFactory;
 import checkers.inference.solver.frontend.Lattice;
-import org.checkerframework.framework.type.QualifierHierarchy;
 
-import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
+
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,21 +18,21 @@ import java.util.Map;
  * to solve constraints
  */
 public class PICOSolverEngine extends SolverEngine {
-    @Override
-    public InferenceResult solve(Map<String, String> configuration, Collection<Slot> slots, Collection<Constraint> constraints, QualifierHierarchy qualHierarchy, ProcessingEnvironment processingEnvironment) {
-        InferenceResult result= super.solve(configuration, slots, constraints, qualHierarchy, processingEnvironment);
-        if (collectStatistics && result.hasSolution()) {
-            writeInferenceResult("pico-inference-result.txt", ((BaseInferenceResult)result).inferredResults);
-        }
-        return result;
-    }
+//    @Override
+//    public InferenceResult solve(Map<String, String> configuration, Collection<Slot> slots, Collection<Constraint> constraints, QualifierHierarchy qualHierarchy, ProcessingEnvironment processingEnvironment) {
+//        InferenceResult result= super.solve(configuration, slots, constraints, qualHierarchy, processingEnvironment);
+//        if (collectStatistics && result.hasSolution()) {
+//            writeInferenceResult("pico-inference-result.txt", ((DefaultInferenceResult)result).varIdToAnnotation);
+//        }
+//        return result;
+//    } // TODO: default write into statistic.txt
 
     public static void writeInferenceResult(String filename, Map<Integer, AnnotationMirror> result) {
-        String writePath = new File(new File("").getAbsolutePath()).toString() + File.separator + filename;
+        String writePath = new File(new File("").getAbsolutePath()) + File.separator + filename;
         StringBuilder sb = new StringBuilder();
 
         Map<AnnotationMirror, Integer> inferredAnnotationsCount = new HashMap<>();
-        for (AnnotationMirror inferedAnnotation : result.values()) {;
+        for (AnnotationMirror inferedAnnotation : result.values()) {
 
             if (!inferredAnnotationsCount.containsKey(inferedAnnotation)) {
                 inferredAnnotationsCount.put(inferedAnnotation, 1);

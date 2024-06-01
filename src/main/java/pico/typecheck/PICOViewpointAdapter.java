@@ -6,7 +6,6 @@ import static pico.typecheck.PICOAnnotationMirrorHolder.MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.POLY_MUTABLE;
 import static pico.typecheck.PICOAnnotationMirrorHolder.READONLY;
 import static pico.typecheck.PICOAnnotationMirrorHolder.RECEIVER_DEPENDANT_MUTABLE;
-import static pico.typecheck.PICOAnnotationMirrorHolder.SUBSTITUTABLE_POLY_MUTABLE;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -18,11 +17,6 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 
-import exceptions.UnkownImmutabilityQualifierException;
-
-/**
- * Created by mier on 20/06/17.
- */
 public class PICOViewpointAdapter extends AbstractViewpointAdapter {
 
     public PICOViewpointAdapter(AnnotatedTypeFactory atypeFactory) {
@@ -53,21 +47,11 @@ public class PICOViewpointAdapter extends AbstractViewpointAdapter {
         } else if (AnnotationUtils.areSame(declaredAnnotation, BOTTOM)) {
             return BOTTOM;
         } else if (AnnotationUtils.areSame(declaredAnnotation, POLY_MUTABLE)) {
-            return SUBSTITUTABLE_POLY_MUTABLE;
+            return POLY_MUTABLE;
         } else if (AnnotationUtils.areSame(declaredAnnotation, RECEIVER_DEPENDANT_MUTABLE)) {
             return receiverAnnotation;
         } else {
-            throw new BugInCF("Unkown declared modifier: " + declaredAnnotation, new UnkownImmutabilityQualifierException());
+            throw new BugInCF("Unknown declared modifier: " + declaredAnnotation);
         }
     }
-//
-//    @Override
-//    protected AnnotationMirror getModifier(AnnotatedTypeMirror atm, AnnotatedTypeFactory f) {
-//        return atm.getAnnotationInHierarchy(READONLY);
-//    }
-
-//    @Override
-//    protected <TypeFactory extends AnnotatedTypeFactory> AnnotationMirror extractModifier(AnnotatedTypeMirror atm, TypeFactory f) {
-//        return null;
-//    }
 }

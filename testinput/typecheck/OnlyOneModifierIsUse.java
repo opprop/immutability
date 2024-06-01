@@ -6,8 +6,10 @@ import qual.Immutable;
 
 public class OnlyOneModifierIsUse {
 
-    // :: error: (type.invalid)
+    // :: error: (type.invalid.conflicting.annos)
+    // :: error: (initialization.field.uninitialized)
     @Readonly @Immutable Object field;
-    // :: error: (type.invalid)
+    // :: error: (type.invalid.conflicting.annos)
+    // :: error: (initialization.field.uninitialized)
     String @Readonly @Immutable [] array;
 }
