@@ -197,7 +197,7 @@ public class PICOVariableAnnotator extends VariableAnnotator {
     // Copied from super implementation
     @Override
     protected boolean handleWasRawDeclaredTypes(AnnotatedDeclaredType adt) {
-        if (adt.isUnderlyingTypeRaw() && adt.getTypeArguments().size() != 0) {
+        if (adt.isUnderlyingTypeRaw() && !adt.getTypeArguments().isEmpty()) {
             // the type arguments should be wildcards AND if I get the real type of "tree"
             // it corresponds to the declaration of adt.getUnderlyingType
             Element declarationEle = adt.getUnderlyingType().asElement();
