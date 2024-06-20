@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -20,21 +21,23 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
+import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
-import org.checkerframework.framework.source.Result;
-import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedMethodType;
+import org.checkerframework.framework.type.AnnotatedTypeFactory.ParameterizedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 
@@ -51,6 +54,10 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
+import pico.common.ExtendedViewpointAdapter;
+import pico.common.PICOTypeUtil;
+import pico.common.ViewpointAdapterGettable;
+import qual.Immutable;
 
 /**
  * Created by mier on 20/06/17.
@@ -81,31 +88,53 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     // (at least for types other than java.lang.Object)
     @Override
     public boolean isValidUse(AnnotatedDeclaredType declarationType, AnnotatedDeclaredType useType, Tree tree) {
-        AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
-        // No need to have special case for java.lang.Object, as it's not by default @Readonly anymore
-//        if (AnnotationUtils.areSame(declared, atypeFactory.READONLY)) {
-//            // Special case for java.lang.Object. Usually @Readonly is never used as a bound annotation for a
-//            // TypeElement. But we want to have @Readonly as the default for java.lang.Object. There is no way
-//            // of doing this using any exsisting family of @DefaultFor qualifiers, but @ImplicitFor annotation
-//            // does the trick. But the side effect is, we can't write @ReceiverDependantMutable, which is the
-//            // correct bound for Object element, in jdk.astub, because otherwise it makes all java.lang.Object
-//            // to be @ReceiverDependantMutable; Another side effect is here @Readonly is passed into here as
-//            // the element type for java.lang.Object. So we have to have this special case only for java.lang.
-//            // Object
-//            return true;
+        // FIXME workaround for typecheck BOTTOM
+        if (useType.hasAnnotation(BOTTOM)) {
+            return true;
+        }
+        // FIXME workaround for poly anno, remove after fix substitutable poly and add poly vp rules
+        if (useType.hasAnnotation(POLY_MUTABLE)) {
+            return true;
+        }
+
+//        // allow RDM on mutable fields with enclosing class bounded with mutable
+//        if (tree instanceof VariableTree && useType.isDeclaration()) {
+//            VariableElement element = TreeUtils.elementFromDeclaration((VariableTree)tree);
+//            if (element.getKind() == ElementKind.FIELD && ElementUtils.enclosingClass(element) != null) {
+//                Set<AnnotationMirror> enclosingBound =
+//                        atypeFactory.getTypeDeclarationBounds(
+//                                Objects.requireNonNull(ElementUtils.enclosingClass(element)).asType());
+//
+//                if(declarationType.hasAnnotation(MUTABLE)
+//                && useType.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)
+//                && AnnotationUtils.containsSameByName(enclosingBound, MUTABLE)) {
+//                    return true;
+//                }
+//            }
+//
 //        }
-        if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE)) {
+
+        AnnotationMirror declared = declarationType.getAnnotationInHierarchy(READONLY);
+        AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
+
+        return isAdaptedSubtype(used, declared);
+    }
+
+    @Override
+    public boolean isValidUse(AnnotatedTypeMirror.AnnotatedArrayType type, Tree tree) {
+        // You don't need adapted subtype if the decl bound is guaranteed to be RDM.
+        // That simply means that any use is valid except bottom.
+        AnnotationMirror used = type.getAnnotationInHierarchy(READONLY);
+        return !AnnotationUtils.areSame(used, BOTTOM);
+    }
+
+    static private boolean isAnnoValidUse(AnnotationMirror declared, AnnotationMirror used) {
+        if (AnnotationUtils.areSame(declared, RECEIVER_DEPENDANT_MUTABLE) || AnnotationUtils.areSame(declared, READONLY)) {
             // Element is declared with @ReceiverDependantMutable bound, any instantiation is allowed. We don't use
             // a subtype check to validate the correct usage here. Because @Readonly is the super type of
             // @ReceiverDependantMutable, but it's still considered valid usage.
             return true;
         }
-        // At this point, element type can only be @Mutable or @Immutable. Otherwise, it's a problem in
-        // PICOVisitor#processorClassTree(ClassTree)
-        assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
-
-        AnnotationMirror used = useType.getAnnotationInHierarchy(READONLY);
-        assert AnnotationUtils.areSame(declared, MUTABLE) || AnnotationUtils.areSame(declared, IMMUTABLE);
 
         if (AnnotationUtils.areSame(declared, MUTABLE) &&
                 !(AnnotationUtils.areSame(used, IMMUTABLE) || AnnotationUtils.areSame(used, RECEIVER_DEPENDANT_MUTABLE))) {
@@ -121,17 +150,21 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         return false;
     }
 
+    private boolean isAdaptedSubtype(AnnotationMirror lhs, AnnotationMirror rhs) {
+        ExtendedViewpointAdapter vpa = ((ViewpointAdapterGettable)atypeFactory).getViewpointAdapter();
+        AnnotationMirror adapted = vpa.rawCombineAnnotationWithAnnotation(lhs, rhs);
+        return atypeFactory.getQualifierHierarchy().isSubtype(adapted, lhs);
+    }
+
     @Override
     protected void commonAssignmentCheck(
-            Tree varTree, ExpressionTree valueExp, String errorKey) {
+            Tree varTree, ExpressionTree valueExp, String errorKey, Object... extraArgs) {
         AnnotatedTypeMirror var = atypeFactory.getAnnotatedTypeLhs(varTree);
         assert var != null : "no variable found for tree: " + varTree;
 
         if (!validateType(varTree, var)) {
             return;
         }
-
-        checkAssignability(var, varTree);
 
         if (varTree instanceof VariableTree) {
             VariableElement element = TreeUtils.elementFromDeclaration((VariableTree) varTree);
@@ -155,8 +188,10 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         commonAssignmentCheck(var, valueExp, errorKey);
     }
 
+
+
     @Override
-    protected boolean checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
+    protected void checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
         // TODO Is the copied code really needed?
         /*Copied Code Start*/
         AnnotatedDeclaredType returnType = (AnnotatedDeclaredType) constructor.getReturnType();
@@ -178,14 +213,22 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         }
         /*Copied Code End*/
 
+        // TODO fix inference counterpart, not here
+//        // CF base check disabled by InitializationVisitor
+//        // if no explicit anno it must inherited from class decl
+//        AnnotationMirror declAnno = constructor.getReturnType().getAnnotationInHierarchy(READONLY);
+//        AnnotationMirror useAnno = invocation.getAnnotationInHierarchy(READONLY);
+//        declAnno = declAnno == null ? MUTABLE : declAnno;
+//
+//        if(useAnno != null && !AnnotationUtils.areSameByName(declAnno, POLY_MUTABLE) && !isAdaptedSubtype(useAnno, declAnno)) {
+//            checker.reportError(newClassTree, "type.invalid.annotations.on.use", declAnno, useAnno);
+//        }
+
         // The immutability return qualifier of the constructor (returnType) must be supertype of the
         // constructor invocation immutability qualifier(invocation).
-        if (!atypeFactory.getTypeHierarchy().isSubtype(invocation, returnType, READONLY)) {
-            checker.report(Result.failure(
-                    "constructor.invocation.invalid", invocation, returnType), newClassTree);
-            return false;
+        if (!atypeFactory.getQualifierHierarchy().isSubtype(invocation.getAnnotationInHierarchy(READONLY), returnType.getAnnotationInHierarchy(READONLY))) {
+            checker.reportError(newClassTree, "constructor.invocation.invalid", invocation, returnType);
         }
-        return true;
     }
 
     @Override
@@ -196,9 +239,13 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         if (TreeUtils.isConstructor(node)) {
             AnnotatedDeclaredType constructorReturnType = (AnnotatedDeclaredType) executableType.getReturnType();
             if (constructorReturnType.hasAnnotation(READONLY) || constructorReturnType.hasAnnotation(POLY_MUTABLE)) {
-                checker.report(Result.failure("constructor.return.invalid", constructorReturnType), node);
+                checker.reportError(node, "constructor.return.invalid", constructorReturnType);
                 return super.visitMethod(node, p);
             }
+            // if no explicit anno it must inherit from class decl so identical
+            // => if not the same must not inherited from class decl
+            // => no need to check the source of the anno
+
         } else {
             AnnotatedDeclaredType declareReceiverType = executableType.getReceiverType();
             if (declareReceiverType != null) {
@@ -210,7 +257,7 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
                         // Below three are allowed on declared receiver types of instance methods in either @Mutable class or @Immutable class
                         && !declareReceiverType.hasAnnotation(READONLY)
                         && !declareReceiverType.hasAnnotation(POLY_MUTABLE)) {
-                    checker.report(Result.failure("method.receiver.incompatible", declareReceiverType), node);
+                    checker.reportError(node,"method.receiver.incompatible", declareReceiverType);
                 }
             }
         }
@@ -336,11 +383,11 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
 
     private void reportFieldOrArrayWriteError(Tree node, ExpressionTree variable, AnnotatedTypeMirror receiverType) {
         if (variable.getKind() == Kind.MEMBER_SELECT) {
-            checker.report(Result.failure("illegal.field.write", receiverType), TreeUtils.getReceiverTree(variable));
+            checker.reportError(TreeUtils.getReceiverTree(variable), "illegal.field.write", receiverType);
         } else if (variable.getKind() == Kind.IDENTIFIER) {
-            checker.report(Result.failure("illegal.field.write", receiverType), node);
+            checker.reportError(node, "illegal.field.write", receiverType);
         } else if (variable.getKind() == Kind.ARRAY_ACCESS) {
-            checker.report(Result.failure("illegal.array.write", receiverType), ((ArrayAccessTree)variable).getExpression());
+            checker.reportError(((ArrayAccessTree)variable).getExpression(), "illegal.array.write", receiverType);
         } else {
             throw new BugInCF("Unknown assignment variable at: ", node);
         }
@@ -349,13 +396,43 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
     @Override
     public Void visitVariable(VariableTree node, Void p) {
         VariableElement element = TreeUtils.elementFromDeclaration(node);
-        if (element != null && element.getKind() == ElementKind.FIELD) {
-            AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
+        AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(element);
+        if (element.getKind() == ElementKind.FIELD) {
             if (type.hasAnnotation(POLY_MUTABLE)) {
-                checker.report(Result.failure("field.polymutable.forbidden", element), node);
+                checker.reportError(node, "field.polymutable.forbidden", element);
             }
         }
+        // When to check:
+        // bound == Immutable, OR
+        // not FIELD, OR
+        // top anno not RDM
+        // TODO use base cf check methods
+        AnnotationMirror declAnno = atypeFactory.getTypeDeclarationBoundForMutability(type.getUnderlyingType());
+        if (declAnno != null && AnnotationUtils.areSameByName(declAnno, IMMUTABLE) ||
+                element.getKind() != ElementKind.FIELD ||
+                !type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) {
+            checkAndReportInvalidAnnotationOnUse(type, node);
+        }
         return super.visitVariable(node, p);
+    }
+
+    private void checkAndReportInvalidAnnotationOnUse(AnnotatedTypeMirror type, Tree node) {
+        AnnotationMirror useAnno = type.getAnnotationInHierarchy(READONLY);
+        // FIXME rm after poly vp
+        if (useAnno != null && AnnotationUtils.areSame(useAnno, POLY_MUTABLE)) {
+            return;
+        }
+        if (useAnno != null && !PICOTypeUtil.isImplicitlyImmutableType(type) && type.getKind() != TypeKind.ARRAY) {  // TODO: annotate the use instead of using this
+            AnnotationMirror defaultAnno = MUTABLE;
+            for (AnnotationMirror anno : atypeFactory.getTypeDeclarationBounds(atypeFactory.getAnnotatedType(node).getUnderlyingType())) {
+                if (atypeFactory.getQualifierHierarchy().isSubtype(anno, READONLY) && !AnnotationUtils.areSame(anno, READONLY)) {
+                    defaultAnno = anno;
+                }
+            }
+            if (!isAdaptedSubtype(useAnno, defaultAnno)) {
+                checker.reportError(node, "type.invalid.annotations.on.use", defaultAnno, useAnno);
+            }
+        }
     }
 
     @Override
@@ -375,77 +452,29 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
         if (!(type.hasAnnotation(IMMUTABLE) || type.hasAnnotation(MUTABLE) ||
         type.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) || type.hasAnnotation(POLY_MUTABLE))) {
-            checker.report(Result.failure("pico.new.invalid", type), node);
+            checker.reportError(node, "pico.new.invalid", type);
         }
     }
 
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         super.visitMethodInvocation(node, p);
-        ParameterizedMethodType mfuPair =
+        ParameterizedExecutableType mfuPair =
                 atypeFactory.methodFromUse(node);
-        AnnotatedExecutableType invokedMethod = mfuPair.methodType;
+        AnnotatedExecutableType invokedMethod = mfuPair.executableType;
         ExecutableElement invokedMethodElement = invokedMethod.getElement();
         // Only check invocability if it's super call, as non-super call is already checked
         // by super implementation(of course in both cases, invocability is not checked when
         // invoking static methods)
-        if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperCall(node)) {
+        if (!ElementUtils.isStatic(invokedMethodElement) && TreeUtils.isSuperConstructorCall(node)) {
             checkMethodInvocability(invokedMethod, node);
         }
         return null;
     }
 
-    // TODO Find a better way to inject saveFbcViolatedMethods instead of copying lots of code from super method
-    @Override
-    protected void checkMethodInvocability(AnnotatedExecutableType method, MethodInvocationTree node) {
-        // Check subclass constructor calls the correct super class constructor: mutable calls mutable; immutable
-        // calls immutable; any calls receiverdependantmutable
-        if (method.getElement().getKind() == ElementKind.CONSTRUCTOR) {
-            AnnotatedTypeMirror subClassConstructorReturnType = atypeFactory.getReceiverType(node);
-            AnnotatedTypeMirror superClassConstructorReturnType = method.getReturnType();
-            // superClassConstructorReturnType is already the result of viewpoint adaptation, so subClassConstructorReturnType <:
-            // superClassConstructorReturnType is enough to determine the super constructor invocation is valid or not
-            if (!atypeFactory.getTypeHierarchy().isSubtype(subClassConstructorReturnType, superClassConstructorReturnType, READONLY)) {
-                checker.report(
-                        Result.failure(
-                                "super.constructor.invocation.incompatible", subClassConstructorReturnType, superClassConstructorReturnType), node);
-            }
-            return;
-        }
-
-        /*Copied Code Starts*/
-        if (method.getReceiverType() == null) {
-            // Static methods don't have a receiver.
-            return;
-        }
-
-        AnnotatedTypeMirror methodReceiver = method.getReceiverType().getErased();
-        AnnotatedTypeMirror treeReceiver = methodReceiver.shallowCopy(false);
-        AnnotatedTypeMirror rcv = atypeFactory.getReceiverType(node);
-
-        treeReceiver.addAnnotations(rcv.getEffectiveAnnotations());
-
-        if (!skipReceiverSubtypeCheck(node, methodReceiver, rcv)
-                && !atypeFactory.getTypeHierarchy().isSubtype(treeReceiver, methodReceiver)) {
-            checker.report(
-                    Result.failure(
-                            "method.invocation.invalid",
-                            TreeUtils.elementFromUse(node),
-                            treeReceiver.toString(),
-                            methodReceiver.toString()),
-                    node);
-            /*Difference Starts*/
-            if (shouldOutputFbcError) {
-                saveFbcViolatedMethods(TreeUtils.elementFromUse(node), treeReceiver.toString(), methodReceiver.toString());
-            }
-            /*Different Ends*/
-        }
-        /*Copied Code Ends*/
-    }
-
     private void saveFbcViolatedMethods(ExecutableElement method, String actualReceiver, String declaredReceiver) {
         if (actualReceiver.contains("@UnderInitialization") && declaredReceiver.contains("@Initialized")) {
-            String key = ElementUtils.enclosingClass(method) + "#" + method;
+            String key = ElementUtils.enclosingTypeElement(method) + "#" + method;
             Integer times = fbcViolatedMethods.get(key) == null ? 1 : fbcViolatedMethods.get(key) + 1;
             fbcViolatedMethods.put(key, times);
         }
@@ -499,66 +528,118 @@ public class PICOVisitor extends InitializationVisitor<PICOAnnotatedTypeFactory,
         AnnotatedDeclaredType bound = PICOTypeUtil.getBoundTypeOfTypeDeclaration(typeElement, atypeFactory);
         // Has to be either @Mutable, @ReceiverDependantMutable or @Immutable, nothing else
         if (!bound.hasAnnotation(MUTABLE) && !bound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) && !bound.hasAnnotation(IMMUTABLE)) {
-            checker.report(Result.failure("class.bound.invalid", bound), node);
+            checker.reportError(node, "class.bound.invalid", bound);
             return;// Doesn't process the class tree anymore
         }
-        if (!checkCompatabilityBetweenBoundAndSuperClassesBounds(node, typeElement, bound)) {
-            return;
-        }
 
-        if (!checkCompatabilityBetweenBoundAndExtendsImplements(node, bound)) {
-            return;
-        }
+        // Issue warnings on implicit shallow immutable:
+        // Condition:
+        // * Class decl == Immutable
+        // * Member is field
+        // * Member's declared bound == Mutable
+        // * Member's use anno == null
+        if (bound.hasAnnotation(IMMUTABLE)) {
+            for(Tree member : node.getMembers()) {
+                if(member.getKind() == Kind.VARIABLE) {
+                    Element ele = TreeUtils.elementFromTree(member);
+                    assert ele != null;
+                    // fromElement will not apply defaults, if no explicit anno exists in code, mirror have no anno
+                    AnnotatedTypeMirror noDefaultMirror = atypeFactory.fromElement(ele);
+                    TypeMirror ty = ele.asType();
+                    if (ty.getKind() == TypeKind.TYPEVAR) {
+                        ty = TypesUtils.upperBound(ty);
+                    }
+                    if (AnnotationUtils.containsSameByName(
+                            atypeFactory.getTypeDeclarationBounds(ty), MUTABLE)
+                            && !noDefaultMirror.isAnnotatedInHierarchy(READONLY)) {
+                        checker.reportWarning(member, "implicit.shallow.immutable");
+                    }
 
-        // Reach this point iff 1) bound annotation is one of mutable, rdm or immutable;
-        // 2) bound is compatible with bounds on super types. Only continue if bound check
-        // passed. Reaching here already means having passed bound check.
-        super.processClassTree(node);
-    }
-
-    private boolean checkCompatabilityBetweenBoundAndSuperClassesBounds(ClassTree node, TypeElement typeElement, AnnotatedDeclaredType bound) {
-        // Must have compatible bound annotation as the direct super types
-        List<AnnotatedDeclaredType> superBounds = PICOTypeUtil.getBoundTypesOfDirectSuperTypes(typeElement, atypeFactory);
-        for (AnnotatedDeclaredType superBound : superBounds) {
-            // If annotation on super bound is @ReceiverDependantMutable, then any valid bound is permitted.
-            if (superBound.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE)) continue;
-            // super bound is either @Mutable or @Immutable. Must be the subtype of the corresponding super bound
-            if (!atypeFactory.getQualifierHierarchy().isSubtype(
-                    bound.getAnnotationInHierarchy(READONLY), superBound.getAnnotationInHierarchy(READONLY))) {
-                checker.report(Result.failure("subclass.bound.incompatible", bound, superBound), node);
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean checkCompatabilityBetweenBoundAndExtendsImplements(ClassTree node, AnnotatedDeclaredType bound) {
-        boolean hasSame;
-        Tree ext = node.getExtendsClause();
-        if (ext != null) {
-            AnnotatedTypeMirror extendsType = atypeFactory.getAnnotatedType(ext);
-            hasSame = bound.getAnnotations().size() == extendsType.getAnnotations().size()
-                        && AnnotationUtils.areSame(extendsType.getAnnotationInHierarchy(READONLY),
-                                                    bound.getAnnotationInHierarchy(READONLY));
-            if (!hasSame) {
-                checker.report(Result.failure("bound.extends.incompatabile"), node);
-                return false;
-            }
-        }
-
-        List<? extends Tree> impls = node.getImplementsClause();
-        if (impls != null) {
-            for (Tree im : impls) {
-                AnnotatedTypeMirror implementsType = atypeFactory.getAnnotatedType(im);
-                hasSame = bound.getAnnotations().size() == implementsType.getAnnotations().size()
-                        && AnnotationUtils.areSame(implementsType.getAnnotationInHierarchy(READONLY),
-                                                    bound.getAnnotationInHierarchy(READONLY));
-                if (!hasSame) {
-                    checker.report(Result.failure("bound.implements.incompatabile"), node);
-                    return false;
                 }
             }
         }
-        return true;
+
+//        // field of mutable class cannot use RDM in immutable class
+//        // Condition:
+//        //  * Class decl == Immutable
+//        //  * Member is field (variable)
+//        //  * Member's declared bound == Mutable
+//        //  * Member's use anno == RDM
+//        if (bound.hasAnnotation(IMMUTABLE)) {
+//            for(Tree member : node.getMembers()) {
+//                if(member.getKind() == Kind.VARIABLE) {
+//                    AnnotatedTypeMirror fieldAtm = atypeFactory.getAnnotatedType(member);
+//                    if (fieldAtm.hasAnnotation(RECEIVER_DEPENDANT_MUTABLE) &&
+//                            AnnotationUtils.containsSameByName(atypeFactory.getTypeDeclarationBounds(fieldAtm.getUnderlyingType()), MUTABLE)) {
+//                        checker.reportError(member, "test-key-1");
+//                    }
+//                }
+//            }
+//        }
+        super.processClassTree(node);
+    }
+
+    /**
+     * The invoked constructor’s return type adapted to the invoking constructor’s return type must
+     * be a supertype of the invoking constructor’s return type. Since InitializationChecker does not
+     * apply any type rules at here, only READONLY hierarchy is checked.
+     *
+     * @param superCall the super invocation, e.g., "super()"
+     * @param errorKey the error key, e.g., "super.invocation.invalid"
+     */
+    @Override
+    protected void checkThisOrSuperConstructorCall(
+            MethodInvocationTree superCall, @CompilerMessageKey String errorKey) {
+        MethodTree enclosingMethod = methodTree;
+        AnnotatedTypeMirror superType = atypeFactory.getAnnotatedType(superCall);
+        AnnotatedExecutableType constructorType = atypeFactory.getAnnotatedType(enclosingMethod);
+        AnnotationMirror superTypeMirror = superType.getAnnotationInHierarchy(READONLY);
+        AnnotationMirror constructorTypeMirror =
+                constructorType.getReturnType().getAnnotationInHierarchy(READONLY);
+        if (!atypeFactory
+                .getQualifierHierarchy()
+                .isSubtype(constructorTypeMirror, superTypeMirror)) {
+            checker.reportError(superCall, errorKey, constructorTypeMirror, superCall, superTypeMirror);
+        }
+        super.checkThisOrSuperConstructorCall(superCall, errorKey);
+    }
+
+    @Override
+    protected CastSafeKind isSafeDowncast(
+            AnnotatedTypeMirror castType, AnnotatedTypeMirror exprType) {
+        Set<AnnotationMirror> castAnnos = castType.getEffectiveAnnotations();
+        Set<AnnotationMirror> exprAnnos = exprType.getEffectiveAnnotations();
+        QualifierHierarchy qualifierHierarchy = atypeFactory.getQualifierHierarchy();
+
+        if (!qualifierHierarchy.isComparable(castAnnos, exprAnnos)) {
+            return CastSafeKind.NOT_DOWNCAST;
+        }
+
+        final TypeKind castTypeKind = castType.getKind();
+
+        if (castTypeKind == TypeKind.DECLARED) {
+            AnnotatedDeclaredType castDeclared = (AnnotatedDeclaredType) castType;
+            AnnotationMirror bound =
+                    qualifierHierarchy.findAnnotationInHierarchy(atypeFactory.getTypeDeclarationBounds(castDeclared.getUnderlyingType()), READONLY);
+
+            if (AnnotationUtils.areSame(castDeclared.getAnnotationInHierarchy(READONLY), bound)) {
+                return CastSafeKind.SAFE;
+            }
+        }
+        return CastSafeKind.WARNING;
+    }
+
+    @Override
+    protected void commonAssignmentCheck(AnnotatedTypeMirror varType,
+                                         AnnotatedTypeMirror valueType, Tree valueTree,
+                                         String errorKey, Object... extraArgs) {
+        // TODO: WORKAROUND: anonymous class handling
+        if (TypesUtils.isAnonymous(valueType.getUnderlyingType())) {
+            AnnotatedTypeMirror newValueType = varType.deepCopy();
+            newValueType.replaceAnnotation(valueType.getAnnotationInHierarchy(READONLY));
+            valueType = newValueType;
+        }
+        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
+
     }
 }

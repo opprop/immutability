@@ -2,7 +2,7 @@ import qual.*;
 
 @ReceiverDependantMutable
 class A {
-    @Assignable B b;
+    @Assignable @Mutable B b;
     @ReceiverDependantMutable A() {}
     void bar(@Readonly A this) {}
 }

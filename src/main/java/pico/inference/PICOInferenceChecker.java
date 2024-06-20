@@ -1,11 +1,6 @@
 package pico.inference;
 
-import checkers.inference.BaseInferrableChecker;
-import checkers.inference.InferenceAnnotatedTypeFactory;
-import checkers.inference.InferenceChecker;
-import checkers.inference.InferenceVisitor;
-import checkers.inference.InferrableChecker;
-import checkers.inference.SlotManager;
+import checkers.inference.*;
 import checkers.inference.model.ConstraintManager;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.framework.source.SupportedOptions;
@@ -14,7 +9,7 @@ import pico.typecheck.PICOAnnotationMirrorHolder;
 /**
  * Main entry class
  */
-@SupportedOptions({"upcast", "anycast", "comparablecast", "optimalSolution"})
+@SupportedOptions({"upcast", "anycast", "comparablecast", "optimalSolution", "useOptimisticUncheckedDefaults"})
 public class PICOInferenceChecker extends BaseInferrableChecker {
 
     @Override
@@ -24,7 +19,7 @@ public class PICOInferenceChecker extends BaseInferrableChecker {
     }
 
     @Override
-    public BaseAnnotatedTypeFactory createRealTypeFactory() {
+    public BaseInferenceRealTypeFactory createRealTypeFactory(boolean infer) {
         return new PICOInferenceRealTypeFactory(this, true);
     }
 

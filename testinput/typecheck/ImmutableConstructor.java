@@ -36,13 +36,11 @@ public class ImmutableConstructor {
                            @ReceiverDependantMutable Object po, @Immutable Object io) {
         new @Immutable ImmutableConstructor(io, io);
 
-        // :: error: (type.invalid.annotations.on.use)
+        // :: error: (constructor.invocation.invalid)
         new @Mutable ImmutableConstructor(mo, io);
 
-        // This no longer is error now(?). Because instantiating @Immutable constructor
-        // as @PolyImmutable(PolymorphicQualifier) automatically resolves @PolyImmutable
-        // to @Immutable, which might be a good thing
-        // :: error: (type.invalid.annotations.on.use)
+        // constructor.invocation.invalid propgates before annotation invalid messages and stops
+        // :: error: (constructor.invocation.invalid)
         new @ReceiverDependantMutable ImmutableConstructor(po, io);
 
         // :: error: (constructor.invocation.invalid) :: error: (pico.new.invalid)

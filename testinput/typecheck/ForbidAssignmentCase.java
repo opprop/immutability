@@ -36,6 +36,7 @@ public class ForbidAssignmentCase {
         // But allow below:
         ro.f = new @Immutable Object();
     }
+
     static void ImmutableObjectGetMutableAlias() {
         @Mutable ForbidAssignmentCase mo = new @Mutable ForbidAssignmentCase();
         @Readonly ForbidAssignmentCase ro = mo;
