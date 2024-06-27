@@ -12,17 +12,17 @@ else
   export JAVA_HOME=${JAVA_HOME:-$(dirname $(dirname $(readlink -f $(which javac))))}
 fi
 
-if [ -d "/tmp/plume-scripts" ] ; then
-  git -C /tmp/plume-scripts pull -q
+if [ -d "/tmp/git-scripts" ] ; then
+  git -C /tmp/git-scripts pull -q
 else
-  git -C /tmp clone --depth 1 -q https://github.com/eisop-plume-lib/plume-scripts.git
+  git -C /tmp clone --depth 1 -q https://github.com/eisop-plume-lib/git-scripts.git
 fi
 
 
 export CFI="${CFI:-$(pwd -P)/../checker-framework-inference}"
 
 ## Build Checker Framework Inference (which also clones & builds dependencies)
-/tmp/plume-scripts/git-clone-related opprop checker-framework-inference ${CFI}
+/tmp/git-scripts/git-clone-related opprop checker-framework-inference ${CFI}
 (cd $CFI && ./.ci-build-without-test.sh)
 
 ./gradlew assemble
